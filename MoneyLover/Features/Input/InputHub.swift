@@ -15,6 +15,9 @@ struct InputHub: View {
             NavigationLink(value: InputRoute.transfer) {
                 Label("Transfer", systemImage: "arrow.left.arrow.right")
             }
+            NavigationLink(value: InputRoute.voice) {
+                Label("Voice expense", systemImage: "mic.fill")
+            }
             NavigationLink(value: InputRoute.reconcile) {
                 Label("Update balances", systemImage: "checkmark.circle.badge.questionmark")
             }
