@@ -1,0 +1,46 @@
+name: MoneyLover
+options:
+  bundleIdPrefix: com.hnkhoi
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    DEVELOPMENT_TEAM: ""
+    GENERATE_INFOPLIST_FILE: YES
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.1.0"
+targets:
+  MoneyLover:
+    type: application
+    platform: iOS
+    sources:
+      - path: MoneyLover
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hnkhoi.moneylover
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+  MoneyLoverTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: MoneyLoverTests
+    dependencies:
+      - target: MoneyLover
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  MoneyLover:
+    build:
+      targets:
+        MoneyLover: all
+        MoneyLoverTests: [test]
+    test:
+      targets:
+        - MoneyLoverTests

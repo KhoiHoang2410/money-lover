@@ -1,0 +1,81 @@
+import SwiftUI
+
+/// The Config tab: a hub routing to every settings sub-page via `navigationDestination(for:)`.
+struct ConfigScreen: View {
+    @Environment(\.modelContext) private var context
+    @State private var onboarding = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Money") {
+                    NavigationLink(value: ConfigRoute.sources) {
+                        Label("Sources & balances", systemImage: "building.columns.fill")
+                    }
+                    NavigationLink(value: ConfigRoute.envelopes) {
+                        Label("Envelopes & template", systemImage: "tray.full.fill")
+                    }
+                    NavigationLink(value: ConfigRoute.rates) {
+                        Label("Rates & prices", systemImage: "dollarsign.arrow.circlepath")
+                    }
+                    NavigationLink(value: ConfigRoute.monthEnd) {
+                        Label("Run month-end sweep", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                }
+
+                Section("Insights") {
+                    NavigationLink(value: ChartsDestination.charts) {
+                        Label("Charts & trends", systemImage: "chart.line.uptrend.xyaxis")
+                    }
+                    NavigationLink(value: ConfigRoute.advice) {
+                        Label("Advice", systemImage: "lightbulb.fill")
+                    }
+                }
+
+                Section("App") {
+                    NavigationLink(value: ConfigRoute.appearance) {
+                        Label("Appearance", systemImage: "paintpalette.fill")
+                    }
+                    Button {
+                        onboarding = true
+                    } label: {
+                        Label("Set up balances", systemImage: "wallet.bifold.fill")
+                    }
+                }
+
+                #if DEBUG
+                Section("Debug") {
+                    Button("Seed sample data", systemImage: "wand.and.stars") {
+                        SampleData.seed(into: context)
+                    }
+                    Button("Clear all data", systemImage: "trash", role: .destructive) {
+                        SampleData.clear(into: context)
+                    }
+                }
+                #endif
+            }
+            .navigationTitle("Config")
+            .navigationDestination(for: ConfigRoute.self) { route in
+                switch route {
+                case .sources: SourcesScreen()
+                case .envelopes: EnvelopesScreen()
+                case .monthEnd: MonthEndScreen()
+                case .rates: RatesScreen()
+                case .advice: AdviceScreen()
+                case .appearance: AppearanceScreen()
+                }
+            }
+            .navigationDestination(for: ChartsDestination.self) { _ in
+                ChartsScreen()
+            }
+            .sheet(isPresented: $onboarding) {
+                OnboardingScreen()
+            }
+        }
+    }
+}
+
+#Preview {
+    ConfigScreen()
+        .modelContainer(for: AppSchema.models, inMemory: true)
+}

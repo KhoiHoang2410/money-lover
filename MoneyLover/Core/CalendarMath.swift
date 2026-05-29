@@ -1,0 +1,22 @@
+import Foundation
+
+/// Per-day cash-flow math for the Calendar. Pure; inject the calendar for testability.
+enum CalendarMath {
+    /// Net (+income, −expense, ±adjustment) per day-of-month for the given month, in VND.
+    /// Transfers are internal and excluded; informational Backfill entries are excluded too
+    /// (they enrich history but never the computed totals).
+    static func dailyNet(transactions: [Transaction], year: Int, month: Int, calendar: Calendar = .current) -> [Int: Money] {
+        var totals: [Int: Int] = [:]
+        for transaction in transactions where transaction.affectsBalance {
+            let comps = calendar.dateComponents([.year, .month, .day], from: transaction.date)
+            guard comps.year == year, comps.month == month, let day = comps.day else { continue }
+            switch transaction.kind {
+            case .expense: totals[day, default: 0] -= transaction.amount.minorUnits
+            case .income: totals[day, default: 0] += transaction.amount.minorUnits
+            case .adjustment: totals[day, default: 0] += transaction.amount.minorUnits
+            case .transfer: continue
+            }
+        }
+        return totals.mapValues { Money(minorUnits: $0, currency: .vnd) }
+    }
+}
