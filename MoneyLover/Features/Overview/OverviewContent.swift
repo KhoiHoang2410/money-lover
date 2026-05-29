@@ -19,26 +19,48 @@ struct OverviewContent: View {
                     .padding(.top, Theme.Spacing.xl)
                 }
 
-                section("Holdings", store.holdings)
-                section("Accounts", store.accounts)
-                section("Credit cards", store.cards)
+                section("Holdings", store.holdings, tappable: false)
+                section("Accounts", store.accounts, tappable: true)
+                goalsSection
+                section("Credit cards", store.cards, tappable: true)
             }
         }
     }
 
     @ViewBuilder
-    private func section(_ title: String, _ sources: [Source]) -> some View {
+    private func section(_ title: String, _ sources: [Source], tappable: Bool) -> some View {
         if !sources.isEmpty {
-            Text(title)
-                .font(.footnote).bold()
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal, Theme.Spacing.xl)
-                .padding(.top, Theme.Spacing.sm)
+            sectionHeader(title)
             ForEach(sources) { source in
-                SourceRow(source: source, balance: store.balance(for: source), censored: censored)
+                let row = SourceRow(source: source, balance: store.displayValue(for: source), censored: censored)
+                if tappable {
+                    NavigationLink(value: source) { row }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, Theme.Spacing.xl)
+                } else {
+                    row.padding(.horizontal, Theme.Spacing.xl)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var goalsSection: some View {
+        if !store.fundedGoals.isEmpty {
+            sectionHeader("Goals")
+            ForEach(store.fundedGoals) { goal in
+                GoalAssetRow(goal: goal, balance: store.balance(for: goal), censored: censored)
                     .padding(.horizontal, Theme.Spacing.xl)
             }
         }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote).bold()
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.horizontal, Theme.Spacing.xl)
+            .padding(.top, Theme.Spacing.sm)
     }
 }

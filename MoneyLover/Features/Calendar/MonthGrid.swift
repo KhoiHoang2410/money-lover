@@ -35,8 +35,10 @@ struct MonthGrid: View {
                 ForEach(1...store.daysInMonth, id: \.self) { day in
                     let net = store.dailyNet[day]
                     if net != nil {
-                        NavigationLink(value: DayRef(year: store.year, month: store.month, day: day)) {
-                            DayCell(day: day, net: net)
+                        Button {
+                            store.selectedDay = (store.selectedDay == day) ? nil : day
+                        } label: {
+                            DayCell(day: day, net: net, isSelected: store.selectedDay == day)
                         }
                         .buttonStyle(.plain)
                     } else {
@@ -45,7 +47,6 @@ struct MonthGrid: View {
                 }
             }
             .padding(.horizontal, Theme.Spacing.md)
-            Spacer()
         }
     }
 }

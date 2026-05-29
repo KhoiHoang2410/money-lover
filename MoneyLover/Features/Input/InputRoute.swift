@@ -5,6 +5,7 @@ enum InputRoute: Hashable {
     case expense
     case income
     case transfer
+    case voice
     case reconcile
     case backfill
 }

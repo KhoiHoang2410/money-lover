@@ -26,27 +26,23 @@ struct GoalDetailScreen: View {
                     }
                 }
                 Section("Schedule") {
-                    ForEach(goal.schedule) { contribution in
-                        LabeledContent("\(monthName(contribution.month)) \(String(contribution.year))") {
-                            Text(contribution.amount.amount, format: .currency(code: "VND"))
-                        }
+                    let status = store.scheduleStatus(for: goal)
+                    ForEach(goal.schedule) { line in
+                        GoalScheduleRow(line: line, status: status[line.id] ?? .pending)
                     }
                 }
             }
             .navigationTitle(goal.name)
             .toolbar {
-                Button("Add contribution", systemImage: "plus") { addingContribution = true }
+                Button("Add money", systemImage: "plus") { addingContribution = true }
             }
             .sheet(isPresented: $addingContribution) {
-                ContributionSheet { store.addContribution(goalID: goalID, amount: $0) }
+                ContributionSheet(accounts: store.fundingAccounts) { amount, accountID in
+                    store.addContribution(goalID: goalID, amount: amount, fromAccountID: accountID)
+                }
             }
         } else {
             ContentUnavailableView("Goal not found", systemImage: "questionmark.circle")
         }
-    }
-
-    private func monthName(_ month: Int) -> String {
-        let symbols = Calendar.current.shortMonthSymbols
-        return symbols[max(0, min(symbols.count - 1, month - 1))]
     }
 }

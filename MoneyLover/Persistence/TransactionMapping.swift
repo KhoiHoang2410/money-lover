@@ -17,6 +17,7 @@ extension TransactionRecord {
             feeCurrencyRaw: t.fee?.currency.rawValue,
             note: t.note,
             envelopeID: t.envelopeID,
+            goalID: t.goalID,
             affectsBalance: t.affectsBalance
         )
     }
@@ -49,6 +50,7 @@ extension TransactionRecord {
             fee: fee,
             note: note,
             envelopeID: envelopeID,
+            goalID: goalID,
             affectsBalance: affectsBalance
         )
     }

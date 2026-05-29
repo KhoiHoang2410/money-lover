@@ -7,7 +7,6 @@ enum AppSchema {
         TransactionRecord.self,
         EnvelopeRecord.self,
         RateRecord.self,
-        GoalRecord.self,
-        ContributionRecord.self
+        GoalRecord.self
     ]
 }

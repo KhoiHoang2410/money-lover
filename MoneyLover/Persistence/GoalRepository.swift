@@ -20,34 +20,42 @@ final class GoalRepository {
         try context.save()
     }
 
+    /// Deletes a Goal and reverses its funding: the `.transfer` Contributions are removed, so the
+    /// money returns to the Accounts they debited (ADR-0007 — cancelling a Goal un-earmarks it).
     func delete(id: UUID) throws {
         let goals = FetchDescriptor<GoalRecord>(predicate: #Predicate { $0.id == id })
         for record in try context.fetch(goals) { context.delete(record) }
-        let contributions = FetchDescriptor<ContributionRecord>(predicate: #Predicate { $0.goalID == id })
-        for record in try context.fetch(contributions) { context.delete(record) }
+        let funding = FetchDescriptor<TransactionRecord>(predicate: #Predicate { $0.goalID == id })
+        for record in try context.fetch(funding) { context.delete(record) }
         try context.save()
     }
 
-    func addContribution(goalID: UUID, amount: Money, date: Date) throws {
-        context.insert(ContributionRecord(id: UUID(), goalID: goalID, date: date, amountMinorUnits: amount.minorUnits))
+    /// Funds a Goal: a `.transfer` from a VND Account to the Goal (Account ↓, Goal ↑).
+    func addContribution(goalID: UUID, amount: Money, fromAccountID: UUID, date: Date, note: String = "") throws {
+        let transfer = Transaction(
+            date: date,
+            kind: .transfer,
+            amount: amount,
+            sourceID: fromAccountID,
+            note: note,
+            goalID: goalID
+        )
+        context.insert(TransactionRecord(domain: transfer))
         try context.save()
     }
 
-    /// Total contributed toward a goal, in VND.
+    /// Total contributed toward a goal, in VND — the sum of its funding transfers.
     func totalContributed(goalID: UUID) throws -> Money {
-        let descriptor = FetchDescriptor<ContributionRecord>(predicate: #Predicate { $0.goalID == goalID })
-        let total = try context.fetch(descriptor).reduce(0) { $0 + $1.amountMinorUnits }
-        return Money(minorUnits: total, currency: .vnd)
+        GoalTracker.contributed(goalID: goalID, transactions: try fundingTransactions(goalID: goalID))
     }
 
     /// All contributions toward a goal, oldest-first, as domain values.
     func contributions(goalID: UUID) throws -> [Contribution] {
-        let descriptor = FetchDescriptor<ContributionRecord>(
-            predicate: #Predicate { $0.goalID == goalID },
-            sortBy: [SortDescriptor(\.date)]
-        )
-        return try context.fetch(descriptor).map {
-            Contribution(id: $0.id, goalID: $0.goalID, date: $0.date, amount: Money(minorUnits: $0.amountMinorUnits, currency: .vnd))
-        }
+        GoalTracker.contributions(goalID: goalID, transactions: try fundingTransactions(goalID: goalID))
+    }
+
+    private func fundingTransactions(goalID: UUID) throws -> [Transaction] {
+        let descriptor = FetchDescriptor<TransactionRecord>(predicate: #Predicate { $0.goalID == goalID })
+        return try context.fetch(descriptor).compactMap { $0.toDomain() }
     }
 }

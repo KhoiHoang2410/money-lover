@@ -4,6 +4,7 @@ import SwiftUI
 struct DayCell: View {
     let day: Int
     let net: Money?
+    var isSelected: Bool = false
 
     var body: some View {
         VStack(spacing: 2) {
@@ -20,5 +21,10 @@ struct DayCell: View {
         .frame(maxWidth: .infinity, minHeight: 46, alignment: .topLeading)
         .padding(4)
         .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 10))
+        .overlay {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.Palette.pink, lineWidth: 2)
+            }
+        }
     }
 }

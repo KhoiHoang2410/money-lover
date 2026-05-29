@@ -13,7 +13,10 @@ struct GoalsScreen: View {
                 } else {
                     ProgressView()
                         .task {
-                            let newStore = GoalsStore(repo: GoalRepository(context: context))
+                            let newStore = GoalsStore(
+                                repo: GoalRepository(context: context),
+                                sources: SourceRepository(context: context)
+                            )
                             newStore.load()
                             store = newStore
                         }

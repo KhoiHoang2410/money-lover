@@ -10,7 +10,10 @@ struct CalendarScreen: View {
         NavigationStack {
             Group {
                 if let store {
-                    MonthGrid(store: store, pickingMonth: $pickingMonth)
+                    VStack(spacing: 0) {
+                        MonthGrid(store: store, pickingMonth: $pickingMonth)
+                        CalendarDayDetail(store: store)
+                    }
                 } else {
                     ProgressView()
                         .task {
@@ -31,11 +34,6 @@ struct CalendarScreen: View {
                     NavigationLink(value: ChartsDestination.charts) {
                         Label("Charts", systemImage: "chart.line.uptrend.xyaxis")
                     }
-                }
-            }
-            .navigationDestination(for: DayRef.self) { ref in
-                if let store {
-                    DayDetailScreen(store: store, ref: ref)
                 }
             }
             .navigationDestination(for: ChartsDestination.self) { _ in
