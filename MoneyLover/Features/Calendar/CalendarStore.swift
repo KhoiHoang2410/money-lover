@@ -8,8 +8,10 @@ final class CalendarStore {
     private let repo: TransactionRepository
     private let calendar = Calendar.current
     private(set) var transactions: [Transaction] = []
-    var year: Int
-    var month: Int
+    var year: Int { didSet { selectedDay = nil } }
+    var month: Int { didSet { selectedDay = nil } }
+    /// The day whose detail is shown inline below the grid; nil means none picked.
+    var selectedDay: Int?
     var errorMessage: String?
 
     init(repo: TransactionRepository, year: Int, month: Int) {

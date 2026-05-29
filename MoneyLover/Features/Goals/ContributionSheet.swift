@@ -1,11 +1,15 @@
 import SwiftUI
 
-/// Sheet to record a contribution toward a goal.
+/// Sheet to fund a goal: an amount transferred from a chosen VND Account (ADR-0007).
 struct ContributionSheet: View {
-    let onSave: (Money) -> Void
+    let accounts: [Source]
+    let onSave: (_ amount: Money, _ fromAccountID: UUID) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var amountMajor: Decimal = 0
+    @State private var fromAccountID: UUID?
+
+    private var canSave: Bool { amountMajor > 0 && fromAccountID != nil }
 
     var body: some View {
         NavigationStack {
@@ -15,16 +19,28 @@ struct ContributionSheet: View {
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                 }
+                Picker("From", selection: $fromAccountID) {
+                    Text("Select…").tag(UUID?.none)
+                    ForEach(accounts) { account in
+                        Text(account.name).tag(Optional(account.id))
+                    }
+                }
+                if accounts.isEmpty {
+                    Text("Add a VND account first to fund a goal.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .navigationTitle("Add contribution")
+            .navigationTitle("Add money")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        onSave(Money(major: amountMajor, currency: .vnd))
+                        guard let fromAccountID else { return }
+                        onSave(Money(major: amountMajor, currency: .vnd), fromAccountID)
                         dismiss()
                     }
-                    .disabled(amountMajor <= 0)
+                    .disabled(!canSave)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: dismiss.callAsFunction)

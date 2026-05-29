@@ -17,6 +17,7 @@ final class TransactionRecord {
     var feeCurrencyRaw: String?
     var note: String
     var envelopeID: UUID?
+    var goalID: UUID?
     var affectsBalance: Bool
 
     init(
@@ -33,6 +34,7 @@ final class TransactionRecord {
         feeCurrencyRaw: String? = nil,
         note: String,
         envelopeID: UUID?,
+        goalID: UUID? = nil,
         affectsBalance: Bool
     ) {
         self.id = id
@@ -48,6 +50,7 @@ final class TransactionRecord {
         self.feeCurrencyRaw = feeCurrencyRaw
         self.note = note
         self.envelopeID = envelopeID
+        self.goalID = goalID
         self.affectsBalance = affectsBalance
     }
 }

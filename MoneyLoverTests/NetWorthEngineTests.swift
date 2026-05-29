@@ -26,4 +26,17 @@ import Foundation
         let nw = NetWorthEngine.compute(entries: [], rates: rates)
         #expect(nw.asset.isZero && nw.debt.isZero && nw.net.isZero)
     }
+
+    @Test func goalBalancesCountAsAsset() {
+        // Funding a goal moves money from an Account to a Goal: net worth is unchanged.
+        // Before: account holds 100M. After: account 60M + goal 40M = same 100M asset.
+        let mb = Source(name: "MB", kind: .account, currency: .vnd, openingBalance: .zero(.vnd), iconName: "b")
+        let entries: [(source: Source, balance: Money)] = [(mb, Money(minorUnits: 60_000_000, currency: .vnd))]
+        let nw = NetWorthEngine.compute(
+            entries: entries, rates: rates,
+            goalBalances: [Money(minorUnits: 40_000_000, currency: .vnd)]
+        )
+        #expect(nw.asset == Money(minorUnits: 100_000_000, currency: .vnd))
+        #expect(nw.net == Money(minorUnits: 100_000_000, currency: .vnd))
+    }
 }

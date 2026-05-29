@@ -25,11 +25,12 @@ enum SampleData {
             let wiseSGD = Source(name: "Wise SGD", kind: .account, currency: .sgd, openingBalance: Money(minorUnits: 2_400_00, currency: .sgd), iconName: "globe", logoAsset: "wise")
             let wiseUSD = Source(name: "Wise USD", kind: .account, currency: .usd, openingBalance: Money(minorUnits: 1_100_00, currency: .usd), iconName: "globe", logoAsset: "wise")
             let cash = Source(name: "Cash", kind: .account, currency: .vnd, openingBalance: vnd(1_500_000), iconName: "wallet.bifold.fill")
+            let savings = Source(name: "Savings", kind: .account, currency: .vnd, openingBalance: vnd(520_000_000), iconName: "banknote.fill")
             let gold = Source(name: "Gold SJC", kind: .holding, currency: .vnd, openingBalance: .zero(.vnd), iconName: "seal.fill", holding: HoldingInfo(quantity: 5, unit: .chi))
             let fpt = Source(name: "FPT", kind: .holding, currency: .vnd, openingBalance: .zero(.vnd), iconName: "chart.line.uptrend.xyaxis", holding: HoldingInfo(quantity: 500, unit: .shares, ticker: "FPT"))
             let vpCredit = Source(name: "VPBank Credit", kind: .creditCard, currency: .vnd, openingBalance: vnd(-18_300_000), iconName: "creditcard.fill")
             let mbCredit = Source(name: "MBBank Credit", kind: .creditCard, currency: .vnd, openingBalance: vnd(-4_000_000), iconName: "creditcard.fill")
-            for source in [mb, vp, vib, wiseSGD, wiseUSD, cash, gold, fpt, vpCredit, mbCredit] {
+            for source in [mb, vp, vib, wiseSGD, wiseUSD, cash, savings, gold, fpt, vpCredit, mbCredit] {
                 try sourcesRepo.add(source)
             }
 
@@ -70,9 +71,9 @@ enum SampleData {
             let travel = Goal(name: "Travel", iconName: "airplane", target: vnd(80_000_000), targetDate: daysAgo(-200),
                               schedule: (1...8).map { sched(2026, $0, 10) })
             for goal in [house, car, travel] { try goalsRepo.add(goal) }
-            try goalsRepo.addContribution(goalID: house.id, amount: vnd(320_000_000), date: daysAgo(10))
-            try goalsRepo.addContribution(goalID: car.id, amount: vnd(120_000_000), date: daysAgo(10))
-            try goalsRepo.addContribution(goalID: travel.id, amount: vnd(62_000_000), date: daysAgo(10))
+            try goalsRepo.addContribution(goalID: house.id, amount: vnd(320_000_000), fromAccountID: savings.id, date: daysAgo(10), note: "→ House")
+            try goalsRepo.addContribution(goalID: car.id, amount: vnd(120_000_000), fromAccountID: savings.id, date: daysAgo(10), note: "→ Car")
+            try goalsRepo.addContribution(goalID: travel.id, amount: vnd(62_000_000), fromAccountID: savings.id, date: daysAgo(10), note: "→ Travel")
         } catch {
             print("SampleData seed failed: \(error)")
         }
@@ -84,7 +85,6 @@ enum SampleData {
         try? context.delete(model: SourceRecord.self)
         try? context.delete(model: EnvelopeRecord.self)
         try? context.delete(model: RateRecord.self)
-        try? context.delete(model: ContributionRecord.self)
         try? context.delete(model: GoalRecord.self)
         try? context.save()
     }

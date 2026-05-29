@@ -20,6 +20,9 @@ struct Transaction: Identifiable, Hashable, Sendable {
     var note: String
     /// The envelope this expense draws from (slice 04).
     var envelopeID: UUID?
+    /// The Goal this transfer funds (ADR-0007). Set only on a Contribution: a `.transfer` from
+    /// an Account to a Goal — `sourceID` is the Account, there is no destination Source.
+    var goalID: UUID?
     /// False for informational Backfill entries that must not move the current balance.
     var affectsBalance: Bool
 
@@ -34,6 +37,7 @@ struct Transaction: Identifiable, Hashable, Sendable {
         fee: Money? = nil,
         note: String = "",
         envelopeID: UUID? = nil,
+        goalID: UUID? = nil,
         affectsBalance: Bool = true
     ) {
         self.id = id
@@ -46,6 +50,7 @@ struct Transaction: Identifiable, Hashable, Sendable {
         self.fee = fee
         self.note = note
         self.envelopeID = envelopeID
+        self.goalID = goalID
         self.affectsBalance = affectsBalance
     }
 }

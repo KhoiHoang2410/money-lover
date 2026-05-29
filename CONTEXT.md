@@ -59,14 +59,21 @@ _Avoid_: Savings, default, surplus
 ### Goals
 
 **Goal**:
-A long-term savings target (house, car, travel) with a name, target amount, target date, and a funding Schedule. Money put toward a Goal accumulates and does not reset. (Investing is not a Goal — it is a Holding.)
+A long-term savings target (house, car, travel) with a name, target amount, target date, and a funding Schedule. A Goal holds a real balance — the accumulated Contributions — and is counted as an Asset in net worth. Money put toward a Goal accumulates and does not reset. (Investing is not a Goal — it is a Holding.)
 _Avoid_: Plan, target
 
+**Contribution**:
+A dated movement of money from a VND Account into a Goal, recorded as a Transfer (the Account's balance decreases and the Goal's balance increases by the same amount, so net worth is unchanged — one Asset becomes another). VND-only for now — foreign-currency Accounts cannot fund a Goal. A Goal's balance is the sum of its Contributions. See `docs/adr/0007-goals-are-funded-assets.md`.
+_Avoid_: Deposit, payment
+
 **Schedule**:
-A Goal's planned contributions over time — a list of month → planned amount (e.g. House: Jan–Mar 100M, May 150M, Jul–Sep 100M). Need not be flat or continuous.
+A Goal's planned contributions over time — a list of month → planned amount (e.g. House: Jan–Mar 100M, May 150M, Jul–Sep 100M). Need not be flat or continuous. A Schedule line is a *plan*, distinct from an actual Contribution.
 
 **Expected-by-today**:
 The cumulative sum of a Goal's Schedule due up to the current date. A Goal is "% ahead/delay" = actual contributed ÷ Expected-by-today − 1.
+
+**Funded / Pending / Missed**:
+The status of a Schedule line, judged cumulatively: **Funded** (green) = total contributed so far ≥ the cumulative scheduled amount through that month; **Missed** (red) = the month has passed and contributions still fall short; **Pending** (gray) = a current or future month not yet covered.
 
 ### Balances and corrections
 
@@ -96,7 +103,7 @@ _Avoid_: Insight, tip
 ### Net worth
 
 **Asset**:
-Computed total value of all Accounts + Holdings, expressed in the base currency. A derived number, not an entity.
+Computed total value of all Accounts + Holdings + Goal balances, expressed in the base currency. A derived number, not an entity.
 
 **Debt**:
 Computed total owed across all Liabilities, in the base currency. Derived, not an entity.

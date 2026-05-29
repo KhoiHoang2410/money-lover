@@ -1,7 +1,7 @@
 import Foundation
 
-/// A dated contribution toward a Goal (base currency VND). Pure domain value type;
-/// persistence maps to/from `ContributionRecord`.
+/// A dated contribution toward a Goal (base currency VND). Pure domain value type, derived from
+/// the `.transfer` transactions that fund the Goal (ADR-0007) — it is not persisted on its own.
 struct Contribution: Identifiable, Hashable, Sendable {
     let id: UUID
     var goalID: UUID

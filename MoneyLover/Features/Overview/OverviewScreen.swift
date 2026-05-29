@@ -17,7 +17,8 @@ struct OverviewScreen: View {
                             let newStore = OverviewStore(
                                 sources: SourceRepository(context: context),
                                 transactions: TransactionRepository(context: context),
-                                rates: RatesRepository(context: context)
+                                rates: RatesRepository(context: context),
+                                goals: GoalRepository(context: context)
                             )
                             newStore.load()
                             store = newStore
@@ -25,6 +26,10 @@ struct OverviewScreen: View {
                 }
             }
             .navigationTitle("Overview")
+            .navigationDestination(for: Source.self) { source in
+                AccountHistoryScreen(account: source)
+            }
+            .onAppear { store?.load() }
             .toolbar {
                 Button(
                     censored ? "Show amounts" : "Hide amounts",
