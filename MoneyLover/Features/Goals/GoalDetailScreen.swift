@@ -27,8 +27,15 @@ struct GoalDetailScreen: View {
                 }
                 Section("Schedule") {
                     let status = store.scheduleStatus(for: goal)
+                    let shortfalls = store.shortfalls(for: goal)
+                    let byMonth = Dictionary(grouping: store.contributions(for: goal)) { Self.monthKey($0.date) }
                     ForEach(goal.schedule) { line in
-                        GoalScheduleRow(line: line, status: status[line.id] ?? .pending)
+                        GoalScheduleRow(
+                            line: line,
+                            status: status[line.id] ?? .pending,
+                            shortfall: shortfalls[line.id],
+                            contributions: byMonth[line.year * 12 + line.month] ?? []
+                        )
                     }
                 }
             }
@@ -44,5 +51,11 @@ struct GoalDetailScreen: View {
         } else {
             ContentUnavailableView("Goal not found", systemImage: "questionmark.circle")
         }
+    }
+
+    /// `year * 12 + month` for a date — the key that ties a Contribution to its Schedule line.
+    private static func monthKey(_ date: Date) -> Int {
+        let c = Calendar.current.dateComponents([.year, .month], from: date)
+        return (c.year ?? 0) * 12 + (c.month ?? 0)
     }
 }

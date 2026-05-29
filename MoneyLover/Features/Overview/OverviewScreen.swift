@@ -5,6 +5,7 @@ struct OverviewScreen: View {
     @Environment(\.modelContext) private var context
     @AppStorage("censorAmounts") private var censored = true
     @State private var store: OverviewStore?
+    @State private var goalsStore: GoalsStore?
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,12 @@ struct OverviewScreen: View {
                             )
                             newStore.load()
                             store = newStore
+                            let goals = GoalsStore(
+                                repo: GoalRepository(context: context),
+                                sources: SourceRepository(context: context)
+                            )
+                            goals.load()
+                            goalsStore = goals
                         }
                 }
             }
@@ -29,7 +36,15 @@ struct OverviewScreen: View {
             .navigationDestination(for: Source.self) { source in
                 AccountHistoryScreen(account: source)
             }
-            .onAppear { store?.load() }
+            .navigationDestination(for: Goal.self) { goal in
+                if let goalsStore {
+                    GoalDetailScreen(store: goalsStore, goalID: goal.id)
+                }
+            }
+            .onAppear {
+                store?.load()
+                goalsStore?.load()
+            }
             .toolbar {
                 Button(
                     censored ? "Show amounts" : "Hide amounts",

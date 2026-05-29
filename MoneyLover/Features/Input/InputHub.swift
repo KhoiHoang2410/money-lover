@@ -6,14 +6,8 @@ struct InputHub: View {
 
     var body: some View {
         List {
-            NavigationLink(value: InputRoute.expense) {
-                Label("Expense", systemImage: "minus.circle.fill")
-            }
-            NavigationLink(value: InputRoute.income) {
-                Label("Income", systemImage: "plus.circle.fill")
-            }
-            NavigationLink(value: InputRoute.transfer) {
-                Label("Transfer", systemImage: "arrow.left.arrow.right")
+            NavigationLink(value: InputRoute.transaction) {
+                Label("Add transaction", systemImage: "plus.circle.fill")
             }
             NavigationLink(value: InputRoute.voice) {
                 Label("Voice expense", systemImage: "mic.fill")

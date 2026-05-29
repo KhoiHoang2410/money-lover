@@ -19,7 +19,7 @@ struct OverviewContent: View {
                     .padding(.top, Theme.Spacing.xl)
                 }
 
-                section("Holdings", store.holdings, tappable: false)
+                section("Holdings", store.holdings, tappable: true)
                 section("Accounts", store.accounts, tappable: true)
                 goalsSection
                 section("Credit cards", store.cards, tappable: true)
@@ -49,8 +49,11 @@ struct OverviewContent: View {
         if !store.fundedGoals.isEmpty {
             sectionHeader("Goals")
             ForEach(store.fundedGoals) { goal in
-                GoalAssetRow(goal: goal, balance: store.balance(for: goal), censored: censored)
-                    .padding(.horizontal, Theme.Spacing.xl)
+                NavigationLink(value: goal) {
+                    GoalAssetRow(goal: goal, balance: store.balance(for: goal), censored: censored)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, Theme.Spacing.xl)
             }
         }
     }

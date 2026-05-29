@@ -7,11 +7,14 @@ struct Contribution: Identifiable, Hashable, Sendable {
     var goalID: UUID
     var date: Date
     var amount: Money
+    /// The funding transfer's note, shown as the contribution's description.
+    var note: String
 
-    init(id: UUID = UUID(), goalID: UUID, date: Date, amount: Money) {
+    init(id: UUID = UUID(), goalID: UUID, date: Date, amount: Money, note: String = "") {
         self.id = id
         self.goalID = goalID
         self.date = date
         self.amount = amount
+        self.note = note
     }
 }

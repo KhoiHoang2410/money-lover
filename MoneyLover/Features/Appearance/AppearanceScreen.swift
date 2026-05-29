@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// Appearance settings: the (fixed) light theme info and the Reduce-motion preference.
-/// Pushed from Config, so it carries no `NavigationStack` of its own.
+/// Appearance settings: the theme info, the color-scheme override, and the Reduce-motion
+/// preference. Pushed from Config, so it carries no `NavigationStack` of its own.
 struct AppearanceScreen: View {
     @AppStorage("reduceMotion") private var reduceMotion = false
+    @AppStorage("appearance") private var appearance: AppearancePreference = .system
 
     var body: some View {
         Form {
@@ -22,8 +23,19 @@ struct AppearanceScreen: View {
                 }
             } header: {
                 Text("Theme")
+            }
+
+            Section {
+                Picker("Color scheme", selection: $appearance) {
+                    ForEach(AppearancePreference.allCases) { option in
+                        Text(option.label).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Color scheme")
             } footer: {
-                Text("Money Lover uses a single light theme by design.")
+                Text("Money Lover is designed light-first. “System” follows your device; pick “Dark” to force dark mode.")
             }
 
             Section {

@@ -28,12 +28,13 @@ enum GoalTracker {
         transactions
             .filter { $0.kind == .transfer && $0.goalID == goalID }
             .sorted { $0.date < $1.date }
-            .map { Contribution(id: $0.id, goalID: goalID, date: $0.date, amount: $0.amount) }
+            .map { Contribution(id: $0.id, goalID: goalID, date: $0.date, amount: $0.amount, note: $0.note) }
     }
 
     /// Cumulative status of each Schedule line: **funded** once the total contributed reaches the
-    /// scheduled amount due through that month; **missed** if that month has already passed and it
-    /// hasn't; **pending** for a current/future month not yet covered. Keyed by line id.
+    /// scheduled amount due through that month; **missed** if a *past* month still falls short;
+    /// **due** if the *current* month's cumulative amount isn't met yet; **pending** for a future
+    /// month not yet covered. Keyed by line id.
     static func scheduleStatus(
         schedule: [ScheduledContribution],
         contributed: Money,
@@ -47,13 +48,31 @@ enum GoalTracker {
         var cumulative = 0
         for line in ordered {
             cumulative += line.amount.minorUnits
+            let lineIndex = monthIndex(year: line.year, month: line.month)
             if contributed.minorUnits >= cumulative {
                 result[line.id] = .funded
-            } else if monthIndex(year: line.year, month: line.month) < nowIndex {
+            } else if lineIndex < nowIndex {
                 result[line.id] = .missed
+            } else if lineIndex == nowIndex {
+                result[line.id] = .due
             } else {
                 result[line.id] = .pending
             }
+        }
+        return result
+    }
+
+    /// Per-line shortfall: each Schedule line's amount minus the Contributions allocated to it, where
+    /// Contributions fill lines oldest-first. Zero for a fully-covered line. Keyed by line id. The UI
+    /// surfaces it only on **due**/**missed** lines (a Goal's "missing how much, per schedule").
+    static func shortfalls(schedule: [ScheduledContribution], contributed: Money) -> [UUID: Money] {
+        let ordered = schedule.sorted { monthIndex(year: $0.year, month: $0.month) < monthIndex(year: $1.year, month: $1.month) }
+        var remaining = contributed.minorUnits
+        var result: [UUID: Money] = [:]
+        for line in ordered {
+            let allocated = max(0, min(remaining, line.amount.minorUnits))
+            remaining -= allocated
+            result[line.id] = Money(minorUnits: line.amount.minorUnits - allocated, currency: .vnd)
         }
         return result
     }

@@ -72,8 +72,8 @@ A Goal's planned contributions over time — a list of month → planned amount 
 **Expected-by-today**:
 The cumulative sum of a Goal's Schedule due up to the current date. A Goal is "% ahead/delay" = actual contributed ÷ Expected-by-today − 1.
 
-**Funded / Pending / Missed**:
-The status of a Schedule line, judged cumulatively: **Funded** (green) = total contributed so far ≥ the cumulative scheduled amount through that month; **Missed** (red) = the month has passed and contributions still fall short; **Pending** (gray) = a current or future month not yet covered.
+**Funded / Pending / Due / Missed**:
+The status of a Schedule line, judged cumulatively against total contributed: **Funded** (green) = total contributed so far ≥ the cumulative scheduled amount through that month; **Due** (amber) = the *current* month's cumulative amount is not yet met (still fundable before the month ends); **Missed** (red) = a *past* month whose cumulative amount was never met; **Pending** (gray) = a future month not yet covered. Each unmet line (Due or Missed) carries a **shortfall** — its scheduled amount minus the Contributions allocated to it, where Contributions fill Schedule lines oldest-first.
 
 ### Balances and corrections
 

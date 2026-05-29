@@ -7,18 +7,19 @@ struct DayCell: View {
     var isSelected: Bool = false
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
             Text("\(day)")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 0)
-            if let net, net.minorUnits != 0 {
-                Text(net.amount, format: .number.notation(.compactName))
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(net.isNegative ? Theme.Palette.bad : Theme.Palette.ok)
-            }
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.primary)
+            // Always reserve the diff line so day numbers stay vertically aligned across cells.
+            Text(netLabel)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(net?.isNegative == true ? Theme.Palette.bad : Theme.Palette.ok)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .opacity(hasNet ? 1 : 0)
         }
-        .frame(maxWidth: .infinity, minHeight: 46, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .center)
         .padding(4)
         .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 10))
         .overlay {
@@ -26,5 +27,15 @@ struct DayCell: View {
                 RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.Palette.pink, lineWidth: 2)
             }
         }
+    }
+
+    private var hasNet: Bool {
+        if let net { return net.minorUnits != 0 }
+        return false
+    }
+
+    private var netLabel: String {
+        guard let net, net.minorUnits != 0 else { return " " }
+        return net.amount.formatted(.number.notation(.compactName))
     }
 }

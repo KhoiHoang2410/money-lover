@@ -29,6 +29,7 @@ struct CalendarScreen: View {
                 }
             }
             .navigationTitle("Calendar")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(value: ChartsDestination.charts) {
