@@ -4,8 +4,10 @@ import Foundation
 enum ScheduleStatus: Sendable, Equatable {
     /// Contributions so far cover the cumulative scheduled amount through this month.
     case funded
-    /// A current or future month not yet covered.
+    /// The *current* month's cumulative amount is not yet met (still fundable this month).
+    case due
+    /// A future month not yet covered.
     case pending
-    /// The month has passed and contributions still fall short.
+    /// A *past* month whose cumulative amount was never met.
     case missed
 }

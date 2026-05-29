@@ -18,9 +18,7 @@ struct InputScreen: View {
             .navigationDestination(for: InputRoute.self) { route in
                 if let store {
                     switch route {
-                    case .expense: ExpenseForm(store: store)
-                    case .income: IncomeForm(store: store)
-                    case .transfer: TransferForm(store: store)
+                    case .transaction: TransactionForm(store: store)
                     case .voice: VoiceEntryScreen()
                     case .reconcile: ReconcileScreen()
                     case .backfill: BackfillForm(store: store)

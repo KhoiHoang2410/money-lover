@@ -36,9 +36,19 @@ final class GoalsStore {
         GoalTracker.progress(goal: goal, actual: contributed(for: goal), asOf: .now)
     }
 
-    /// Per-line funding status for a goal's schedule (green/gray/red).
+    /// Per-line funding status for a goal's schedule (green/amber/gray/red).
     func scheduleStatus(for goal: Goal) -> [UUID: ScheduleStatus] {
         GoalTracker.scheduleStatus(schedule: goal.schedule, contributed: contributed(for: goal), asOf: .now)
+    }
+
+    /// Per-line shortfall for a goal's schedule (surfaced on due/missed lines).
+    func shortfalls(for goal: Goal) -> [UUID: Money] {
+        GoalTracker.shortfalls(schedule: goal.schedule, contributed: contributed(for: goal))
+    }
+
+    /// A goal's actual Contributions, oldest-first.
+    func contributions(for goal: Goal) -> [Contribution] {
+        (try? repo.contributions(goalID: goal.id)) ?? []
     }
 
     func goal(id: UUID) -> Goal? { goals.first { $0.id == id } }

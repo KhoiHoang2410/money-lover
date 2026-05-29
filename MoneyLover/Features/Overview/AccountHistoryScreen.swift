@@ -43,9 +43,12 @@ struct AccountHistoryScreen: View {
             Section {
                 ForEach(store.entries) { transaction in
                     TransactionRow(transaction: transaction, showsDate: true)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
         }
+        .animation(.snappy, value: store.range)
+        .animation(.snappy, value: store.kind)
         .searchable(text: $store.search, prompt: "Search notes")
         .overlay {
             if store.entries.isEmpty {

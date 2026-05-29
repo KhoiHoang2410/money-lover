@@ -10,18 +10,17 @@ struct MonthGrid: View {
 
     var body: some View {
         VStack(spacing: Theme.Spacing.sm) {
-            HStack {
+            HStack(spacing: Theme.Spacing.md) {
                 Button("Previous month", systemImage: "chevron.left") { store.step(-1) }
                     .labelStyle(.iconOnly)
-                Spacer()
                 Button {
                     pickingMonth = true
                 } label: {
                     Text(String(format: "%02d/%d", store.month, store.year)).bold()
                 }
-                Spacer()
                 Button("Next month", systemImage: "chevron.right") { store.step(1) }
                     .labelStyle(.iconOnly)
+                Spacer()
             }
             .padding(.horizontal, Theme.Spacing.lg)
 
@@ -30,7 +29,7 @@ struct MonthGrid: View {
                     Text(weekdays[index]).font(.caption2).foregroundStyle(.secondary)
                 }
                 ForEach(0..<(store.firstWeekday - 1), id: \.self) { _ in
-                    Color.clear.frame(height: 46)
+                    Color.clear.frame(height: 52)
                 }
                 ForEach(1...store.daysInMonth, id: \.self) { day in
                     let net = store.dailyNet[day]

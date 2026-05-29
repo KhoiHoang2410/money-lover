@@ -115,4 +115,32 @@ import Foundation
         )
         #expect(status.values.allSatisfy { $0 == .funded })
     }
+
+    @Test func currentMonthUnderfundedIsDueNotMissed() {
+        // As of May, Jan–Mar covered (300) but May (cumulative 450) unmet → May is the current
+        // month, so it is `due` (still fundable), not `missed`.
+        let schedule = house.schedule
+        let status = GoalTracker.scheduleStatus(
+            schedule: schedule, contributed: vnd(360_000_000), asOf: date(2026, 5, 10), calendar: cal
+        )
+        let byMonth = Dictionary(uniqueKeysWithValues: schedule.map { ($0.month, status[$0.id]) })
+        #expect(byMonth[3] == .funded)
+        #expect(byMonth[5] == .due)
+        #expect(byMonth[7] == .pending)
+    }
+
+    @Test func shortfallIsPerLineAllocatedOldestFirst() {
+        // 360M fills Jan(100)+Feb(100)+Mar(100)=300, leaving 60 toward May(150) → May short by 90.
+        let schedule = house.schedule
+        let short = GoalTracker.shortfalls(schedule: schedule, contributed: vnd(360_000_000))
+        let byMonth = Dictionary(uniqueKeysWithValues: schedule.map { ($0.month, short[$0.id]) })
+        #expect(byMonth[3] == vnd(0))
+        #expect(byMonth[5] == vnd(90_000_000))
+        #expect(byMonth[7] == vnd(100_000_000))
+    }
+
+    @Test func shortfallIsZeroWhenFullyFunded() {
+        let short = GoalTracker.shortfalls(schedule: house.schedule, contributed: vnd(750_000_000))
+        #expect(short.values.allSatisfy { $0 == vnd(0) })
+    }
 }

@@ -24,3 +24,6 @@ Package.resolved
 *.swp
 *~
 *.log
+
+# Agent handoff docs
+*-handoff.md

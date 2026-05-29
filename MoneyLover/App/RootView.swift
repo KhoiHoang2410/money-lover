@@ -6,6 +6,7 @@ import SwiftData
 struct RootView: View {
     @Environment(\.modelContext) private var context
     @AppStorage("reduceMotion") private var reduceMotion = false
+    @AppStorage("appearance") private var appearance: AppearancePreference = .system
     @AppStorage("didOnboard") private var didOnboard = false
     @Query private var sources: [SourceRecord]
     @State private var selection: AppTab = .overview
@@ -30,6 +31,7 @@ struct RootView: View {
             }
         }
         .environment(\.reduceMotionPreference, reduceMotion)
+        .preferredColorScheme(appearance.colorScheme)
         .sheet(isPresented: $showOnboarding) {
             didOnboard = true
         } content: {
