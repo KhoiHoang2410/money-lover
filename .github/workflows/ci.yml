@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      SCHEME: MoneyLover
+      PROJECT: MoneyLover.xcodeproj
+      # iPhone 17 on the latest installed iOS runtime (see README.md).
+      DESTINATION: "platform=iOS Simulator,name=iPhone 17,OS=latest"
+      DERIVED_DATA: ${{ github.workspace }}/DerivedData
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select newest Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)"
+          XCODE="${XCODE:-/Applications/Xcode.app}"
+          echo "Using $XCODE"
+          sudo xcode-select -switch "$XCODE"
+          xcodebuild -version
+          swift --version
+
+      # The Xcode project is generated from project.yml by XcodeGen (it is
+      # gitignored, not committed). Regenerate it before building.
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Show project + available simulators
+        run: |
+          xcodebuild -list -project "$PROJECT"
+          xcrun simctl list devices available | grep -i iphone || true
+
+      # 1. Verify it compiles with no type errors. build-for-testing also
+      #    compiles the unit + UI test targets, so a type error anywhere fails here.
+      - name: Build (compile, no type errors)
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO
+
+      # 2. Run the already-built unit (Swift Testing) + UI (XCUITest) targets.
+      - name: Test (unit + UI)
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$DERIVED_DATA/TestResults.xcresult" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: ${{ env.DERIVED_DATA }}/TestResults.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
