@@ -18,6 +18,7 @@ struct ContributionSheet: View {
                     TextField("Amount", value: $amountMajor, format: .number)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
+                        .accessibilityIdentifier(A11y.Goals.contributionAmount)
                 }
                 Picker("From", selection: $fromAccountID) {
                     Text("Select…").tag(UUID?.none)
@@ -25,6 +26,7 @@ struct ContributionSheet: View {
                         Text(account.name).tag(Optional(account.id))
                     }
                 }
+                .accessibilityIdentifier(A11y.Goals.contributionAccount)
                 if accounts.isEmpty {
                     Text("Add a VND account first to fund a goal.")
                         .font(.footnote)
@@ -41,6 +43,7 @@ struct ContributionSheet: View {
                         dismiss()
                     }
                     .disabled(!canSave)
+                    .accessibilityIdentifier(A11y.Goals.contributionSave)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: dismiss.callAsFunction)

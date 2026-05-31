@@ -57,7 +57,9 @@ struct ReconcileScreen: View {
                             Text(envelope.name).tag(Optional(envelope.id))
                         }
                     }
+                    .accessibilityIdentifier(A11y.Reconcile.envelope)
                     TextField("Note (e.g. forgotten cash spends)", text: $note, axis: .vertical)
+                        .accessibilityIdentifier(A11y.Reconcile.note)
                 }
             }
         }
@@ -74,6 +76,7 @@ struct ReconcileScreen: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Record") { record(store) }
                     .disabled(pendingAdjustments(store).isEmpty)
+                    .accessibilityIdentifier(A11y.Reconcile.record)
             }
         }
     }

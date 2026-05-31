@@ -8,7 +8,6 @@ struct RootView: View {
     @AppStorage("reduceMotion") private var reduceMotion = false
     @AppStorage("appearance") private var appearance: AppearancePreference = .system
     @AppStorage("didOnboard") private var didOnboard = false
-    @Query private var sources: [SourceRecord]
     @State private var selection: AppTab = .overview
     @State private var showOnboarding = false
 
@@ -39,12 +38,34 @@ struct RootView: View {
         }
         .task {
             #if DEBUG
-            if ProcessInfo.processInfo.environment["SEED_SAMPLE_DATA"] == "1" {
+            let env = ProcessInfo.processInfo.environment
+            // UI-test launch hook: a clean, deterministic store every run and onboarding skipped,
+            // so automated flows start from the same known seed. Gated on env vars only the test
+            // runner sets — never reached in a normal build.
+            if env["UITEST"] == "1" {
+                SampleData.clear(into: context)
+                SampleData.seed(into: context)
+                // Reset persisted UI preferences so each run starts from documented defaults
+                // (amounts censored, onboarding done) — UserDefaults otherwise survives reinstall
+                // on a simulator and leaks state between runs.
+                let defaults = UserDefaults.standard
+                defaults.set(true, forKey: "censorAmounts")
+                defaults.set(false, forKey: "reduceMotion")
+                didOnboard = true
+                return
+            }
+            if env["SEED_SAMPLE_DATA"] == "1" {
                 SampleData.seed(into: context)
             }
             #endif
-            if !didOnboard && sources.isEmpty {
-                showOnboarding = true
+            // Decide onboarding off a fresh count, not a captured `@Query` snapshot — the snapshot
+            // does not reflect inserts made earlier in this same task tick (e.g. a seed), which
+            // could otherwise show onboarding on top of populated data (BUG-002).
+            if !didOnboard {
+                let sourceCount = (try? context.fetchCount(FetchDescriptor<SourceRecord>())) ?? 0
+                if sourceCount == 0 {
+                    showOnboarding = true
+                }
             }
         }
     }

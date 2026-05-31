@@ -32,11 +32,16 @@ struct OverviewContent: View {
         if !sources.isEmpty {
             sectionHeader(title)
             ForEach(sources) { source in
+                // `.contentShape` makes the whole row (including the Spacer gap) hit-testable; with
+                // `.buttonStyle(.plain)` only the drawn content is tappable, so taps landing on the
+                // empty middle of a row would otherwise do nothing (BUG-001).
                 let row = SourceRow(source: source, balance: store.displayValue(for: source), censored: censored)
+                    .contentShape(.rect)
                 if tappable {
-                    NavigationLink(value: source) { row }
+                    NavigationLink(value: OverviewRoute.account(source.id)) { row }
                         .buttonStyle(.plain)
                         .padding(.horizontal, Theme.Spacing.xl)
+                        .accessibilityIdentifier(A11y.Overview.sourceRow(source.name))
                 } else {
                     row.padding(.horizontal, Theme.Spacing.xl)
                 }
@@ -49,11 +54,13 @@ struct OverviewContent: View {
         if !store.fundedGoals.isEmpty {
             sectionHeader("Goals")
             ForEach(store.fundedGoals) { goal in
-                NavigationLink(value: goal) {
+                NavigationLink(value: OverviewRoute.goal(goal.id)) {
                     GoalAssetRow(goal: goal, balance: store.balance(for: goal), censored: censored)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, Theme.Spacing.xl)
+                .accessibilityIdentifier(A11y.Overview.goalRow(goal.name))
             }
         }
     }

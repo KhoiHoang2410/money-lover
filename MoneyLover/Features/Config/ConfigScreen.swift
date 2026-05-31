@@ -12,15 +12,19 @@ struct ConfigScreen: View {
                     NavigationLink(value: ConfigRoute.sources) {
                         Label("Sources & balances", systemImage: "building.columns.fill")
                     }
+                    .accessibilityIdentifier(A11y.Config.sources)
                     NavigationLink(value: ConfigRoute.envelopes) {
                         Label("Envelopes & template", systemImage: "tray.full.fill")
                     }
+                    .accessibilityIdentifier(A11y.Config.envelopes)
                     NavigationLink(value: ConfigRoute.rates) {
                         Label("Rates & prices", systemImage: "dollarsign.arrow.circlepath")
                     }
+                    .accessibilityIdentifier(A11y.Config.rates)
                     NavigationLink(value: ConfigRoute.monthEnd) {
                         Label("Run month-end sweep", systemImage: "arrow.triangle.2.circlepath")
                     }
+                    .accessibilityIdentifier(A11y.Config.monthEnd)
                 }
 
                 Section("Insights") {
@@ -48,9 +52,11 @@ struct ConfigScreen: View {
                     Button("Seed sample data", systemImage: "wand.and.stars") {
                         SampleData.seed(into: context)
                     }
+                    .accessibilityIdentifier(A11y.Config.seedSample)
                     Button("Clear all data", systemImage: "trash", role: .destructive) {
                         SampleData.clear(into: context)
                     }
+                    .accessibilityIdentifier(A11y.Config.clearData)
                 }
                 #endif
             }

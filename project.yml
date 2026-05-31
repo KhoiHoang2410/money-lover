@@ -37,12 +37,30 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  MoneyLoverUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: MoneyLoverUITests
+        excludes:
+          - "README.md"
+      # Shared accessibility identifiers, compiled into the test bundle too so tests and views
+      # reference the same constants (no magic strings).
+      - path: MoneyLover/App/AccessibilityID.swift
+    dependencies:
+      - target: MoneyLover
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: MoneyLover
 schemes:
   MoneyLover:
     build:
       targets:
         MoneyLover: all
         MoneyLoverTests: [test]
+        MoneyLoverUITests: [test]
     test:
       targets:
         - MoneyLoverTests
+        - MoneyLoverUITests

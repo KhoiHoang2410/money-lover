@@ -12,6 +12,7 @@ struct NetWorthHeader: View {
                 .opacity(0.95)
             AmountText(money: netWorth.net, censored: censored)
                 .font(.largeTitle).bold()
+                .accessibilityIdentifier(A11y.Overview.netWorth)
 
             HStack(spacing: Theme.Spacing.sm) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -21,6 +22,7 @@ struct NetWorthHeader: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(Theme.Spacing.sm)
                 .background(.white.opacity(0.2), in: .rect(cornerRadius: 14))
+                .accessibilityIdentifier(A11y.Overview.asset)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Debt").font(.caption).opacity(0.9)
