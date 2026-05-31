@@ -14,13 +14,11 @@ concurrency:
 jobs:
   build-and-test:
     name: Build & Test
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 60
     env:
       SCHEME: MoneyLover
       PROJECT: MoneyLover.xcodeproj
-      # iPhone 17 on the latest installed iOS runtime (see README.md).
-      DESTINATION: "platform=iOS Simulator,name=iPhone 17,OS=latest"
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
 
     steps:
@@ -44,10 +42,20 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Show project + available simulators
+      # Device names vary across runner images, so resolve a concrete available
+      # iPhone simulator UDID at runtime and build/test against id= (robust).
+      - name: Select iOS Simulator
         run: |
           xcodebuild -list -project "$PROJECT"
+          UDID="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')"
+          if [ -z "$UDID" ]; then
+            echo "::error::No available iPhone simulator on this runner"
+            xcrun simctl list devices
+            exit 1
+          fi
+          echo "Selected simulator: $UDID"
           xcrun simctl list devices available | grep -i iphone || true
+          echo "DESTINATION=platform=iOS Simulator,id=$UDID" >> "$GITHUB_ENV"
 
       # 1. Verify it compiles with no type errors. build-for-testing also
       #    compiles the unit + UI test targets, so a type error anywhere fails here.
