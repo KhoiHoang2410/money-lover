@@ -59,6 +59,15 @@ struct ConfigScreen: View {
                     .accessibilityIdentifier(A11y.Config.clearData)
                 }
                 #endif
+
+                Section {
+                    Text(AppInfo.displayString())
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .listRowBackground(Color.clear)
+                        .accessibilityIdentifier(A11y.Config.version)
+                }
             }
             .navigationTitle("Config")
             .navigationDestination(for: ConfigRoute.self) { route in
