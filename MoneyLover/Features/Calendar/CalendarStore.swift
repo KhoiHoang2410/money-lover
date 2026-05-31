@@ -7,6 +7,8 @@ import Observation
 final class CalendarStore {
     private let repo: TransactionRepository
     private let calendar = Calendar.current
+    /// Injected "now" so today-detection stays deterministic in tests.
+    private let today: Date
     private(set) var transactions: [Transaction] = []
     var year: Int { didSet { selectedDay = nil } }
     var month: Int { didSet { selectedDay = nil } }
@@ -14,10 +16,26 @@ final class CalendarStore {
     var selectedDay: Int?
     var errorMessage: String?
 
-    init(repo: TransactionRepository, year: Int, month: Int) {
+    init(repo: TransactionRepository, year: Int, month: Int, today: Date = .now) {
         self.repo = repo
         self.year = year
         self.month = month
+        self.today = today
+    }
+
+    /// True when `day` in the displayed month/year is the real-world current date.
+    func isToday(_ day: Int) -> Bool {
+        let c = calendar.dateComponents([.year, .month, .day], from: today)
+        return c.year == year && c.month == month && c.day == day
+    }
+
+    /// Jump the grid to the current month/year and select today.
+    /// Setting month/year clears `selectedDay` (didSet), so select today afterwards.
+    func jumpToToday() {
+        let c = calendar.dateComponents([.year, .month, .day], from: today)
+        year = c.year ?? year
+        month = c.month ?? month
+        selectedDay = c.day
     }
 
     func load() {

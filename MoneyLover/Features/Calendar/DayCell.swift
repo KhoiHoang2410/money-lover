@@ -5,6 +5,7 @@ struct DayCell: View {
     let day: Int
     let net: Money?
     var isSelected: Bool = false
+    var isToday: Bool = false
 
     var body: some View {
         VStack(spacing: 3) {
@@ -21,7 +22,16 @@ struct DayCell: View {
         }
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .center)
         .padding(4)
-        .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 10))
+        .background {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.secondarySystemBackground))
+                .overlay {
+                    // Today reads as a translucent pink tint — distinct from the selected border,
+                    // and stacks with it when today is also the selected day.
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(isToday ? Theme.Palette.pink.opacity(0.18) : .clear)
+                }
+        }
         .overlay {
             if isSelected {
                 RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.Palette.pink, lineWidth: 2)
