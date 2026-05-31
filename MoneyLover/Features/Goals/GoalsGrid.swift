@@ -15,6 +15,7 @@ struct GoalsGrid: View {
                         GoalRing(goal: goal, progress: store.progress(for: goal))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(A11y.Goals.ring(goal.name))
                 }
             }
             .padding(Theme.Spacing.lg)
@@ -30,6 +31,7 @@ struct GoalsGrid: View {
         }
         .toolbar {
             Button("Add goal", systemImage: "plus") { showingAdd = true }
+                .accessibilityIdentifier(A11y.Goals.add)
         }
         .sheet(isPresented: $showingAdd) {
             AddGoalScreen(onSave: store.add)

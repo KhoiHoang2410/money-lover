@@ -33,12 +33,16 @@ struct OverviewScreen: View {
                 }
             }
             .navigationTitle("Overview")
-            .navigationDestination(for: Source.self) { source in
-                AccountHistoryScreen(account: source)
-            }
-            .navigationDestination(for: Goal.self) { goal in
-                if let goalsStore {
-                    GoalDetailScreen(store: goalsStore, goalID: goal.id)
+            .navigationDestination(for: OverviewRoute.self) { route in
+                switch route {
+                case .account(let id):
+                    if let source = store?.sources.first(where: { $0.id == id }) {
+                        AccountHistoryScreen(account: source)
+                    }
+                case .goal(let id):
+                    if let goalsStore {
+                        GoalDetailScreen(store: goalsStore, goalID: id)
+                    }
                 }
             }
             .onAppear {
@@ -52,6 +56,7 @@ struct OverviewScreen: View {
                 ) {
                     censored.toggle()
                 }
+                .accessibilityIdentifier(A11y.Overview.censorToggle)
             }
         }
     }

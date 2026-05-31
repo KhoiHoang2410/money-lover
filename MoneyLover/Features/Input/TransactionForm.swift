@@ -38,6 +38,7 @@ struct TransactionForm: View {
             }
             .pickerStyle(.segmented)
             .listRowBackground(Color.clear)
+            .accessibilityIdentifier(A11y.Txn.typePicker)
 
             switch kind {
             case .expense: expenseFields
@@ -51,6 +52,7 @@ struct TransactionForm: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save", action: save).disabled(!canSave)
+                    .accessibilityIdentifier(A11y.Txn.save)
             }
         }
         .onAppear { focus = .amount }
@@ -60,16 +62,18 @@ struct TransactionForm: View {
 
     @ViewBuilder
     private var expenseFields: some View {
-        Section { decimalField("Amount", $amountMajor, focus: .amount) }
+        Section { decimalField("Amount", $amountMajor, focus: .amount, id: A11y.Txn.amount) }
         Section {
             Picker("From", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
                 ForEach(store.sources) { Text($0.name).tag(Optional($0.id)) }
             }
+            .accessibilityIdentifier(A11y.Txn.source)
             Picker("Envelope", selection: $envelopeID) {
                 Text("None").tag(UUID?.none)
                 ForEach(store.envelopes) { Text($0.name).tag(Optional($0.id)) }
             }
+            .accessibilityIdentifier(A11y.Txn.envelope)
         }
         noteSection
         if let nudge {
@@ -83,12 +87,13 @@ struct TransactionForm: View {
 
     @ViewBuilder
     private var incomeFields: some View {
-        Section { decimalField("Amount", $amountMajor, focus: .amount) }
+        Section { decimalField("Amount", $amountMajor, focus: .amount, id: A11y.Txn.amount) }
         Section {
             Picker("Into", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
                 ForEach(accounts) { Text($0.name).tag(Optional($0.id)) }
             }
+            .accessibilityIdentifier(A11y.Txn.source)
         }
         noteSection
     }
@@ -100,22 +105,25 @@ struct TransactionForm: View {
         }
         .pickerStyle(.segmented)
         .listRowBackground(Color.clear)
+        .accessibilityIdentifier(A11y.Txn.method)
 
         Section {
             Picker("From", selection: $fromID) {
                 Text("Select…").tag(UUID?.none)
                 ForEach(fromOptions) { Text($0.name).tag(Optional($0.id)) }
             }
+            .accessibilityIdentifier(A11y.Txn.source)
             Picker("To", selection: $toID) {
                 Text("Select…").tag(UUID?.none)
                 ForEach(toOptions) { Text($0.name).tag(Optional($0.id)) }
             }
+            .accessibilityIdentifier(A11y.Txn.destination)
         }
         Section {
-            decimalField(method == .crossCurrency ? "Amount out" : "Amount", $amountMajor, focus: .amount)
+            decimalField(method == .crossCurrency ? "Amount out" : "Amount", $amountMajor, focus: .amount, id: A11y.Txn.amount)
             if method == .crossCurrency {
-                decimalField("Amount in", $amountInMajor, focus: .amountIn)
-                decimalField("Rate", $rate, focus: .rate)
+                decimalField("Amount in", $amountInMajor, focus: .amountIn, id: A11y.Txn.amountIn)
+                decimalField("Rate", $rate, focus: .rate, id: A11y.Txn.rate)
                 if let fee = computedFee {
                     LabeledContent("Fee") {
                         Text(fee.amount, format: .currency(code: fee.currency.rawValue))
@@ -130,15 +138,17 @@ struct TransactionForm: View {
         Section {
             TextField("Note", text: $note, axis: .vertical)
                 .focused($focus, equals: .note)
+                .accessibilityIdentifier(A11y.Txn.note)
         }
     }
 
-    private func decimalField(_ title: String, _ value: Binding<Decimal>, focus field: Field) -> some View {
+    private func decimalField(_ title: String, _ value: Binding<Decimal>, focus field: Field, id: String) -> some View {
         LabeledContent(title) {
             TextField(title, value: value, format: .number)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .focused($focus, equals: field)
+                .accessibilityIdentifier(id)
         }
     }
 
@@ -175,8 +185,12 @@ struct TransactionForm: View {
     }
 
     /// A live warning when an Expense would outpace or overspend the selected envelope.
+    /// Envelopes are budgeted in the base currency (VND); the form has no rates to convert a
+    /// foreign-currency expense, so the nudge is shown only for VND sources rather than comparing
+    /// a foreign magnitude against a VND allocation (BUG-005).
     private var nudge: Signal? {
         guard kind == .expense, amountMajor > 0,
+              let source = selectedSource, source.currency == .vnd,
               let envelopeID,
               let envelope = store.envelopes.first(where: { $0.id == envelopeID })
         else { return nil }

@@ -19,9 +19,12 @@ struct ReconcileRow: View {
                     .labelStyle(.titleAndIcon)
                 Spacer()
                 TextField("Real balance", value: $realBalance, format: .number)
-                    .keyboardType(.numbersAndPunctuation)
+                    // Liabilities (credit cards) reconcile to negative balances, which need a minus
+                    // key; everything else uses the cleaner number pad (BUG-006).
+                    .keyboardType(source.kind.isLiability ? .numbersAndPunctuation : .decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 160)
+                    .accessibilityIdentifier(A11y.Reconcile.field(source.name))
             }
             HStack {
                 Text("Computed")

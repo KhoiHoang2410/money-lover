@@ -42,6 +42,7 @@ struct GoalDetailScreen: View {
             .navigationTitle(goal.name)
             .toolbar {
                 Button("Add money", systemImage: "plus") { addingContribution = true }
+                    .accessibilityIdentifier(A11y.Goals.detailContribute)
             }
             .sheet(isPresented: $addingContribution) {
                 ContributionSheet(accounts: store.fundingAccounts) { amount, accountID in
