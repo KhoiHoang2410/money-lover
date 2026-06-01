@@ -21,6 +21,9 @@ struct MonthGrid: View {
                 Button("Next month", systemImage: "chevron.right") { store.step(1) }
                     .labelStyle(.iconOnly)
                 Spacer()
+                Button("Today") { store.jumpToToday() }
+                    .buttonStyle(.bordered)
+                    .tint(Theme.Palette.pink)
             }
             .padding(.horizontal, Theme.Spacing.lg)
 
@@ -37,11 +40,11 @@ struct MonthGrid: View {
                         Button {
                             store.selectedDay = (store.selectedDay == day) ? nil : day
                         } label: {
-                            DayCell(day: day, net: net, isSelected: store.selectedDay == day)
+                            DayCell(day: day, net: net, isSelected: store.selectedDay == day, isToday: store.isToday(day))
                         }
                         .buttonStyle(.plain)
                     } else {
-                        DayCell(day: day, net: nil)
+                        DayCell(day: day, net: nil, isSelected: store.selectedDay == day, isToday: store.isToday(day))
                     }
                 }
             }
