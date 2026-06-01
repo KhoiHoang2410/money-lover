@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.2.2] — Money precision unit tests
+
+### Added
+- `MoneyTests` precision/validation lock-down (`MoneyLoverTests/MoneyTests.swift`): table-driven minor↔major round-trips and `Money(major:)` rounding across VND/USD/SGD, the 0.1+0.2 family staying exact in minor units, zero/negative handling, currency-mismatch rejection, a parse-layer floor for non-numeric input, and locale-independent FormatStyle stability. Catalog TC-03-03/03-04.
+
 ## [0.2.1] — Test fixtures & builders
 
 ### Added
