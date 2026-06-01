@@ -86,6 +86,16 @@ jobs:
           XCODE="${XCODE:-/Applications/Xcode.app}"
           sudo xcode-select -switch "$XCODE"
 
+      # Kick off the simulator boot now so it warms while the products download.
+      # Best-effort (|| true): if resolution/boot fails, the test step's named
+      # destination still boots it the normal way — this can only ever save time.
+      - name: Boot simulator (warm while products download)
+        run: |
+          UDID="$(xcrun simctl list devices available | grep -E 'iPhone 17 \(' | head -n1 | grep -oE '[0-9A-Fa-f-]{36}')"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          echo "Booting iPhone 17: ${UDID:-<none found>}"
+          xcrun simctl boot "$UDID" || true
+
       - name: Download build products
         uses: actions/download-artifact@v4
         with:
@@ -95,6 +105,9 @@ jobs:
         run: |
           mkdir -p DerivedData/Build
           tar -xzf build-products.tar.gz -C DerivedData/Build
+
+      - name: Wait for simulator boot
+        run: xcrun simctl bootstatus "$SIM_UDID" -b || true
 
       - name: Run unit tests
         run: |
@@ -132,6 +145,16 @@ jobs:
           XCODE="${XCODE:-/Applications/Xcode.app}"
           sudo xcode-select -switch "$XCODE"
 
+      # Kick off the simulator boot now so it warms while the products download.
+      # Best-effort (|| true): if resolution/boot fails, the test step's named
+      # destination still boots it the normal way — this can only ever save time.
+      - name: Boot simulator (warm while products download)
+        run: |
+          UDID="$(xcrun simctl list devices available | grep -E 'iPhone 17 \(' | head -n1 | grep -oE '[0-9A-Fa-f-]{36}')"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          echo "Booting iPhone 17: ${UDID:-<none found>}"
+          xcrun simctl boot "$UDID" || true
+
       - name: Download build products
         uses: actions/download-artifact@v4
         with:
@@ -141,6 +164,9 @@ jobs:
         run: |
           mkdir -p DerivedData/Build
           tar -xzf build-products.tar.gz -C DerivedData/Build
+
+      - name: Wait for simulator boot
+        run: xcrun simctl bootstatus "$SIM_UDID" -b || true
 
       - name: Run UI tests
         run: |
