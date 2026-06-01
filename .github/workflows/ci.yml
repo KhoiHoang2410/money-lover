@@ -46,6 +46,8 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      # -quiet drops the per-file compile commands; warnings + errors still
+      # print, and a non-zero exit still fails the step.
       - name: Build for testing
         run: |
           set -o pipefail
@@ -54,7 +56,9 @@ jobs:
             -scheme "$SCHEME" \
             -destination "$DESTINATION" \
             -derivedDataPath DerivedData \
+            -quiet \
             CODE_SIGNING_ALLOWED=NO
+          echo "✅ Build succeeded"
 
       # tar preserves the executable bit + bundle layout; the .xctestrun uses
       # __TESTROOT__-relative paths, so the absolute workspace path is irrelevant
