@@ -4,6 +4,14 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.2.3] — Balance correctness unit tests
+
+### Added
+- `BalanceCorrectnessTests`: catalog-mapped, fixture-based money-correctness suite asserting through `BalanceEngine`/`NetWorthEngine`/`BudgetEngine` — credit-card Expense raises Liability with Accounts untouched (04-01/04-03), same-currency Transfer and card bill payment net to zero on net worth (06-01/06-02/06-03), Backfill excluded from current balance and net worth (08-01/08-02), Income raises the Account and leaves Envelopes untouched (15-01/15-02), plus empty→opening, mixed-kind sums, signed Adjustments, and source isolation.
+
+### Known issues
+- TC-08-04: a Backfill (`affectsBalance=false`) expense assigned to an Envelope is still counted by `BudgetEngine.spent` (filters only on `kind`/`envelopeID`), so it leaks into Envelope remaining. Documented via `withKnownIssue`; `BalanceEngine` itself excludes it correctly.
+
 ## [0.2.2] — Money precision unit tests
 
 ### Added
