@@ -7,7 +7,12 @@ struct MoneyLoverApp: App {
 
     init() {
         do {
-            container = try ModelContainer(for: Schema(AppSchema.models))
+            // When hosted by a unit-test bundle, use an in-memory store so the
+            // app never touches disk — avoids noisy CoreData EROFS diagnostics in
+            // CI. Unit tests build their own containers; this is just the host app.
+            let isUnitTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            let config = ModelConfiguration(isStoredInMemoryOnly: isUnitTesting)
+            container = try ModelContainer(for: Schema(AppSchema.models), configurations: config)
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
