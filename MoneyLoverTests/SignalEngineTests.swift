@@ -47,6 +47,67 @@ import Foundation
         #expect(signals[0].detail.contains(vnd(200_000).formatted))
     }
 
+    // MARK: Pace across month lengths (table-driven)
+
+    /// Drives the engine's EXACT pace rule: with no prior overspend (spent <= allocation) the
+    /// projectedOverspend warning fires iff `spent·daysInMonth > allocation·day`, i.e. the
+    /// spent-fraction strictly exceeds the elapsed-fraction. Exercised across Feb (28d),
+    /// Apr (30d) and May (31d) at several days-of-month.
+    struct PaceCase {
+        let month: Int       // 2 = Feb (28d, 2026 non-leap), 4 = Apr (30d), 5 = May (31d)
+        let daysInMonth: Int // for documentation of the case
+        let day: Int         // day-of-month for asOf (and expense), must be < daysInMonth
+        let allocation: Int
+        let spent: Int
+        let shouldFire: Bool
+    }
+
+    @Test(arguments: [
+        // Feb 2026 (28 days). allocation 2,800,000.
+        // day 14: elapsed 14/28. spent 1,400,001·28 = 39,200,028 > 2,800,000·14 = 39,200,000 → fire.
+        PaceCase(month: 2, daysInMonth: 28, day: 14, allocation: 2_800_000, spent: 1_400_001, shouldFire: true),
+        // day 14: spent exactly 1,400,000 → 39,200,000 == 39,200,000, not strictly greater → silent.
+        PaceCase(month: 2, daysInMonth: 28, day: 14, allocation: 2_800_000, spent: 1_400_000, shouldFire: false),
+        // day 7: elapsed 7/28. spent 700,001·28 = 19,600,028 > 2,800,000·7 = 19,600,000 → fire.
+        PaceCase(month: 2, daysInMonth: 28, day: 7, allocation: 2_800_000, spent: 700_001, shouldFire: true),
+
+        // Apr 2026 (30 days). allocation 3,000,000.
+        // day 10: elapsed 10/30. spent 1,000,001·30 = 30,000,030 > 3,000,000·10 = 30,000,000 → fire.
+        PaceCase(month: 4, daysInMonth: 30, day: 10, allocation: 3_000_000, spent: 1_000_001, shouldFire: true),
+        // day 10: spent exactly 1,000,000 → equal → silent.
+        PaceCase(month: 4, daysInMonth: 30, day: 10, allocation: 3_000_000, spent: 1_000_000, shouldFire: false),
+        // day 20: spent 1,900,000·30 = 57,000,000 < 3,000,000·20 = 60,000,000 → on pace, silent.
+        PaceCase(month: 4, daysInMonth: 30, day: 20, allocation: 3_000_000, spent: 1_900_000, shouldFire: false),
+
+        // May 2026 (31 days). allocation 3,100,000.
+        // day 15: elapsed 15/31. spent 1,500,001·31 = 46,500,031 > 3,100,000·15 = 46,500,000 → fire.
+        PaceCase(month: 5, daysInMonth: 31, day: 15, allocation: 3_100_000, spent: 1_500_001, shouldFire: true),
+        // day 15: spent exactly 1,500,000 → equal → silent.
+        PaceCase(month: 5, daysInMonth: 31, day: 15, allocation: 3_100_000, spent: 1_500_000, shouldFire: false),
+        // day 30 (still < 31): spent 3,000,000·31 = 93,000,000 < 3,100,000·30 = 93,000,000? 93,000,000 == 93,000,000 → silent.
+        PaceCase(month: 5, daysInMonth: 31, day: 30, allocation: 3_100_000, spent: 3_000_000, shouldFire: false),
+    ])
+    func paceThresholdFiresIffSpendFractionExceedsElapsedFraction(_ c: PaceCase) {
+        let asOf = cal.date(from: DateComponents(year: 2026, month: c.month, day: c.day))!
+        let food = envelope("Food", allocation: c.allocation)
+        // Expense on day 1 of the same month: monthExpenses filters by year+month only.
+        let firstOfMonth = cal.date(from: DateComponents(year: 2026, month: c.month, day: 1))!
+        let tx = Transaction(date: firstOfMonth, kind: .expense, amount: vnd(c.spent), sourceID: UUID(), envelopeID: food.id)
+        let snap = FinanceSnapshot(envelopes: [food], transactions: [tx], goals: [], asOf: asOf, calendar: cal)
+
+        let signals = SignalEngine.signals(snap)
+        let paceSignal = signals.first { $0.kind == .projectedOverspend }
+        if c.shouldFire {
+            #expect(paceSignal != nil)
+            #expect(paceSignal?.severity == .warning)
+            #expect(paceSignal?.id == "projectedOverspend-\(food.id)")
+            // Never the overspent branch — spent stays within allocation in every fire case.
+            #expect(!signals.contains { $0.kind == .envelopeOverspent })
+        } else {
+            #expect(paceSignal == nil)
+        }
+    }
+
     // MARK: Goals
 
     private func goal(actual: Int) -> GoalState {
