@@ -30,6 +30,17 @@ import Foundation
         #expect(net[12] == vnd(-200_000))
     }
 
+    @Test func excludesForeignCurrencyEntries() {
+        // The grid is a VND cash-flow view and carries no rates, so a non-VND entry is
+        // excluded rather than summed at face value.
+        let txs = [
+            Transaction(date: date(2026,5,15), kind: .expense, amount: Money(minorUnits: 100_00, currency: .usd), sourceID: UUID()),
+            Transaction(date: date(2026,5,15), kind: .expense, amount: vnd(70_000), sourceID: UUID())
+        ]
+        let net = CalendarMath.dailyNet(transactions: txs, year: 2026, month: 5, calendar: cal)
+        #expect(net[15] == vnd(-70_000))
+    }
+
     @Test func excludesTransfersAndOtherMonths() {
         let txs = [
             Transaction(date: date(2026,5,10), kind: .transfer, amount: vnd(5_000_000), sourceID: UUID(), destinationID: UUID()),

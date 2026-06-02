@@ -72,6 +72,42 @@ import Foundation
         #expect(outcome == .insufficientHistory(haveDays: 0, needDays: 7))
     }
 
+    @Test func emitsIndependentSeriesPerEnvelopeSoEachRowScalesToItsOwnMax() {
+        // TC-18-04: two Envelopes with very different spend totals over the same range.
+        // The engine emits one series per Envelope, each with its own bars/totals, so the
+        // view can scale each row to its own max.
+        let asOf = date(2026, 5, 29)
+        let transportID = UUID()
+        let transport = Envelope(id: transportID, name: "Transport", iconName: "car", allocation: vnd(2_000_000))
+        let transportExpense = { (y: Int, m: Int, d: Int, amount: Int) in
+            Transaction(date: self.date(y, m, d), kind: .expense, amount: self.vnd(amount), sourceID: UUID(), envelopeID: transportID)
+        }
+        let txs = [
+            expense(2026, 5, 28, 50_000),                 // Food on the 28th
+            transportExpense(2026, 5, 28, 500_000)        // Transport on the 28th (10×)
+        ]
+        let outcome = SpendingBucketEngine.spending(
+            range: .week, envelopes: [food(), transport], transactions: txs,
+            asOf: asOf, earliest: date(2026, 1, 1), calendar: cal
+        )
+        guard case let .series(series) = outcome else { Issue.record("expected series"); return }
+        #expect(series.count == 2)
+
+        let foodSeries = series.first { $0.id == envID }!
+        let transportSeries = series.first { $0.id == transportID }!
+
+        // Each series tops out at its own Envelope's spend — independent maxima.
+        let foodMax = foodSeries.bars.map(\.total.minorUnits).max()!
+        let transportMax = transportSeries.bars.map(\.total.minorUnits).max()!
+        #expect(foodMax == 50_000)
+        #expect(transportMax == 500_000)
+        #expect(foodMax != transportMax)
+
+        // The series carry only their own Envelope's spend (no cross-contamination).
+        #expect(foodSeries.bars.reduce(0) { $0 + $1.total.minorUnits } == 50_000)
+        #expect(transportSeries.bars.reduce(0) { $0 + $1.total.minorUnits } == 500_000)
+    }
+
     @Test func excludesOtherEnvelopesAndInformationalEntries() {
         let asOf = date(2026, 5, 29)
         let other = Transaction(date: date(2026, 5, 28), kind: .expense, amount: vnd(999_000), sourceID: UUID(), envelopeID: UUID())

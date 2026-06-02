@@ -22,6 +22,18 @@ import Foundation
         #expect(fee.isZero)
     }
 
+    @Test func negativeFeeWhenReceivedExceedsExpected() {
+        // S$100 at 18,500 = ₫1,850,000 expected; received ₫1,900,000 (favorable rate)
+        // → fee = out × rate − in = −50,000₫. The engine returns the exact negative Money.
+        let fee = TransferEngine.fee(
+            amountOut: Money(minorUnits: 100_00, currency: .sgd),
+            amountIn: Money(minorUnits: 1_900_000, currency: .vnd),
+            rate: 18_500
+        )
+        #expect(fee == Money(minorUnits: -50_000, currency: .vnd))
+        #expect(fee.isNegative)
+    }
+
     @Test func crossCurrencyTransferMovesNativeAmounts() throws {
         let wise = Source(
             name: "Wise SGD", kind: .account, currency: .sgd,
