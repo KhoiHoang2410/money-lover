@@ -71,6 +71,7 @@ enum A11y {
         static let appearance = "config.appearance"
         static let seedSample = "config.seedSample"
         static let clearData = "config.clearData"
+        static let version = "config.version"
     }
 
     enum Calendar {

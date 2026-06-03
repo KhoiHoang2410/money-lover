@@ -159,11 +159,18 @@ extension XCUIApplication {
         let picker = element(identifier)
         XCTAssertTrue(picker.waitForExistence(timeout: 5), "Picker '\(identifier)' not found")
         picker.tap()
+        // The menu option surfaces as a button or a static text depending on the control style,
+        // so poll for whichever appears and tap it. A cold CI simulator animates the menu slowly;
+        // the old code waited only on the button and then tapped the static text with no wait,
+        // which flaked as "No matches found" on slow runners.
         let optionButton = buttons[option].firstMatch
-        if optionButton.waitForExistence(timeout: 3) {
-            optionButton.tap()
-        } else {
-            staticTexts[option].firstMatch.tap()
+        let optionText = staticTexts[option].firstMatch
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline {
+            if optionButton.exists { optionButton.tap(); return }
+            if optionText.exists { optionText.tap(); return }
+            usleep(100_000)
         }
+        XCTFail("Picker option '\(option)' did not appear")
     }
 }

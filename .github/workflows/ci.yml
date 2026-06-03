@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SCHEME: MoneyLover
+  PROJECT: MoneyLover.xcodeproj
+  # iPhone 17 on the latest installed iOS runtime (see README.md).
+  DESTINATION: "platform=iOS Simulator,name=iPhone 17,OS=latest"
+
+jobs:
+  # 1. Type-check + build. In Swift, compilation IS the type check, so this one
+  #    job covers both. build-for-testing also compiles the unit + UI test
+  #    targets, then we tar the products (preserving the +x bit, which
+  #    upload-artifact's zip would drop) for the test jobs to reuse.
+  build:
+    name: Build (type-check + compile)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select newest Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)"
+          XCODE="${XCODE:-/Applications/Xcode.app}"
+          echo "Using $XCODE"
+          sudo xcode-select -switch "$XCODE"
+          xcodebuild -version
+
+      # MoneyLover.xcodeproj is generated from project.yml by XcodeGen
+      # (gitignored, not committed). Regenerate before building.
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      # -quiet drops the per-file compile commands; warnings + errors still
+      # print, and a non-zero exit still fails the step.
+      - name: Build for testing
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -derivedDataPath DerivedData \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO
+          echo "✅ Build succeeded"
+
+      # tar preserves the executable bit + bundle layout; the .xctestrun uses
+      # __TESTROOT__-relative paths, so the absolute workspace path is irrelevant
+      # when the test jobs run test-without-building.
+      - name: Package build products
+        run: tar -czf build-products.tar.gz -C DerivedData/Build Products
+
+      - name: Upload build products
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-products
+          path: build-products.tar.gz
+          retention-days: 1
+
+  # 2. Unit tests (Swift Testing) — reuse the compiled products, no rebuild.
+  unit-tests:
+    name: Unit tests
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Select newest Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)"
+          XCODE="${XCODE:-/Applications/Xcode.app}"
+          sudo xcode-select -switch "$XCODE"
+
+      - name: Download build products
+        uses: actions/download-artifact@v4
+        with:
+          name: build-products
+
+      - name: Unpack build products
+        run: |
+          mkdir -p DerivedData/Build
+          tar -xzf build-products.tar.gz -C DerivedData/Build
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          XCTESTRUN="$(ls DerivedData/Build/Products/*.xctestrun | head -n1)"
+          echo "Using $XCTESTRUN"
+          xcodebuild test-without-building \
+            -xctestrun "$XCTESTRUN" \
+            -destination "$DESTINATION" \
+            -only-testing:MoneyLoverTests \
+            -resultBundlePath UnitTestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload unit test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: UnitTestResults
+          path: UnitTestResults.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # 3. UI tests (XCUITest) — reuse the compiled products, no rebuild. Runs in
+  #    parallel with the unit tests so the slow UI suite no longer blocks
+  #    fast unit feedback.
+  ui-tests:
+    name: UI tests
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Select newest Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)"
+          XCODE="${XCODE:-/Applications/Xcode.app}"
+          sudo xcode-select -switch "$XCODE"
+
+      - name: Download build products
+        uses: actions/download-artifact@v4
+        with:
+          name: build-products
+
+      - name: Unpack build products
+        run: |
+          mkdir -p DerivedData/Build
+          tar -xzf build-products.tar.gz -C DerivedData/Build
+
+      - name: Run UI tests
+        run: |
+          set -o pipefail
+          XCTESTRUN="$(ls DerivedData/Build/Products/*.xctestrun | head -n1)"
+          echo "Using $XCTESTRUN"
+          xcodebuild test-without-building \
+            -xctestrun "$XCTESTRUN" \
+            -destination "$DESTINATION" \
+            -only-testing:MoneyLoverUITests \
+            -resultBundlePath UITestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload UI test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: UITestResults
+          path: UITestResults.xcresult
+          if-no-files-found: ignore
+          retention-days: 7

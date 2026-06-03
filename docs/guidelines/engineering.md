@@ -92,5 +92,21 @@ Put **all** tokens in a `Theme`/`DS` enum — colors, spacing, radii, typography
 - Icons: **SF Symbols** first; Phosphor only for finance glyphs SF lacks. Bank logos: **bundle in Assets.xcassets** — do NOT fetch logos at runtime (privacy; ADR-0001 note).
 - `PriceProvider` (Services): `async`/`await` `URLSession`, the three endpoints in ADR-0003, cache last-known, expose `stale`, always allow manual override. No secrets in the repo (none needed — fully local, no API key).
 
+## 13. Versioning & PRs (ADR-0008)
+The app follows **SemVer** (`https://semver.org/`), **pre-1.0 simplified** (spec §4 — breaking changes do not force a MAJOR bump before the 1.0 release). Two independent numbers:
+- **`MARKETING_VERSION`** — the `MAJOR.MINOR.PATCH` string shown to users (Config footer via `AppInfo`).
+- **`CURRENT_PROJECT_VERSION`** — a monotonic build integer (TestFlight uniqueness). Never resets.
+
+**Every PR bumps the version** as part of its own diff. When opening a PR:
+1. Inspect the branch's commits (`git log main..HEAD`). Pick the **highest-priority** change:
+   - any `feat:` (or a breaking change) → **MINOR** bump (`0.2.0` → `0.3.0`)
+   - only `fix:` / `chore:` / `docs:` / `refactor:` / `test:` / `style:` → **PATCH** bump (`0.2.0` → `0.2.1`)
+   - One bump per PR — not per commit.
+2. **`CURRENT_PROJECT_VERSION` += 1**, always.
+3. Edit the two values in **`project.yml`** — the only committed source of truth (`MoneyLover.xcodeproj` is gitignored, regenerated locally via `xcodegen generate`). Never hand-edit the pbxproj.
+4. Add a `CHANGELOG.md` entry under the new version heading (Keep a Changelog: Added / Changed / Fixed).
+
+Read the version at runtime from the bundle (`AppInfo`, never a hard-coded string). When 1.0 ships, switch to strict SemVer (breaking → MAJOR) and record it in a follow-up ADR.
+
 ## Definition of Done (every change)
-Compiles with **zero warnings** · unit tests added/green for any Core logic · no deprecated API (check `swiftui-pro` references) · tokens used (no magic numbers/colors) · bottom inset reserved · formatting via FormatStyle · Dynamic Type + VoiceOver + Reduce-Motion OK · no force-unwrap · one type per file · `#Preview` present · glossary vocabulary used.
+Compiles with **zero warnings** · unit tests added/green for any Core logic · no deprecated API (check `swiftui-pro` references) · tokens used (no magic numbers/colors) · bottom inset reserved · formatting via FormatStyle · Dynamic Type + VoiceOver + Reduce-Motion OK · no force-unwrap · one type per file · `#Preview` present · glossary vocabulary used · **version bumped + CHANGELOG entry added (§13)**.
