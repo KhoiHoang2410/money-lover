@@ -10,7 +10,7 @@
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** ReconcileUITests.testEnteringRealBalanceEnablesRecord
+- **Automation:** ReconcileUITests.testReconcileAdjustsBalanceAndNetWorth — Adjustment moves the Cash row + net worth, survives relaunch (EFFECT-CONTRACT.md); testEnteringRealBalanceEnablesRecord — gating
 - **Preconditions:** App seeded; note Cash computed balance C.
 
 | # | Step | Test Data | Expected Result |

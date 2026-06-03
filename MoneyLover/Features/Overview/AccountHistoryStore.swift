@@ -11,11 +11,13 @@ final class AccountHistoryStore {
     var range: HistoryRange = .week
     var kind: TransactionKind?
     var search = ""
+    private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 
     init(account: Source, transactions: TransactionRepository) {
         self.account = account
         self.repo = transactions
+        changeObserver.observe { [weak self] in self?.load() }
     }
 
     func load() {

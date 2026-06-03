@@ -10,7 +10,7 @@
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** CrossCurrencyTransferUITests.testCrossCurrencyTransferComputesFeeAndSaves
+- **Automation:** CrossCurrencyTransferUITests.testCrossCurrencyTransferComputesFeeAndSaves — Fee + save; testCrossCurrencyTransferChangesNetWorthByFee — net worth drops by the Fee, survives relaunch (EFFECT-CONTRACT.md)
 - **Preconditions:** App seeded; note Wise SGD and VPBank balances.
 
 | # | Step | Test Data | Expected Result |

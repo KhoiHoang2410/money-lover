@@ -34,6 +34,8 @@ struct InputScreen: View {
                 )
                 newStore.load()
                 store = newStore
+                // No per-appearance reload: the store observes ModelContext (ADR-0009), so a Source
+                // created in another tab surfaces in the pickers automatically.
             }
         }
     }

@@ -10,7 +10,7 @@
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** none (candidate)
+- **Automation:** TransferUITests.testSameCurrencyTransferMovesBalancesAndKeepsNetWorth — both rows move, net worth unchanged, survives relaunch (EFFECT-CONTRACT.md)
 - **Preconditions:** Note MBBank balance M, Savings balance S, net worth N.
 
 | # | Step | Test Data | Expected Result |

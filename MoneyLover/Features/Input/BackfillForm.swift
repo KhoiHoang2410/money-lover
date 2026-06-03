@@ -28,6 +28,7 @@ struct BackfillForm: View {
                     TextField("Amount", value: $amountMajor, format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
+                        .accessibilityIdentifier(A11y.Txn.amount)
                 }
                 DatePicker("Date", selection: $date, in: ...Date.now, displayedComponents: .date)
             }
@@ -38,6 +39,7 @@ struct BackfillForm: View {
                         Text(source.name).tag(Optional(source.id))
                     }
                 }
+                .accessibilityIdentifier(A11y.Txn.source)
                 if kind == .expense {
                     Picker("Envelope", selection: $envelopeID) {
                         Text("None").tag(UUID?.none)
@@ -45,10 +47,12 @@ struct BackfillForm: View {
                             Text(envelope.name).tag(Optional(envelope.id))
                         }
                     }
+                    .accessibilityIdentifier(A11y.Txn.envelope)
                 }
             }
             Section {
                 TextField("Note", text: $note, axis: .vertical)
+                    .accessibilityIdentifier(A11y.Txn.note)
             } footer: {
                 Text("Backfill is informational only — it appears in history but does not change your Current balance.")
             }
@@ -58,6 +62,7 @@ struct BackfillForm: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save", action: save).disabled(!canSave)
+                    .accessibilityIdentifier(A11y.Txn.save)
             }
         }
     }

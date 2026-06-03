@@ -16,6 +16,99 @@ extension XCUIApplication {
         return app
     }
 
+    /// Launch with an empty store (clear + skip onboarding, no seed). Used to prove that a Source
+    /// created after a tab's store first loaded becomes visible there without restarting the app.
+    static func launchEmpty() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST"] = "1"
+        app.launchEnvironment["UITEST_EMPTY"] = "1"
+        app.launch()
+        return app
+    }
+
+    /// Relaunch the SAME app without clearing the store (UITEST_PRESERVE) — proves a write
+    /// survived a cold start. The on-disk container persists across the terminate/launch, while the
+    /// preserve hook skips the clear+seed a normal UITEST launch would do.
+    func relaunchPreservingData() {
+        launchEnvironment["UITEST"] = "1"
+        launchEnvironment["UITEST_PRESERVE"] = "1"
+        terminate()
+        launch()
+    }
+
+    // MARK: - Cross-surface assertion helpers (the Effect Contract — see docs/test-cases/)
+
+    /// Make amounts visible if they are currently censored. Idempotent: reads the net-worth hero's
+    /// state first, so calling it when already revealed is a no-op (never accidentally re-hides).
+    func revealAmounts() {
+        let hero = element(A11y.Overview.netWorth)
+        XCTAssertTrue(hero.waitForExistence(timeout: 5), "Net-worth hero not found")
+        // Censored renders "••••••" with a VoiceOver label of "hidden" (AmountText).
+        if hero.label.contains("•") || hero.label.localizedCaseInsensitiveContains("hidden") {
+            element(A11y.Overview.censorToggle).tap()
+        }
+    }
+
+    /// The net-worth hero's revealed value as shown. Switches to Overview and reveals first, so it's
+    /// safe to call from any tab. Used to assert a write in one tab changed the total shown in
+    /// another (freshness) and that it survived relaunch.
+    func revealedNetWorth() -> String {
+        selectTab("Overview")
+        revealAmounts()
+        return element(A11y.Overview.netWorth).label
+    }
+
+    /// Today's day-of-month, computed the same way the app's CalendarStore does (`Calendar.current`),
+    /// so a test can address today's grid cell.
+    var todayDayNumber: Int {
+        Calendar.current.component(.day, from: Date())
+    }
+
+    /// A source row's revealed value on Overview, as shown. Used to assert a balance changed (or did
+    /// NOT change) without parsing locale-formatted VND — we compare the string before/after.
+    func revealedSourceRow(_ name: String) -> String {
+        selectTab("Overview")
+        revealAmounts()
+        let row = element(A11y.Overview.sourceRow(name))
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "Source row '\(name)' not found")
+        return row.label
+    }
+
+    /// Whether a transaction with the given note is listed under today in the Calendar day detail.
+    /// `TransactionRow` renders the note as its title, so a unique note is a robust handle that needs
+    /// no amount parsing. Returns false (not a failure) when today has no activity at all.
+    /// NOTE: the grid excludes transfers and informational backfills (`CalendarMath.dailyNet`), so
+    /// use `accountHistoryContains` for those.
+    func calendarTodayContains(note: String) -> Bool {
+        selectTab("Calendar")
+        let today = element(A11y.Calendar.day(todayDayNumber))
+        guard today.waitForExistence(timeout: 5) else { return false }
+        today.tap()
+        return staticTexts[note].waitForExistence(timeout: 5)
+    }
+
+    /// Whether a transaction with the given note appears in a source's Account History, opened by
+    /// tapping its Overview row. Pops back to the Overview root afterwards so the nav stack is clean.
+    /// Leaves the source's history pushed on the Overview stack — call it LAST before a relaunch or
+    /// end of test (a relaunch resets the stack). Scrolls to find the row because seed data can be
+    /// future-dated, pushing a freshly-added (now-dated) entry below the first screen.
+    func accountHistoryContains(_ source: String, note: String) -> Bool {
+        selectTab("Overview")
+        // Tap the row's button specifically — the NavigationLink surfaces as a button, and a generic
+        // `.any` match can return a non-hittable wrapper that doesn't navigate.
+        let row = buttons[A11y.Overview.sourceRow(source)]
+        guard row.waitForExistence(timeout: 5) else { return false }
+        row.tap()
+        guard navigationBars[source].waitForExistence(timeout: 5) else { return false }
+        let target = staticTexts[note]
+        var tries = 0
+        while !target.exists && tries < 8 {
+            swipeUp()
+            tries += 1
+        }
+        return target.exists
+    }
+
     /// Tap a root tab by its visible title ("Overview", "Goals", "Calendar", "Add", "Config").
     /// Tabs use SwiftUI's `Tab(_:systemImage:value:)`, which does not surface a custom identifier,
     /// so the title is the stable handle here.

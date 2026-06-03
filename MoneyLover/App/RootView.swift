@@ -43,8 +43,19 @@ struct RootView: View {
             // so automated flows start from the same known seed. Gated on env vars only the test
             // runner sets — never reached in a normal build.
             if env["UITEST"] == "1" {
+                // Relaunch-preserving hook: a persistence test re-launches with UITEST_PRESERVE to
+                // prove a write survived a cold start, so we must NOT clear/re-seed — keep the store
+                // as the previous launch left it, just skip onboarding.
+                if env["UITEST_PRESERVE"] == "1" {
+                    didOnboard = true
+                    return
+                }
                 SampleData.clear(into: context)
-                SampleData.seed(into: context)
+                // Most UI tests want the deterministic seed; the stale-store regression test sets
+                // UITEST_EMPTY so the Input store first loads with no sources, then creates one.
+                if env["UITEST_EMPTY"] != "1" {
+                    SampleData.seed(into: context)
+                }
                 // Reset persisted UI preferences so each run starts from documented defaults
                 // (amounts censored, onboarding done) — UserDefaults otherwise survives reinstall
                 // on a simulator and leaks state between runs.

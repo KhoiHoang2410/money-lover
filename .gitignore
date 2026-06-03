@@ -27,3 +27,6 @@ Package.resolved
 
 # Agent handoff docs
 *-handoff.md
+
+# Claude Code runtime scratch (scheduled-task locks, etc.)
+.claude/

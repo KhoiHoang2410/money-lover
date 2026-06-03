@@ -28,4 +28,32 @@ final class GoalContributionUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Travel"].waitForExistence(timeout: 5),
                       "Contribution sheet did not dismiss back to the goal detail")
     }
+
+    /// Effect Contract: a contribution is a Transfer (Account → Goal), so the funding Account drops
+    /// and **net worth is unchanged** — one Asset becomes another (ADR-0007). And it survives relaunch.
+    func testContributionKeepsNetWorthAndReducesFundingAccount() {
+        let app = XCUIApplication.launchSeeded()
+
+        let nwBefore = app.revealedNetWorth()
+        let mbBefore = app.revealedSourceRow("MBBank")
+
+        app.selectTab("Goals")
+        app.element(A11y.Goals.ring("Travel")).tap()
+        app.element(A11y.Goals.detailContribute).tap()
+        app.typeInField(A11y.Goals.contributionAmount, "2000000")
+        app.selectPickerOption(A11y.Goals.contributionAccount, "MBBank")
+        app.element(A11y.Goals.contributionSave).tap()
+        XCTAssertTrue(app.navigationBars["Travel"].waitForExistence(timeout: 5))
+
+        // Net worth UNCHANGED (asset→asset); the funding account dropped.
+        XCTAssertEqual(nwBefore, app.revealedNetWorth(),
+            "Net worth changed on a goal contribution — funding a Goal moves one Asset into another (ADR-0007).")
+        let mbAfter = app.revealedSourceRow("MBBank")
+        XCTAssertNotEqual(mbBefore, mbAfter, "MBBank did not drop after funding the goal (stale Overview store).")
+
+        // PERSISTENCE.
+        app.relaunchPreservingData()
+        XCTAssertEqual(nwBefore, app.revealedNetWorth(), "Net worth diverged after relaunch.")
+        XCTAssertEqual(mbAfter, app.revealedSourceRow("MBBank"), "Funding account reverted after relaunch.")
+    }
 }

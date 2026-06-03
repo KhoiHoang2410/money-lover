@@ -13,6 +13,7 @@ final class OverviewStore {
     private(set) var transactions: [Transaction] = []
     private(set) var goals: [Goal] = []
     private(set) var rates: Rates = .empty
+    private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 
     init(sources: SourceRepository, transactions: TransactionRepository, rates: RatesRepository, goals: GoalRepository) {
@@ -20,6 +21,7 @@ final class OverviewStore {
         self.transactionsRepo = transactions
         self.ratesRepo = rates
         self.goalsRepo = goals
+        changeObserver.observe { [weak self] in self?.load() }
     }
 
     func load() {

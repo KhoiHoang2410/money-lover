@@ -14,6 +14,7 @@ final class CalendarStore {
     var month: Int { didSet { selectedDay = nil } }
     /// The day whose detail is shown inline below the grid; nil means none picked.
     var selectedDay: Int?
+    private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 
     init(repo: TransactionRepository, year: Int, month: Int, today: Date = .now) {
@@ -21,6 +22,7 @@ final class CalendarStore {
         self.year = year
         self.month = month
         self.today = today
+        changeObserver.observe { [weak self] in self?.load() }
     }
 
     /// True when `day` in the displayed month/year is the real-world current date.

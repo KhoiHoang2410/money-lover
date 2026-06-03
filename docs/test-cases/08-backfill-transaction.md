@@ -10,7 +10,7 @@
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** none (candidate)
+- **Automation:** BackfillUITests.testBackfillShowsInHistoryButDoesNotMoveBalance — shows in history, balance + net worth UNCHANGED, survives relaunch (EFFECT-CONTRACT.md)
 - **Preconditions:** Note Cash current balance C; net worth N.
 
 | # | Step | Test Data | Expected Result |

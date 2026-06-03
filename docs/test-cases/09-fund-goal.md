@@ -10,7 +10,7 @@
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** GoalContributionUITests.testContributeToGoal
+- **Automation:** GoalContributionUITests.testContributionKeepsNetWorthAndReducesFundingAccount — account drops, net worth unchanged (asset→asset), survives relaunch (EFFECT-CONTRACT.md); testContributeToGoal — sheet flow
 - **Preconditions:** Note Travel saved balance T, MBBank balance M, net worth N.
 
 | # | Step | Test Data | Expected Result |
