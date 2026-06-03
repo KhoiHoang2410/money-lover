@@ -31,6 +31,7 @@ struct EnvelopeRow: View {
                 Text(remaining.amount, format: .currency(code: remaining.currency.rawValue))
                     .bold()
                     .foregroundStyle(remaining.isNegative ? Theme.Palette.bad : Theme.Palette.ink)
+                    .accessibilityIdentifier(A11y.Envelope.remaining(envelope.name))
             }
             ProgressView(value: progress)
                 .tint(remaining.isNegative ? Theme.Palette.bad : Theme.Palette.pink)

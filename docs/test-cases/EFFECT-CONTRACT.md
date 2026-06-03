@@ -46,7 +46,9 @@ so those flows assert via source rows / history, not the day cell. Seed data can
 | `07` Reconcile | `ReconcileUITests.testReconcileAdjustsBalanceAndNetWorth` |
 | `08` Backfill | `BackfillUITests.testBackfillShowsInHistoryButDoesNotMoveBalance` |
 | `09` Fund goal | `GoalContributionUITests.testContributionKeepsNetWorthAndReducesFundingAccount` |
-| `11` Envelope, `12` Month-end, `14` Voice, `15` Income | TODO — same contract |
+| `11` Envelope budgeting | `EnvelopesUITests.testExpenseReducesEnvelopeRemainingAndPersists` |
+| `15` Income | `IncomeUITests.testIncomePropagatesAcrossTabsAndSurvivesRelaunch` |
+| `12` Month-end, `14` Voice | TODO — same contract |
 
 Each contract test is proven to **fail** without the structural fix (negative control), not merely to
 pass with it.

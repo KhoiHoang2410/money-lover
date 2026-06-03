@@ -109,6 +109,18 @@ extension XCUIApplication {
         return target.exists
     }
 
+    /// An envelope's remaining amount as shown on Config → Envelopes (never censored). Navigates
+    /// there if not already, so it's safe to call repeatedly to compare before/after a spend.
+    func envelopeRemaining(_ name: String) -> String {
+        selectTab("Config")
+        if !navigationBars["Envelopes"].exists {
+            element(A11y.Config.envelopes).tap()
+        }
+        let cell = element(A11y.Envelope.remaining(name))
+        XCTAssertTrue(cell.waitForExistence(timeout: 5), "Envelope '\(name)' remaining not found")
+        return cell.label
+    }
+
     /// Tap a root tab by its visible title ("Overview", "Goals", "Calendar", "Add", "Config").
     /// Tabs use SwiftUI's `Tab(_:systemImage:value:)`, which does not surface a custom identifier,
     /// so the title is the stable handle here.
