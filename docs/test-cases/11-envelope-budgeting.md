@@ -10,7 +10,7 @@
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** none (candidate)
+- **Automation:** EnvelopesUITests.testExpenseReducesEnvelopeRemainingAndPersists — an expense reduces Food's remaining cross-tab, survives relaunch (EFFECT-CONTRACT.md)
 - **Preconditions:** Note Food Allocation A; no spend yet this month (or known spent S).
 
 | # | Step | Test Data | Expected Result |

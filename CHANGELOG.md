@@ -4,6 +4,17 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.3.0] — Cross-tab freshness fix + Effect-Contract e2e tests
+
+### Fixed
+- Read-models went stale after a write in another tab (adding a cash expense did not reduce Cash or appear on the calendar until relaunch). Stores now observe `ModelContext.didSave` and re-derive, retiring the per-screen `.onAppear { load() }` band-aids (ADR-0009).
+
+### Added
+- `ADR-0009`: read-models stay fresh by observing the ModelContext.
+- `docs/test-cases/EFFECT-CONTRACT.md`: cross-tab freshness + relaunch contract layered over the catalog; the `Automation:` lines of TC-03/05/06/07/08/09/11/15 now point at the new tests.
+- Effect-Contract XCUITests, each proven to fail without the fix (negative control): `AddExpenseUITests.testExpensePropagatesAcrossTabsAndSurvivesRelaunch`, `TransferUITests`, `CrossCurrencyTransferUITests.testCrossCurrencyTransferChangesNetWorthByFee`, `GoalContributionUITests.testContributionKeepsNetWorthAndReducesFundingAccount`, `ReconcileUITests.testReconcileAdjustsBalanceAndNetWorth`, `BackfillUITests`, `IncomeUITests`, `EnvelopesUITests`.
+- `InputStoreTests` (store reload contract); `ModelChangeObserver`; the calendar-day a11y id (defined but unused); `UITEST_PRESERVE` relaunch hook; shared assertion helpers.
+
 ## [0.2.4] — Engine & E2E test gap-fill (issues 25–33)
 
 ### Added

@@ -11,12 +11,14 @@ final class InputStore {
     private(set) var sources: [Source] = []
     private(set) var envelopes: [Envelope] = []
     private(set) var transactions: [Transaction] = []
+    private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 
     init(sources: SourceRepository, transactions: TransactionRepository, envelopes: EnvelopeRepository) {
         self.sourcesRepo = sources
         self.transactionsRepo = transactions
         self.envelopesRepo = envelopes
+        changeObserver.observe { [weak self] in self?.load() }
     }
 
     func load() {

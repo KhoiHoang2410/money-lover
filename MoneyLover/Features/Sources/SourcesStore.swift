@@ -9,11 +9,13 @@ final class SourcesStore {
     private let transactionsRepo: TransactionRepository
     private(set) var sources: [Source] = []
     private(set) var transactions: [Transaction] = []
+    private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 
     init(sources: SourceRepository, transactions: TransactionRepository) {
         self.sourcesRepo = sources
         self.transactionsRepo = transactions
+        changeObserver.observe { [weak self] in self?.load() }
     }
 
     func load() {

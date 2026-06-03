@@ -43,6 +43,9 @@ struct MonthGrid: View {
                             DayCell(day: day, net: net, isSelected: store.selectedDay == day, isToday: store.isToday(day))
                         }
                         .buttonStyle(.plain)
+                        // Only days with activity are buttons; the id lets a test assert a write
+                        // surfaced on the right day (a day with no net carries no id).
+                        .accessibilityIdentifier(A11y.Calendar.day(day))
                     } else {
                         DayCell(day: day, net: nil, isSelected: store.selectedDay == day, isToday: store.isToday(day))
                     }

@@ -31,4 +31,34 @@ final class CrossCurrencyTransferUITests: XCTestCase {
         XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
                       "Did not return to Input hub after a cross-currency transfer")
     }
+
+    /// Effect Contract: a cross-currency transfer carries a Fee, so net worth must DROP (the only
+    /// real-money leak in an otherwise internal move), and that must survive a relaunch.
+    func testCrossCurrencyTransferChangesNetWorthByFee() {
+        let app = XCUIApplication.launchSeeded()
+
+        let nwBefore = app.revealedNetWorth()
+
+        app.selectTab("Add")
+        app.element(A11y.Input.addTransaction).tap()
+        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
+        app.selectPickerOption(A11y.Txn.method, "Cross-currency")
+        app.selectPickerOption(A11y.Txn.source, "Wise SGD")
+        app.selectPickerOption(A11y.Txn.destination, "VPBank")
+        app.typeInField(A11y.Txn.amount, "100")
+        app.typeInField(A11y.Txn.amountIn, "1800000")
+        app.typeInField(A11y.Txn.rate, "18500")
+        app.element(A11y.Txn.save).tap()
+        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5))
+
+        // The Fee is the only real-money change → net worth moved.
+        let nwAfter = app.revealedNetWorth()
+        XCTAssertNotEqual(nwBefore, nwAfter,
+            "Net worth unchanged after a cross-currency transfer — the Fee should have reduced it.")
+
+        // PERSISTENCE.
+        app.relaunchPreservingData()
+        XCTAssertEqual(nwAfter, app.revealedNetWorth(), "Net worth reverted after relaunch.")
+    }
 }

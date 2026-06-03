@@ -24,4 +24,30 @@ final class ReconcileUITests: XCTestCase {
         XCTAssertTrue(app.element(A11y.Input.reconcile).waitForExistence(timeout: 5),
                       "Did not return to Input hub after recording the adjustment")
     }
+
+    /// Effect Contract: recording a real balance posts an Adjustment, so the source row equals the
+    /// re-entered balance, net worth moves by the drift, and it survives a relaunch.
+    func testReconcileAdjustsBalanceAndNetWorth() {
+        let app = XCUIApplication.launchSeeded()
+
+        let nwBefore = app.revealedNetWorth()
+        let cashBefore = app.revealedSourceRow("Cash")
+
+        app.selectTab("Add")
+        app.element(A11y.Input.reconcile).tap()
+        XCTAssertTrue(app.navigationBars["Update balances"].waitForExistence(timeout: 5))
+        // Cash seeds to 1,500,000 — re-enter 1,400,000 to create a −100,000 drift.
+        app.typeInField(A11y.Reconcile.field("Cash"), "1400000")
+        app.buttons[A11y.Reconcile.record].tap()
+        XCTAssertTrue(app.element(A11y.Input.reconcile).waitForExistence(timeout: 5))
+
+        // The Adjustment moved both the Cash row and net worth.
+        let cashAfter = app.revealedSourceRow("Cash")
+        XCTAssertNotEqual(cashBefore, cashAfter, "Cash row did not change after reconciling (stale Overview store).")
+        XCTAssertNotEqual(nwBefore, app.revealedNetWorth(), "Net worth did not move after a reconciling Adjustment.")
+
+        // PERSISTENCE.
+        app.relaunchPreservingData()
+        XCTAssertEqual(cashAfter, app.revealedSourceRow("Cash"), "Reconciled Cash balance reverted after relaunch.")
+    }
 }

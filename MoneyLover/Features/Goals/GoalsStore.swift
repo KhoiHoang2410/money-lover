@@ -11,11 +11,13 @@ final class GoalsStore {
     /// VND Accounts that can fund a goal (ADR-0007 — foreign-currency Accounts are excluded).
     private(set) var fundingAccounts: [Source] = []
     private var totals: [UUID: Money] = [:]
+    private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 
     init(repo: GoalRepository, sources: SourceRepository) {
         self.repo = repo
         self.sourcesRepo = sources
+        changeObserver.observe { [weak self] in self?.load() }
     }
 
     func load() {

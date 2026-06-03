@@ -80,4 +80,10 @@ enum A11y {
         static let prevMonth = "calendar.prevMonth"
         static let nextMonth = "calendar.nextMonth"
     }
+
+    enum Envelope {
+        /// The remaining amount on an envelope row, keyed by name — lets a test assert spending
+        /// reduced the right envelope's remaining.
+        static func remaining(_ name: String) -> String { "envelope.remaining.\(name)" }
+    }
 }

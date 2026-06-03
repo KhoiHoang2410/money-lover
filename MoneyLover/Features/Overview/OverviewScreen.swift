@@ -45,10 +45,6 @@ struct OverviewScreen: View {
                     }
                 }
             }
-            .onAppear {
-                store?.load()
-                goalsStore?.load()
-            }
             .toolbar {
                 Button(
                     censored ? "Show amounts" : "Hide amounts",

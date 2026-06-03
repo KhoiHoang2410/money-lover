@@ -10,7 +10,7 @@
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** AddExpenseUITests.testAddExpenseSavesAndReturns
+- **Automation:** AddExpenseUITests.testExpensePropagatesAcrossTabsAndSurvivesRelaunch — net worth + calendar cell/detail update cross-tab, survives relaunch (EFFECT-CONTRACT.md); testAddExpenseSavesAndReturns — dismiss
 - **Preconditions:** App seeded; note Cash balance and Food remaining.
 
 | # | Step | Test Data | Expected Result |

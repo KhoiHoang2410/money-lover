@@ -9,11 +9,13 @@ final class EnvelopesStore {
     private let transactionsRepo: TransactionRepository
     private(set) var envelopes: [Envelope] = []
     private(set) var transactions: [Transaction] = []
+    private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 
     init(envelopes: EnvelopeRepository, transactions: TransactionRepository) {
         self.envelopesRepo = envelopes
         self.transactionsRepo = transactions
+        changeObserver.observe { [weak self] in self?.load() }
     }
 
     func load() {

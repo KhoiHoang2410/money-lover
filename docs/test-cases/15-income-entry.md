@@ -10,7 +10,7 @@
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** none (candidate)
+- **Automation:** IncomeUITests.testIncomePropagatesAcrossTabsAndSurvivesRelaunch — net worth + account rise cross-tab, shows on calendar, survives relaunch (EFFECT-CONTRACT.md)
 - **Preconditions:** Note MBBank balance M; net worth N.
 
 | # | Step | Test Data | Expected Result |
