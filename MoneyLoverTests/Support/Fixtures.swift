@@ -163,6 +163,30 @@ func makeBackfill(_ kind: TransactionKind = .expense, amount: Money, source: UUI
     makeTransaction(kind, amount: amount, sourceID: source, date: txnDate, note: note, envelopeID: envelope, affectsBalance: false)
 }
 
+/// An Invest (Buy/Sell of a Holding, ADR-0010): VND `account` (sourceID) trades `quantity` units of
+/// `holding` (destinationID) at `unitPrice`; `amount` = quantity × unitPrice in VND.
+func makeInvest(
+    _ direction: TradeDirection,
+    quantity: Decimal,
+    unitPrice: Money,
+    account: UUID,
+    holding: UUID,
+    date txnDate: Date = anchor2026,
+    affectsBalance: Bool = true
+) -> Transaction {
+    Transaction(
+        date: txnDate,
+        kind: .invest,
+        amount: Money(major: quantity * unitPrice.amount, currency: .vnd),
+        sourceID: account,
+        destinationID: holding,
+        note: "\(direction.title) holding",
+        tradeQuantity: quantity,
+        tradeDirection: direction,
+        affectsBalance: affectsBalance
+    )
+}
+
 // MARK: - Named presets (mirror the seed snapshot, exact numbers)
 
 enum Fixtures {

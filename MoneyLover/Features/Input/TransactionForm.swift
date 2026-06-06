@@ -9,7 +9,7 @@ struct TransactionForm: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private enum Field: Hashable { case amount, amountIn, rate, note }
+    private enum Field: Hashable { case amount, amountIn, rate, unitPrice, note }
     @FocusState private var focus: Field?
 
     @State private var kind: TransactionKind = .expense
@@ -31,12 +31,22 @@ struct TransactionForm: View {
     @State private var amountInText = ""
     @State private var rate: Decimal = 0
 
+    // Invest (Buy/Sell of a Holding) — ADR-0010
+    @State private var direction: TradeDirection = .buy
+    @State private var accountID: UUID?
+    @State private var holdingID: UUID?
+    @State private var quantity: Decimal = 0
+    @State private var quantityText = ""
+    @State private var unitPriceMajor: Decimal = 0
+    @State private var unitPriceText = ""
+
     var body: some View {
         Form {
             Picker("Type", selection: $kind) {
                 Text("Expense").tag(TransactionKind.expense)
                 Text("Income").tag(TransactionKind.income)
                 Text("Transfer").tag(TransactionKind.transfer)
+                Text("Invest").tag(TransactionKind.invest)
             }
             .pickerStyle(.segmented)
             .listRowBackground(Color.clear)
@@ -46,6 +56,7 @@ struct TransactionForm: View {
             case .expense: expenseFields
             case .income: incomeFields
             case .transfer: transferFields
+            case .invest: investFields
             case .adjustment: EmptyView() // Adjustments are created by Reconcile, not offered here.
             }
         }
@@ -68,7 +79,7 @@ struct TransactionForm: View {
         Section {
             Picker("From", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
-                ForEach(store.sources) { Text($0.name).tag(Optional($0.id)) }
+                ForEach(spendableSources) { Text($0.name).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.source)
             Picker("Envelope", selection: $envelopeID) {
@@ -136,6 +147,56 @@ struct TransactionForm: View {
         }
     }
 
+    @ViewBuilder
+    private var investFields: some View {
+        Picker("Direction", selection: $direction) {
+            ForEach(TradeDirection.allCases) { Text($0.title).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .listRowBackground(Color.clear)
+        .accessibilityIdentifier(A11y.Txn.tradeDirection)
+
+        Section {
+            Picker(direction == .buy ? "Pay from" : "Receive into", selection: $accountID) {
+                Text("Select…").tag(UUID?.none)
+                ForEach(vndAccounts) { Text($0.name).tag(Optional($0.id)) }
+            }
+            .accessibilityIdentifier(A11y.Txn.source)
+            Picker("Holding", selection: $holdingID) {
+                Text("Select…").tag(UUID?.none)
+                ForEach(store.holdings) { Text($0.name).tag(Optional($0.id)) }
+            }
+            .accessibilityIdentifier(A11y.Txn.holding)
+        }
+        Section {
+            LabeledContent("Quantity") {
+                // Text-bound (not value:format:) so the parsed quantity updates live as typed —
+                // the Save/oversell guard reacts before the field loses focus.
+                TextField("Qty", text: $quantityText)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .accessibilityIdentifier(A11y.Txn.quantity)
+                    .onChange(of: quantityText) { _, newValue in
+                        quantity = Decimal(string: newValue.replacingOccurrences(of: ",", with: ".")) ?? 0
+                    }
+            }
+            amountField("Unit price (₫)", text: $unitPriceText, value: $unitPriceMajor, focus: .unitPrice, id: A11y.Txn.unitPrice)
+            LabeledContent(direction == .buy ? "Total cost" : "Total proceeds") {
+                Text(investTotal.amount, format: .currency(code: Currency.vnd.rawValue))
+                    .foregroundStyle(Theme.Palette.ink)
+            }
+        }
+        if let holdingID, direction == .sell {
+            Section {
+                LabeledContent("Currently held") {
+                    Text(heldQuantity(holdingID), format: .number)
+                        .foregroundStyle(quantity > heldQuantity(holdingID) ? Theme.Palette.bad : .secondary)
+                }
+            }
+        }
+        noteSection
+    }
+
     private var noteSection: some View {
         Section {
             TextField("Note", text: $note, axis: .vertical)
@@ -182,14 +243,34 @@ struct TransactionForm: View {
 
     private var accounts: [Source] { store.sources.filter { $0.kind == .account } }
 
+    /// Accounts and cards — the sources an Expense or Transfer can touch. Holdings are excluded;
+    /// they only move via Invest (ADR-0010).
+    private var spendableSources: [Source] { store.sources.filter { $0.kind != .holding } }
+
+    /// VND Accounts are the only sources that can Buy/Sell a Holding (ADR-0010).
+    private var vndAccounts: [Source] {
+        store.sources.filter { $0.kind == .account && $0.currency == .vnd }
+    }
+
+    /// Money moved by the trade = quantity × unit price, in VND.
+    private var investTotal: Money {
+        Money(major: quantity * unitPriceMajor, currency: .vnd)
+    }
+
+    /// The Holding's current live quantity (opening ± prior trades), for the oversell guard.
+    private func heldQuantity(_ id: UUID) -> Decimal {
+        guard let holding = store.holdings.first(where: { $0.id == id }) else { return 0 }
+        return HoldingQuantityEngine.liveQuantity(of: holding, transactions: store.transactions)
+    }
+
     private var fromOptions: [Source] {
-        method == .payCard ? store.sources.filter { $0.kind == .account } : store.sources
+        method == .payCard ? store.sources.filter { $0.kind == .account } : spendableSources
     }
 
     private var toOptions: [Source] {
         switch method {
         case .payCard: store.sources.filter { $0.kind == .creditCard }
-        default: store.sources.filter { $0.id != fromID }
+        default: spendableSources.filter { $0.id != fromID }
         }
     }
 
@@ -237,6 +318,10 @@ struct TransactionForm: View {
         case .transfer:
             guard let from = fromSource, let to = toSource, from.id != to.id, amountMajor > 0 else { return false }
             return method != .crossCurrency || (amountInMajor > 0 && rate > 0)
+        case .invest:
+            guard accountID != nil, let holdingID, quantity > 0, unitPriceMajor > 0 else { return false }
+            // A Sell cannot exceed the units currently held (ADR-0010).
+            return direction == .buy || quantity <= heldQuantity(holdingID)
         case .adjustment:
             return false
         }
@@ -278,6 +363,18 @@ struct TransactionForm: View {
                     note: method == .payCard ? "Card payment" : "Transfer"
                 ))
             }
+        case .invest:
+            guard let accountID, let holdingID else { return }
+            let holdingName = store.holdings.first { $0.id == holdingID }?.name ?? "holding"
+            store.add(Transaction(
+                kind: .invest,
+                amount: investTotal,
+                sourceID: accountID,
+                destinationID: holdingID,
+                note: "\(direction.title) \(holdingName)",
+                tradeQuantity: quantity,
+                tradeDirection: direction
+            ))
         case .adjustment:
             return
         }
