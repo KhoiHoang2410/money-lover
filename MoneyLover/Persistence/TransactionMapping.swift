@@ -24,6 +24,26 @@ extension TransactionRecord {
         )
     }
 
+    /// Overwrites this record's fields from a domain value (same id), for in-place edits.
+    func update(from t: Transaction) {
+        date = t.date
+        kindRaw = t.kind.rawValue
+        amountMinorUnits = t.amount.minorUnits
+        amountCurrencyRaw = t.amount.currency.rawValue
+        sourceID = t.sourceID
+        destinationID = t.destinationID
+        destinationAmountMinorUnits = t.destinationAmount?.minorUnits
+        destinationCurrencyRaw = t.destinationAmount?.currency.rawValue
+        feeMinorUnits = t.fee?.minorUnits
+        feeCurrencyRaw = t.fee?.currency.rawValue
+        note = t.note
+        envelopeID = t.envelopeID
+        goalID = t.goalID
+        tradeQuantity = t.tradeQuantity
+        tradeDirectionRaw = t.tradeDirection?.rawValue
+        affectsBalance = t.affectsBalance
+    }
+
     func toDomain() -> Transaction? {
         guard
             let kind = TransactionKind(rawValue: kindRaw),

@@ -80,3 +80,69 @@
 | 1 | View that day's net | — | The day **lists** the backfilled transaction (history complete) — confirm whether it counts toward day-net consistently with how current balance treats it; assert the spec's intended rule, not a guess |
 
 - **Postconditions:** None.
+
+---
+
+## TC-17-06 — Floating + adds a transaction on the picked day *(Happy path — feat 1)*
+
+- **Priority:** High
+- **Type:** Positive
+- **Automation:** `CalendarEditDeleteUITests.testFloatingButtonAddsTransactionOnToday`
+- **Preconditions:** Calendar tab open.
+
+| # | Step | Test Data | Expected Result |
+|---|------|-----------|-----------------|
+| 1 | Tap the floating + | — | The full add-transaction form opens (same as the Add tab; Expense/Income/Transfer/Invest) |
+| 2 | The date is prefilled | selected day, else today | Matches the day being viewed; editable in the form |
+| 3 | Save an expense | VPBank, 123,000 | It appears under that day's detail and in the account history |
+
+- **Postconditions:** One transaction added on the chosen date.
+
+---
+
+## TC-17-07 — Tap a day-detail row to edit *(Positive — feat 5)*
+
+- **Priority:** High
+- **Type:** Positive
+- **Automation:** `CalendarEditDeleteUITests.testEditFromCalendarChangesTheAmount`
+- **Preconditions:** A day with at least one non-Adjustment transaction.
+
+| # | Step | Test Data | Expected Result |
+|---|------|-----------|-----------------|
+| 1 | Tap a transaction row | — | The merged form opens in **Edit** mode, all fields prefilled |
+| 2 | Change the amount, Save | 100,000 → 900,000 | The row updates in place (same id); balances recompute |
+| 3 | View an Adjustment row | — | Not tappable here (Adjustments are Reconcile-owned, not edited/deleted from the calendar) |
+
+- **Postconditions:** The edited transaction is updated, not duplicated.
+
+---
+
+## TC-17-08 — Delete from the row's form *(Positive — feat 5)*
+
+- **Priority:** High
+- **Type:** Positive
+- **Automation:** `CalendarEditDeleteUITests.testDeleteFromCalendarRemovesRow`
+- **Preconditions:** A day with a deletable transaction.
+
+| # | Step | Test Data | Expected Result |
+|---|------|-----------|-----------------|
+| 1 | Tap the row to open it | — | The edit form opens |
+| 2 | Tap **Delete transaction** | confirm setting **off** (default) | Removed immediately; form dismisses; balances/quantities recompute |
+
+- **Postconditions:** Transaction gone from history and totals.
+
+---
+
+## TC-17-09 — Opt-in confirmation before delete *(Edge — setting)*
+
+- **Priority:** Medium
+- **Type:** Edge
+- **Automation:** `CalendarEditDeleteUITests.testConfirmBeforeDeleteShowsDialogWhenEnabled`
+- **Preconditions:** Config → Appearance → "Ask before deleting" turned **on**.
+
+| # | Step | Test Data | Expected Result |
+|---|------|-----------|-----------------|
+| 1 | Open a row and tap Delete transaction | setting **on** | A confirmation alert appears first |
+| 2 | Confirm Delete | — | The row is removed |
+
+- **Postconditions:** Setting persists; default is off.

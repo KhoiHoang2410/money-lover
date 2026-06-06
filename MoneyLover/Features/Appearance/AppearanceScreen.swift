@@ -5,6 +5,7 @@ import SwiftUI
 struct AppearanceScreen: View {
     @AppStorage("reduceMotion") private var reduceMotion = false
     @AppStorage("appearance") private var appearance: AppearancePreference = .system
+    @AppStorage("confirmBeforeDelete") private var confirmBeforeDelete = false
 
     var body: some View {
         Form {
@@ -42,6 +43,15 @@ struct AppearanceScreen: View {
                 Toggle("Reduce motion", isOn: $reduceMotion)
             } footer: {
                 Text("Skips decorative animations such as the goal-ring fill. The system Reduce Motion setting is always respected too.")
+            }
+
+            Section {
+                Toggle("Ask before deleting", isOn: $confirmBeforeDelete)
+                    .accessibilityIdentifier(A11y.Config.confirmDelete)
+            } header: {
+                Text("Behavior")
+            } footer: {
+                Text("When on, deleting a transaction asks for confirmation first. Off by default.")
             }
         }
         .navigationTitle("Appearance")

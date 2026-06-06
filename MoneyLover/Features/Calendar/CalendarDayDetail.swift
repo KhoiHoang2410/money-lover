@@ -1,9 +1,11 @@
 import SwiftUI
 
 /// The transactions for the calendar's selected day, shown inline below the grid in the space
-/// the month leaves. Prompts to pick a day when nothing is selected.
+/// the month leaves. Tapping a row opens it to edit or delete (Adjustments are Reconcile-owned and
+/// not interactive here). Prompts to pick a day when nothing is selected.
 struct CalendarDayDetail: View {
     let store: CalendarStore
+    let onEdit: (Transaction) -> Void
 
     var body: some View {
         Group {
@@ -12,16 +14,12 @@ struct CalendarDayDetail: View {
                 if transactions.isEmpty {
                     ContentUnavailableView("No transactions", systemImage: "calendar")
                 } else {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            ForEach(transactions) { transaction in
-                                TransactionRow(transaction: transaction)
-                                    .padding(.horizontal, Theme.Spacing.xl)
-                                Divider()
-                            }
+                    List {
+                        ForEach(transactions) { transaction in
+                            row(transaction)
                         }
-                        .padding(.top, Theme.Spacing.sm)
                     }
+                    .listStyle(.plain)
                 }
             } else {
                 ContentUnavailableView(
@@ -32,5 +30,24 @@ struct CalendarDayDetail: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func row(_ transaction: Transaction) -> some View {
+        // Adjustments are created by Reconcile; they aren't hand-edited or deleted here. Everything
+        // else taps into the edit form, which also carries a Delete action (feat 5).
+        if transaction.kind == .adjustment {
+            TransactionRow(transaction: transaction)
+                .accessibilityIdentifier(A11y.Calendar.txn(transaction.note))
+        } else {
+            Button {
+                onEdit(transaction)
+            } label: {
+                TransactionRow(transaction: transaction)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(A11y.Calendar.txn(transaction.note))
+        }
     }
 }

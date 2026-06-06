@@ -6,13 +6,24 @@ import SwiftUI
 /// cross-currency (manual Rate + computed Fee), and pay-card — under a secondary **Method** switch.
 struct TransactionForm: View {
     let store: InputStore
+    /// When set, the form edits this transaction in place (Save updates, keeps its id). Nil = add.
+    var editing: Transaction?
+    /// The date to prefill a *new* transaction with (e.g. the day picked on the Calendar). Ignored
+    /// when editing — the edited transaction keeps/overrides its own date.
+    var initialDate: Date?
+    /// When editing, an optional action to delete the transaction (feat 5). Shown as a Delete button.
+    var onDelete: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("confirmBeforeDelete") private var confirmBeforeDelete = false
 
     private enum Field: Hashable { case amount, amountIn, rate, unitPrice, note }
     @FocusState private var focus: Field?
 
     @State private var kind: TransactionKind = .expense
+    @State private var date = Date.now
+    @State private var loaded = false
+    @State private var confirmingDelete = false
 
     // Shared
     @State private var amountMajor: Decimal = 0
@@ -59,8 +70,25 @@ struct TransactionForm: View {
             case .invest: investFields
             case .adjustment: EmptyView() // Adjustments are created by Reconcile, not offered here.
             }
+
+            if kind != .adjustment {
+                Section {
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                        .accessibilityIdentifier(A11y.Txn.date)
+                }
+            }
+
+            if editing != nil, onDelete != nil {
+                Section {
+                    Button("Delete transaction", role: .destructive) {
+                        if confirmBeforeDelete { confirmingDelete = true } else { performDelete() }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier(A11y.Txn.delete)
+                }
+            }
         }
-        .navigationTitle("Add transaction")
+        .navigationTitle(editing == nil ? "Add transaction" : "Edit transaction")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -68,7 +96,21 @@ struct TransactionForm: View {
                     .accessibilityIdentifier(A11y.Txn.save)
             }
         }
-        .onAppear { focus = .amount }
+        .onAppear {
+            loadIfNeeded()
+            if editing == nil { focus = .amount }
+        }
+        .alert("Delete this transaction?", isPresented: $confirmingDelete) {
+            Button("Delete", role: .destructive) { performDelete() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently removes it and updates your balances.")
+        }
+    }
+
+    private func performDelete() {
+        onDelete?()
+        dismiss()
     }
 
     // MARK: - Field groups
@@ -328,56 +370,107 @@ struct TransactionForm: View {
     }
 
     private func save() {
+        // Editing keeps the original id and informational flag; a new entry gets a fresh id.
+        let id = editing?.id ?? UUID()
+        let affects = editing?.affectsBalance ?? true
+
         switch kind {
         case .expense:
             guard let source = selectedSource else { return }
-            store.add(Transaction(
-                kind: .expense,
+            persist(Transaction(
+                id: id, date: date, kind: .expense,
                 amount: Money(major: amountMajor, currency: source.currency),
-                sourceID: source.id,
-                note: note,
-                envelopeID: envelopeID
+                sourceID: source.id, note: note, envelopeID: envelopeID, affectsBalance: affects
             ))
         case .income:
             guard let source = selectedSource else { return }
-            store.add(Transaction(
-                kind: .income,
+            persist(Transaction(
+                id: id, date: date, kind: .income,
                 amount: Money(major: amountMajor, currency: source.currency),
-                sourceID: source.id,
-                note: note
+                sourceID: source.id, note: note, affectsBalance: affects
             ))
         case .transfer:
             guard let from = fromSource, let to = toSource else { return }
             let out = Money(major: amountMajor, currency: from.currency)
             if method == .crossCurrency {
                 let received = Money(major: amountInMajor, currency: to.currency)
-                store.add(Transaction(
-                    kind: .transfer, amount: out, sourceID: from.id, destinationID: to.id,
+                persist(Transaction(
+                    id: id, date: date, kind: .transfer, amount: out, sourceID: from.id, destinationID: to.id,
                     destinationAmount: received,
                     fee: TransferEngine.fee(amountOut: out, amountIn: received, rate: rate),
-                    note: "Transfer"
+                    note: note.isEmpty ? "Transfer" : note, affectsBalance: affects
                 ))
             } else {
-                store.add(Transaction(
-                    kind: .transfer, amount: out, sourceID: from.id, destinationID: to.id,
-                    note: method == .payCard ? "Card payment" : "Transfer"
+                persist(Transaction(
+                    id: id, date: date, kind: .transfer, amount: out, sourceID: from.id, destinationID: to.id,
+                    note: note.isEmpty ? (method == .payCard ? "Card payment" : "Transfer") : note,
+                    affectsBalance: affects
                 ))
             }
         case .invest:
             guard let accountID, let holdingID else { return }
             let holdingName = store.holdings.first { $0.id == holdingID }?.name ?? "holding"
-            store.add(Transaction(
-                kind: .invest,
-                amount: investTotal,
-                sourceID: accountID,
-                destinationID: holdingID,
-                note: "\(direction.title) \(holdingName)",
-                tradeQuantity: quantity,
-                tradeDirection: direction
+            persist(Transaction(
+                id: id, date: date, kind: .invest,
+                amount: investTotal, sourceID: accountID, destinationID: holdingID,
+                note: note.isEmpty ? "\(direction.title) \(holdingName)" : note,
+                tradeQuantity: quantity, tradeDirection: direction, affectsBalance: affects
             ))
         case .adjustment:
             return
         }
+    }
+
+    /// Add a new transaction or update the edited one, then dismiss.
+    private func persist(_ transaction: Transaction) {
+        if editing == nil { store.add(transaction) } else { store.update(transaction) }
         dismiss()
+    }
+
+    // MARK: - Load (edit mode / date prefill)
+
+    /// Populates the form once: from the edited transaction, or just the prefilled date for a new one.
+    private func loadIfNeeded() {
+        guard !loaded else { return }
+        loaded = true
+        guard let t = editing else {
+            if let initialDate { date = initialDate }
+            return
+        }
+        kind = t.kind
+        date = t.date
+        note = t.note
+        let amountFormatter = AmountInputFormatter(maximumFractionDigits: 2)
+        switch t.kind {
+        case .expense:
+            amountMajor = t.amount.amount; amountText = amountFormatter.display(for: amountMajor)
+            sourceID = t.sourceID; envelopeID = t.envelopeID
+        case .income:
+            amountMajor = t.amount.amount; amountText = amountFormatter.display(for: amountMajor)
+            sourceID = t.sourceID
+        case .transfer:
+            amountMajor = t.amount.amount; amountText = amountFormatter.display(for: amountMajor)
+            fromID = t.sourceID; toID = t.destinationID
+            if let received = t.destinationAmount {
+                method = .crossCurrency
+                amountInMajor = received.amount; amountInText = amountFormatter.display(for: amountInMajor)
+                // Rate isn't stored; recover it from amounts + fee: fee = out×rate − in ⇒ rate = (in+fee)/out.
+                let feeAmount = t.fee?.amount ?? 0
+                rate = amountMajor == 0 ? 0 : (received.amount + feeAmount) / amountMajor
+            } else if store.sources.first(where: { $0.id == t.destinationID })?.kind == .creditCard {
+                method = .payCard
+            } else {
+                method = .sameCurrency
+            }
+        case .invest:
+            direction = t.tradeDirection ?? .buy
+            accountID = t.sourceID; holdingID = t.destinationID
+            quantity = t.tradeQuantity ?? 0
+            quantityText = quantity == 0 ? "" : "\(quantity)"
+            unitPriceMajor = (t.tradeQuantity ?? 0) == 0 ? 0 : t.amount.amount / (t.tradeQuantity ?? 1)
+            unitPriceText = amountFormatter.display(for: unitPriceMajor)
+        case .adjustment:
+            break
+        }
     }
 }

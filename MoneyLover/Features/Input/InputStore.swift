@@ -40,4 +40,21 @@ final class InputStore {
             errorMessage = error.localizedDescription
         }
     }
+
+    /// Saves an in-place edit of an existing transaction (same id).
+    func update(_ transaction: Transaction) {
+        do {
+            try transactionsRepo.update(transaction)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func delete(_ transaction: Transaction) {
+        do {
+            try transactionsRepo.delete(id: transaction.id)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }

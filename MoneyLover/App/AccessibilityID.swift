@@ -49,6 +49,7 @@ enum A11y {
         static let quantity = "txn.quantity"
         static let unitPrice = "txn.unitPrice"
         static let date = "txn.date"
+        static let delete = "txn.delete"
     }
 
     enum Reconcile {
@@ -92,6 +93,7 @@ enum A11y {
         static let charts = "config.charts"
         static let advice = "config.advice"
         static let appearance = "config.appearance"
+        static let confirmDelete = "config.confirmDelete"
         static let seedSample = "config.seedSample"
         static let clearData = "config.clearData"
         static let version = "config.version"
@@ -102,6 +104,10 @@ enum A11y {
         static let monthLabel = "calendar.monthLabel"
         static let prevMonth = "calendar.prevMonth"
         static let nextMonth = "calendar.nextMonth"
+        /// The floating add button on the Calendar (feat 1).
+        static let addTransaction = "calendar.addTransaction"
+        /// A transaction row in the day detail, keyed by its note (tap to edit, swipe to delete).
+        static func txn(_ note: String) -> String { "calendar.txn.\(note)" }
     }
 
     enum Envelope {
