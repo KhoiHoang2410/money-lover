@@ -17,6 +17,15 @@ struct TransactionForm: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("confirmBeforeDelete") private var confirmBeforeDelete = false
 
+    // Remembered last-picked options, reused as defaults for the next *new* transaction (feat 2).
+    // Stored as UUID strings; an empty string means "none remembered yet".
+    @AppStorage("txn.default.expenseSource") private var defaultExpenseSource = ""
+    @AppStorage("txn.default.incomeSource") private var defaultIncomeSource = ""
+    @AppStorage("txn.default.envelope") private var defaultEnvelope = ""
+    @AppStorage("txn.default.transferFrom") private var defaultTransferFrom = ""
+    @AppStorage("txn.default.transferTo") private var defaultTransferTo = ""
+    @AppStorage("txn.default.investAccount") private var defaultInvestAccount = ""
+
     private enum Field: Hashable { case amount, amountIn, rate, unitPrice, note }
     @FocusState private var focus: Field?
 
@@ -96,9 +105,15 @@ struct TransactionForm: View {
                     .accessibilityIdentifier(A11y.Txn.save)
             }
         }
+        .keyboardDoneButton()
         .onAppear {
             loadIfNeeded()
             if editing == nil { focus = .amount }
+        }
+        .onChange(of: kind) { _, newKind in
+            // Re-apply the remembered default for the kind the user just switched to, but never
+            // overwrite an edited transaction's own values.
+            if editing == nil { applyDefaults(for: newKind) }
         }
         .alert("Delete this transaction?", isPresented: $confirmingDelete) {
             Button("Delete", role: .destructive) { performDelete() }
@@ -121,12 +136,12 @@ struct TransactionForm: View {
         Section {
             Picker("From", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
-                ForEach(spendableSources) { Text($0.name).tag(Optional($0.id)) }
+                ForEach(spendableSources) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.source)
             Picker("Envelope", selection: $envelopeID) {
                 Text("None").tag(UUID?.none)
-                ForEach(store.envelopes) { Text($0.name).tag(Optional($0.id)) }
+                ForEach(store.envelopes) { EnvelopePickerLabel(envelope: $0).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.envelope)
         }
@@ -146,7 +161,7 @@ struct TransactionForm: View {
         Section {
             Picker("Into", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
-                ForEach(accounts) { Text($0.name).tag(Optional($0.id)) }
+                ForEach(accounts) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.source)
         }
@@ -165,12 +180,12 @@ struct TransactionForm: View {
         Section {
             Picker("From", selection: $fromID) {
                 Text("Select…").tag(UUID?.none)
-                ForEach(fromOptions) { Text($0.name).tag(Optional($0.id)) }
+                ForEach(fromOptions) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.source)
             Picker("To", selection: $toID) {
                 Text("Select…").tag(UUID?.none)
-                ForEach(toOptions) { Text($0.name).tag(Optional($0.id)) }
+                ForEach(toOptions) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.destination)
         }
@@ -201,12 +216,12 @@ struct TransactionForm: View {
         Section {
             Picker(direction == .buy ? "Pay from" : "Receive into", selection: $accountID) {
                 Text("Select…").tag(UUID?.none)
-                ForEach(vndAccounts) { Text($0.name).tag(Optional($0.id)) }
+                ForEach(vndAccounts) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.source)
             Picker("Holding", selection: $holdingID) {
                 Text("Select…").tag(UUID?.none)
-                ForEach(store.holdings) { Text($0.name).tag(Optional($0.id)) }
+                ForEach(store.holdings) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.holding)
         }
@@ -370,6 +385,7 @@ struct TransactionForm: View {
     }
 
     private func save() {
+        rememberDefaults()
         // Editing keeps the original id and informational flag; a new entry gets a fresh id.
         let id = editing?.id ?? UUID()
         let affects = editing?.affectsBalance ?? true
@@ -427,6 +443,51 @@ struct TransactionForm: View {
         dismiss()
     }
 
+    // MARK: - Remembered defaults (feat 2)
+
+    /// Prefill the source/envelope pickers for a *new* transaction from the last-picked option for
+    /// that kind, but only when the remembered id still exists in the current data.
+    private func applyDefaults(for kind: TransactionKind) {
+        switch kind {
+        case .expense:
+            if let id = storedID(defaultExpenseSource, in: spendableSources) { sourceID = id }
+            if let id = storedID(defaultEnvelope, in: store.envelopes) { envelopeID = id }
+        case .income:
+            if let id = storedID(defaultIncomeSource, in: accounts) { sourceID = id }
+        case .transfer:
+            if let id = storedID(defaultTransferFrom, in: fromOptions) { fromID = id }
+            if let id = storedID(defaultTransferTo, in: spendableSources), id != fromID { toID = id }
+        case .invest:
+            if let id = storedID(defaultInvestAccount, in: vndAccounts) { accountID = id }
+        case .adjustment:
+            break
+        }
+    }
+
+    /// Record the options the user actually committed as the defaults for the next new transaction.
+    private func rememberDefaults() {
+        switch kind {
+        case .expense:
+            if let sourceID { defaultExpenseSource = sourceID.uuidString }
+            defaultEnvelope = envelopeID?.uuidString ?? ""
+        case .income:
+            if let sourceID { defaultIncomeSource = sourceID.uuidString }
+        case .transfer:
+            if let fromID { defaultTransferFrom = fromID.uuidString }
+            if let toID { defaultTransferTo = toID.uuidString }
+        case .invest:
+            if let accountID { defaultInvestAccount = accountID.uuidString }
+        case .adjustment:
+            break
+        }
+    }
+
+    /// Resolve a stored UUID string to an id that still exists in `options`, else nil.
+    private func storedID(_ stored: String, in options: [some Identifiable<UUID>]) -> UUID? {
+        guard let id = UUID(uuidString: stored), options.contains(where: { $0.id == id }) else { return nil }
+        return id
+    }
+
     // MARK: - Load (edit mode / date prefill)
 
     /// Populates the form once: from the edited transaction, or just the prefilled date for a new one.
@@ -435,6 +496,7 @@ struct TransactionForm: View {
         loaded = true
         guard let t = editing else {
             if let initialDate { date = initialDate }
+            applyDefaults(for: kind)
             return
         }
         kind = t.kind
