@@ -4,6 +4,19 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.5.0] — Calm-neobank theme (pilot)
+
+### Changed
+- New visual direction **"Calm neobank"** ([ADR-0010](docs/adr/0010-visual-direction-calm-neobank.md)), superseding the "Gradient Rings" look (ADR-0005). `Theme` rewritten: an emerald/pine-teal palette (light **and** dark, via a new `Color(light:dark:)` token), flat opaque content surfaces, hairline-stroked cards, and a `flatCard` modifier. Color is reserved for the hero, the primary CTA, and semantic states. Liquid Glass is left to the system tab/nav bars only ("flat content, glass chrome").
+- **Overview** restyled as the pilot reference: a flat deep pine-teal net-worth hero (no gradient) with asset/debt as quiet hairline-split sub-stats, and account/holding/goal rows grouped into flat cards on a neutral background.
+- `AccentColor` retuned from pink to emerald (with a dark variant) so the glass tab bar and system controls match the new palette.
+- Old `Theme.Palette` names (`pink`/`yellow`/`heroGradient`/`line`…) kept as `@available(deprecated)` aliases mapping to the new tokens, so un-restyled screens recolour automatically and compile; they are removed per-screen as each screen is restyled in the fan-out PRs.
+
+### Added
+- `docs/design/screen-inventory.md` — every screen with purpose, Chime analog, and a per-screen restyle note; the worklist for the fan-out PRs.
+- `docs/design/chime-reference.md` — design-language study notes abstracted from Chime (no Chime screenshots/assets committed; IP-safe per ADR-0010).
+- `docs/design/screenshots/{before,after}/01-overview.png` — Overview before/after baseline.
+
 ## [0.4.0] — Grouped amount entry
 
 ### Added
