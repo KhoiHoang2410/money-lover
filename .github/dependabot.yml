@@ -1,0 +1,55 @@
+# Dependabot — version + security update PRs.
+#
+# Scope today: the GitHub Actions pinned in .github/workflows/*.yml are the only
+# third-party dependencies this repo has (the app itself is pure Apple frameworks,
+# no SPM/CocoaPods — see CLAUDE.md). Dependabot opens PRs to bump them; those PRs
+# DO run ci.yml (unlike GITHUB_TOKEN-authored PRs from a workflow), which is why
+# version bumps live here and not in a hand-written Action.
+#
+# Security updates (advisory-driven) are enabled separately in repo Settings →
+# Code security → "Dependabot security updates" (requires Dependabot alerts on).
+# They flow through the same grouped PRs configured below.
+#
+# Per ADR-0008: bot-authored dependency/security PRs are EXEMPT from the
+# version + CHANGELOG bump that human PRs require.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "00:00"
+      timezone: Asia/Ho_Chi_Minh
+    # One grouped PR per run instead of one-per-action, to keep the daily noise low.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+      - github-actions
+    open-pull-requests-limit: 5
+
+  # Swift Package Manager — no Package.swift exists yet, so this is shipped
+  # commented-out (an enabled `swift` ecosystem with no manifest just logs a
+  # "dependency file not found" error every run). Uncomment the day the first
+  # package is added and a Package.swift / Package.resolved lands in the repo.
+  #
+  # - package-ecosystem: swift
+  #   directory: "/"
+  #   schedule:
+  #     interval: daily
+  #     time: "00:00"
+  #     timezone: Asia/Ho_Chi_Minh
+  #   groups:
+  #     swift:
+  #       patterns:
+  #         - "*"
+  #   commit-message:
+  #     prefix: chore
+  #   labels:
+  #     - dependencies
+  #     - swift
+  #   open-pull-requests-limit: 5
