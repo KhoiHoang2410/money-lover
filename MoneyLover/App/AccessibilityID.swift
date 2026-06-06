@@ -115,4 +115,12 @@ enum A11y {
         /// reduced the right envelope's remaining.
         static func remaining(_ name: String) -> String { "envelope.remaining.\(name)" }
     }
+
+    enum Starter {
+        static let browse = "starter.browse"
+        static let selectAll = "starter.selectAll"
+        static let add = "starter.add"
+        /// A starter envelope row in the picker, keyed by name.
+        static func row(_ name: String) -> String { "starter.row.\(name)" }
+    }
 }
