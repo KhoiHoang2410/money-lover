@@ -144,23 +144,27 @@ extension XCUIApplication {
     /// `delete` keystrokes — robust across keyboard types.
     ///
     /// Amount fields group thousands live (see `AmountGroupingUITests`), so every keystroke triggers
-    /// a reformat and a single rapid `typeText` burst can let a slow CI runner swallow a keystroke
-    /// mid-reformat (observed as "250,000" for "2500000"). To stay both fast and reliable we burst-
-    /// type once, then verify the field's digits match what we asked for; only if a digit was dropped
-    /// do we fall back to the slow one-character-at-a-time path. The common case is a single burst —
-    /// char-by-char across the whole suite timed the UI job out on CI.
+    /// a reformat and a single rapid `typeText` burst can drop *or duplicate* a digit on a slow CI
+    /// runner (seen as "250,000" or "252,500,000" for "2500000"). To stay both fast and reliable we
+    /// burst-type once, then verify the field's digits; if they don't match we clear and retype
+    /// one character at a time, re-verifying — looping until the field is exactly right (or we run
+    /// out of attempts). The common case is a single burst; char-by-char across the whole suite
+    /// timed the UI job out on CI, so it's only the fallback.
     func typeInField(_ identifier: String, _ text: String) {
         let field = textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "Field '\(identifier)' not found")
         field.tap()
-        clearTextField(field)
-        field.typeText(text)
-
         let wantDigits = text.filter(\.isNumber)
-        let gotDigits = (field.value as? String ?? "").filter(\.isNumber)
-        if !wantDigits.isEmpty, gotDigits != wantDigits {
+
+        for attempt in 0..<3 {
             clearTextField(field)
-            for character in text { field.typeText(String(character)) }
+            if attempt == 0 {
+                field.typeText(text)
+            } else {
+                for character in text { field.typeText(String(character)) }
+            }
+            let gotDigits = (field.value as? String ?? "").filter(\.isNumber)
+            if wantDigits.isEmpty || gotDigits == wantDigits { return }
         }
     }
 

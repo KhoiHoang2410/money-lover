@@ -4,6 +4,22 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.5.0] — Holdings & investing, calendar editing, starter envelopes, voice removal
+
+This version covers a feature batch delivered across several PRs; per request it carries the batch's single version bump.
+
+### Added
+- **Holdings & Invest (ADR-0010):** a dedicated Holdings screen (Config → Holdings) adds gold/stock by **quantity only** (no money field), with a bundled offline HOSE/HNX symbol picker. A new **Invest** transaction type Buys/Sells units of a Holding from a VND Account at a manual unit price; a Holding's live quantity = opening quantity + Σ Buys − Σ Sells, valued at the market Rate. Selling more than held is blocked.
+- **Calendar floating + (feat 1):** add a transaction on the picked day (else today) via the same merged form.
+- **Edit / delete from the calendar (feat 5):** tap a day-detail row to edit it in place or delete it, gated by a new **"Ask before deleting"** setting (Config → Appearance, default off). Adjustments stay Reconcile-owned.
+- **Starter envelopes (feat 4):** seed the Envelopes list from a curated set (name + icon, ₫0 allocation) with existing-name disabling, select-all / deselect-all, and Reserve auto-assignment when none exists.
+
+### Changed
+- `TransactionRepository` gained `update`/`delete`; balances and holding quantities are derived from the ledger.
+
+### Removed
+- **Voice expense:** the voice-entry UI, on-device speech transcription, and the microphone/speech-recognition usage strings are removed. The text expense parser is retained for future reuse.
+
 ## [0.4.1] — Security automation
 
 ### Added
