@@ -4,6 +4,15 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.4.1] — Security automation
+
+### Added
+- `.github/dependabot.yml`: daily (00:00 `Asia/Ho_Chi_Minh`) grouped PRs for the `github-actions` ecosystem — security **and** version updates. These PRs run `ci.yml`. The `swift` ecosystem is shipped commented-out until a `Package.swift` exists.
+- `.github/workflows/security-scan.yml`: daily + manual gitleaks (secrets, full history) and Trivy (dependency vulns) scan on ubuntu. Never opens a PR; upserts a single sticky issue labelled `security-scan` and auto-closes it on a clean run.
+
+### Changed
+- `ADR-0008` amended: bot-authored dependency/security PRs are exempt from the version + changelog bump, and the scan workflow reports issues rather than self-opening PRs (only Dependabot opens PRs, and those run CI).
+
 ## [0.4.0] — Grouped amount entry
 
 ### Added
