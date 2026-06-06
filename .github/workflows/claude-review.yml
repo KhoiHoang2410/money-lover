@@ -1,0 +1,76 @@
+name: Claude AI review
+
+# Every change to Money Lover is written AND reviewed by Claude. `ci.yml` proves the
+# change compiles and the unit + UI suites stay green; this workflow adds the qualitative
+# pass — a Claude review of the diff against the repo's own guidelines (CLAUDE.md, the
+# engineering/testing docs, the ADRs, and the money-correctness invariants).
+#
+# Setup (one time): add an `ANTHROPIC_API_KEY` repository secret
+#   Settings → Secrets and variables → Actions → New repository secret.
+# Without it the job is skipped (see the `if:` guard), so forks/PRs from contributors
+# without the secret don't fail red.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  # Let a human re-trigger a review by commenting "@claude review" on the PR.
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Claude reviews the diff
+    # Skip on forks (no secret) and only run the comment trigger when it actually mentions Claude.
+    if: >
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event_name == 'pull_request' ||
+       (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Opus for the deepest review; this is a personal repo with low PR volume.
+          claude_args: "--model claude-opus-4-8"
+          prompt: |
+            You are reviewing a pull request for Money Lover, a 100% on-device iOS
+            personal-finance app (SwiftUI / Swift 6.2 / SwiftData, no backend).
+
+            Review ONLY the changes in this PR's diff. Read the repo's own rules first —
+            `CLAUDE.md`, `docs/guidelines/engineering.md`, `docs/guidelines/testing.md`,
+            and the relevant ADRs in `docs/adr/` — and judge the diff against them.
+
+            Focus, in priority order:
+            1. Money correctness — money is ALWAYS integer minor units + currency, never
+               Double; no precision loss; balances/net-worth math stays exact (see the
+               agent-playbook invariants).
+            2. Architecture (ADR-0006) — thin SwiftUI views → @MainActor @Observable stores
+               → pure `Core` engines → `Persistence` repos. Flag domain logic leaking into
+               views or SwiftData types leaking past the persistence edge.
+            3. Swift 6 concurrency correctness (strict concurrency is on).
+            4. Tests — does new behaviour come with Swift Testing / XCUITest coverage, and
+               do write-flows get the cross-tab + relaunch e2e treatment (ADR-0009)?
+            5. The version bump + CHANGELOG entry required by ADR-0008.
+
+            Post specific, actionable inline comments. Praise is fine but keep it short —
+            lead with anything that would lose money, crash, or break a documented decision.
+            If the diff is clean, say so plainly.
+          # Post findings as inline review comments on the PR.
+          track_progress: true

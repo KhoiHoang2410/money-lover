@@ -4,7 +4,27 @@ A personal, **100% on-device** iPhone finance app. Native SwiftUI, Swift 6, Swif
 
 Track balances across accounts/cards/holdings, budget with envelopes, set savings goals, reconcile drift, and get deterministic rule-based spending advice.
 
+> 🤖 **Built entirely by Claude.** Every line of this app — the SwiftUI views, the pure money-math engines, the SwiftData layer, the tests, the ADRs, even this README — was written by Claude (Anthropic's Claude Code), and **every change is verified by AI** before it lands. See [Built & verified by AI](#built--verified-by-ai).
+
+> 💸 **Why it exists.** I built this to understand and reshape my own spending so I can save more and actually buy the things I want. Goals are first-class: every account, budget envelope, and transaction feeds a set of savings-goal rings that show how close each purchase is.
+
 > Personal project (not for sale). Target: **iOS 26 / Swift 6.2 / SwiftUI only**, no third-party frameworks.
+
+---
+
+## Demo
+
+A quick walkthrough — net worth at a glance, savings-goal rings closing in on the things I'm saving for, and logging an expense against a budget envelope:
+
+<p align="center">
+  <img src="docs/media/demo.gif" width="300" alt="Money Lover walkthrough: Overview → Goals → Add transaction">
+</p>
+
+| Overview | Savings goals | Add transaction |
+|:--------:|:-------------:|:---------------:|
+| <img src="docs/media/01-overview.png" width="230" alt="Overview — net worth, holdings, accounts"> | <img src="docs/media/02-goals.png" width="230" alt="Goals — savings rings for Car, House, Travel"> | <img src="docs/media/03-add-transaction.png" width="230" alt="Add transaction — expense against an envelope"> |
+
+> Captured on the iPhone 17 Pro simulator (iOS 26.5) with `Config → Debug → Seed sample data`. Numbers are demo data, not real balances.
 
 ---
 
@@ -119,6 +139,33 @@ xcodebuild test -project MoneyLover.xcodeproj -scheme MoneyLover \
 ```
 
 In Xcode, switch plans from the scheme's test-plan selector. Which test belongs in which tier — and the merge gate that requires `build`/`unit-tests`/`ui-smoke` — is documented in [`docs/guidelines/testing.md`](docs/guidelines/testing.md) § Test tiers.
+
+---
+
+## Built & verified by AI
+
+Money Lover is an experiment in **fully AI-authored software**: Claude writes the code, and Claude verifies it. The point isn't novelty — it's that *nothing ships unverified*. Every change runs the same gauntlet:
+
+1. **Authored by Claude** — features, fixes, tests, and docs are written by Claude Code against the rules in [`CLAUDE.md`](CLAUDE.md), the [engineering & testing guidelines](docs/guidelines/), and the [ADRs](docs/adr/). Money is always integer minor units + currency (never `Double`); architecture follows MV + pure services (ADR-0006).
+2. **TDD, money-correctness first** — the pure `Core` engines are built test-first with [Swift Testing](https://developer.apple.com/documentation/testing). Write-flows get the full **cross-tab + relaunch** end-to-end treatment (ADR-0009) — proving a change reflects on every surface *and* survives a cold start, not just "the form dismissed".
+3. **CI gate** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) — every push and PR is type-checked, compiled, and run through the **unit** (Swift Testing) and **UI** (XCUITest) suites on a fresh `macos-26` runner. Red CI blocks the merge.
+4. **AI code review** ([`.github/workflows/claude-review.yml`](.github/workflows/claude-review.yml)) — on every PR, **Claude reviews its own diff** against the repo's guidelines and money-correctness invariants, posting inline findings. A second AI pass that catches what green tests don't: leaked abstractions, missed edge cases, a forgotten version bump.
+5. **Versioned every PR** (ADR-0008) — `project.yml` marketing/build versions bump and `CHANGELOG.md` gets an entry on every change, so the AI-authored history stays auditable.
+
+```
+Claude writes ─▶ TDD (Swift Testing) ─▶ CI: build + unit + UI tests ─▶ Claude reviews the PR diff ─▶ merge
+```
+
+### Enabling the AI review workflow
+
+The review workflow needs one repository secret:
+
+1. Create an API key at [console.anthropic.com](https://console.anthropic.com/).
+2. **Settings → Secrets and variables → Actions → New repository secret** → name it `ANTHROPIC_API_KEY`.
+
+Without the secret the job skips cleanly (it never fails red). You can also re-trigger a review by commenting `@claude review` on any PR.
+
+> The demo GIF and screenshots above are produced the same way — driven on the simulator through the app's stable [accessibility identifiers](MoneyLover/App/AccessibilityID.swift), the same handles the XCUITest suite uses, so the "demo" and the "tests" exercise the exact same flows.
 
 ---
 
