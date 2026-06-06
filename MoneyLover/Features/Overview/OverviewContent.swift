@@ -81,6 +81,10 @@ struct OverviewContent: View {
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.Radius.card)
                     .strokeBorder(Theme.Palette.stroke, lineWidth: 1)
+                    // Decorative only: the overlay must NOT intercept taps, or it swallows the
+                    // row NavigationLinks' hits in the card interior and breaks navigation into
+                    // account history (caught by BackfillUITests).
+                    .allowsHitTesting(false)
             )
             .padding(.horizontal, Theme.Spacing.lg)
     }

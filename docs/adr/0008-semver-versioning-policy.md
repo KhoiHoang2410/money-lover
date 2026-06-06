@@ -20,3 +20,11 @@ Alternatives rejected:
 - `CHANGELOG.md` (Keep a Changelog format) becomes the human-readable history; git log remains the raw record.
 - **At 1.0** we switch to strict SemVer (breaking → MAJOR) and supersede this ADR with a follow-up.
 - The bump is keyed off Conventional-Commits prefixes, so commit messages must keep using them for the rule to stay mechanical.
+
+## Amendment (2026-06-06): bot-authored dependency PRs are exempt
+
+When the nightly security automation landed (`.github/dependabot.yml`, `.github/workflows/security-scan.yml`), "every PR bumps the version" hit a wall: **Dependabot** opens its own dependency/security-update PRs, and it cannot bump `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml` or write a `CHANGELOG.md` entry — those edits are outside what a dependency bot produces.
+
+So the "every PR" rule now reads **every *human-authored* PR**. PRs authored by a bot (Dependabot, or any future automation account) are **exempt** from the version + changelog bump; the version moves on the next human PR that ships alongside or after them. A bumped dependency is not an owner-facing app change, so nothing of value is lost by not minting a version for it.
+
+The complementary half of this decision: the **security-scan workflow never opens a PR**. A workflow using the default `GITHUB_TOKEN` can only open PRs if the repo opts in, and even then such PRs do not trigger `ci.yml` (GitHub blocks `GITHUB_TOKEN`-authored events from triggering further workflows). Rather than fight that with a stored PAT, findings with no mechanical patch (committed secrets, fixless CVEs) are reported as a single sticky **issue**; only Dependabot — which is exempt above and whose PRs *do* run CI — opens version-bump PRs. This keeps every merged PR either (a) human-authored and version-bumped, or (b) a CI-tested Dependabot bump, with no untested bot PRs in between.

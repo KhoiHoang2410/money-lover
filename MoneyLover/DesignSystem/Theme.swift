@@ -106,6 +106,8 @@ extension View {
             .overlay(
                 RoundedRectangle(cornerRadius: radius)
                     .strokeBorder(Theme.Palette.stroke, lineWidth: 1)
+                    // Decorative border must not intercept taps on interactive card content.
+                    .allowsHitTesting(false)
             )
     }
 }

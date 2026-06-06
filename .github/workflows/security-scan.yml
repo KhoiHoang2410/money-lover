@@ -1,0 +1,144 @@
+name: Security scan
+
+# Nightly vulnerability + secret scan. Findings that have NO mechanical patch
+# (a secret committed, a CVE with no available bump) are reported as a single
+# sticky GitHub issue — this workflow never opens a PR. Version bumps that DO
+# patch something are handled by Dependabot (.github/dependabot.yml), and Swift
+# code analysis is handled by CodeQL "default setup" (Security tab), enabled in
+# repo Settings → Code security. See docs/adr/0008 for the bot-PR exemption.
+
+on:
+  schedule:
+    # 00:00 Asia/Ho_Chi_Minh (UTC+7) == 17:00 UTC the previous day.
+    - cron: "0 17 * * *"
+  workflow_dispatch:
+
+# Only issue write is needed — the scan reads the tree and reports to one issue.
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: security-scan
+  cancel-in-progress: false
+
+env:
+  GITLEAKS_VERSION: "8.21.2"
+  TRIVY_ACTION_REF: "0.28.0"
+  ISSUE_LABEL: security-scan
+  ISSUE_TITLE: "🔒 Nightly security scan — findings"
+
+jobs:
+  scan:
+    name: Scan & report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (full history for secret scanning)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare report dir
+        run: mkdir -p scan-reports
+
+      # --- Secrets: gitleaks over the full git history -----------------------
+      # Pinned binary (rather than the marketplace action) so we control the
+      # report shape and never fail the job — the issue is the only channel.
+      # --redact keeps actual secret values out of logs and the issue body.
+      - name: Secret scan (gitleaks)
+        run: |
+          set -euo pipefail
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL "$url" | tar -xz -C /tmp gitleaks
+          /tmp/gitleaks detect \
+            --source . \
+            --report-format json \
+            --report-path scan-reports/gitleaks.json \
+            --redact \
+            --exit-code 0 \
+            --no-banner
+          count=$(jq 'length' scan-reports/gitleaks.json 2>/dev/null || echo 0)
+          echo "gitleaks: $count finding(s)"
+          if [ "$count" -gt 0 ]; then
+            {
+              echo "### 🔑 Secrets — gitleaks (${count})"
+              jq -r '.[] | "- `\(.File)`:\(.StartLine) — **\(.RuleID)** (commit `\(.Commit[0:8])`)"' scan-reports/gitleaks.json
+              echo
+            } >> scan-reports/body.md
+          fi
+
+      # --- Library vulnerabilities: Trivy filesystem scan --------------------
+      # Future-proofs the SPM case — with no lockfiles today this finds nothing.
+      - name: Vulnerability scan (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          format: json
+          output: scan-reports/trivy.json
+          exit-code: "0"
+          severity: LOW,MEDIUM,HIGH,CRITICAL
+
+      - name: Summarise Trivy findings
+        run: |
+          set -euo pipefail
+          count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' scan-reports/trivy.json 2>/dev/null || echo 0)
+          echo "trivy: $count vulnerabilit(y/ies)"
+          if [ "$count" -gt 0 ]; then
+            {
+              echo "### 📦 Dependency vulnerabilities — Trivy (${count})"
+              jq -r '.Results[]? | .Target as $t | (.Vulnerabilities // [])[] | "- `\($t)` — **\(.VulnerabilityID)** \(.PkgName) \(.InstalledVersion) → \(.FixedVersion // "no fix") (\(.Severity))"' scan-reports/trivy.json
+              echo
+            } >> scan-reports/body.md
+          fi
+
+      # --- Report: one sticky issue, upsert on findings, auto-close on clean --
+      - name: Upsert / close scan issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          stamp="$(date -u '+%Y-%m-%d %H:%M UTC')"
+
+          # Ensure the label exists (idempotent).
+          gh label create "$ISSUE_LABEL" \
+            --color B60205 \
+            --description "Automated nightly security scan findings" \
+            2>/dev/null || true
+
+          existing="$(gh issue list --label "$ISSUE_LABEL" --state open \
+            --json number --jq '.[0].number // empty')"
+
+          if [ -s scan-reports/body.md ]; then
+            {
+              echo "_Nightly scan — ${stamp} · [run log](${run_url})_"
+              echo
+              cat scan-reports/body.md
+              echo "---"
+              echo "Secret findings have no version bump — rotate the credential and purge it from history."
+              echo "Dependency findings with a fix are bumped automatically by Dependabot; review its PR."
+            } > scan-reports/issue.md
+
+            if [ -n "$existing" ]; then
+              gh issue edit "$existing" --body-file scan-reports/issue.md
+              gh issue comment "$existing" --body "🔁 Re-scanned ${stamp} — findings still present. See updated description · [run log](${run_url})"
+              echo "Updated issue #$existing"
+            else
+              gh issue create \
+                --title "$ISSUE_TITLE" \
+                --label "$ISSUE_LABEL" \
+                --body-file scan-reports/issue.md
+              echo "Opened new scan issue"
+            fi
+          else
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --body "✅ Clean scan on ${stamp} — no findings remain. Closing · [run log](${run_url})"
+              gh issue close "$existing"
+              echo "Closed issue #$existing (clean)"
+            else
+              echo "No findings, no open issue — nothing to do."
+            fi
+          fi
