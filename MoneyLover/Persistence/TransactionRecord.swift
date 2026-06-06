@@ -18,6 +18,10 @@ final class TransactionRecord {
     var note: String
     var envelopeID: UUID?
     var goalID: UUID?
+    /// Units traded on an `.invest` transaction (ADR-0010); nil for every other kind.
+    var tradeQuantity: Decimal?
+    /// Buy/Sell raw value for an `.invest` transaction; nil otherwise.
+    var tradeDirectionRaw: String?
     var affectsBalance: Bool
 
     init(
@@ -35,6 +39,8 @@ final class TransactionRecord {
         note: String,
         envelopeID: UUID?,
         goalID: UUID? = nil,
+        tradeQuantity: Decimal? = nil,
+        tradeDirectionRaw: String? = nil,
         affectsBalance: Bool
     ) {
         self.id = id
@@ -51,6 +57,8 @@ final class TransactionRecord {
         self.note = note
         self.envelopeID = envelopeID
         self.goalID = goalID
+        self.tradeQuantity = tradeQuantity
+        self.tradeDirectionRaw = tradeDirectionRaw
         self.affectsBalance = affectsBalance
     }
 }

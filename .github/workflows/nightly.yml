@@ -1,0 +1,255 @@
+name: Nightly full regression
+
+# The full UI suite is too slow (~20 min) to gate every PR, so PRs run only the
+# curated Smoke plan (ci.yml) and the *complete* suite runs here once a day.
+# A failure opens / updates ONE sticky issue and auto-closes it when a later
+# nightly goes green — the same report-to-one-issue pattern as security-scan.yml.
+# See docs/adr/0011-tiered-ui-tests.md.
+
+on:
+  schedule:
+    # 01:00 Asia/Ho_Chi_Minh (UTC+7) == 18:00 UTC the previous day. Offset from
+    # the security scan (17:00 UTC) so the two nightlies don't contend.
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-full
+  cancel-in-progress: false
+
+env:
+  SCHEME: MoneyLover
+  PROJECT: MoneyLover.xcodeproj
+  DESTINATION: "platform=iOS Simulator,name=iPhone 17,OS=latest"
+
+jobs:
+  # 1. Build once (Full plan), share the products with both test jobs.
+  build:
+    name: Build (type-check + compile)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Select newest Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)"
+          XCODE="${XCODE:-/Applications/Xcode.app}"
+          sudo xcode-select -switch "$XCODE"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build for testing (Full plan)
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -testPlan Full \
+            -destination "$DESTINATION" \
+            -derivedDataPath DerivedData \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO
+          echo "✅ Build succeeded"
+
+      - name: Package build products
+        run: tar -czf build-products.tar.gz -C DerivedData/Build Products
+
+      - name: Upload build products
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-products
+          path: build-products.tar.gz
+          retention-days: 1
+
+  # 2. Full unit suite.
+  unit-tests:
+    name: Unit tests (full)
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Select newest Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)"
+          XCODE="${XCODE:-/Applications/Xcode.app}"
+          sudo xcode-select -switch "$XCODE"
+
+      - name: Download build products
+        uses: actions/download-artifact@v8
+        with:
+          name: build-products
+
+      - name: Unpack build products
+        run: |
+          mkdir -p DerivedData/Build
+          tar -xzf build-products.tar.gz -C DerivedData/Build
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          XCTESTRUN="$(ls DerivedData/Build/Products/*Full*.xctestrun | head -n1)"
+          xcodebuild test-without-building \
+            -xctestrun "$XCTESTRUN" \
+            -destination "$DESTINATION" \
+            -only-testing:MoneyLoverTests \
+            -resultBundlePath UnitTestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee unit.log
+
+      - name: Extract failures
+        if: ${{ always() }}
+        run: |
+          { grep -E "' failed \(|✘ |recorded an issue" unit.log || true; } \
+            | sed -E "s/.*Test Case '-\[(.+)\]' failed.*/- \1/" \
+            | sort -u > failures-unit.txt
+          echo "unit failures:"; cat failures-unit.txt
+
+      - name: Upload unit failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failures-unit
+          path: failures-unit.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # 3. Full UI suite (Full plan) — the slow regression that doesn't gate PRs.
+  ui-full:
+    name: UI tests (full)
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - name: Select newest Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)"
+          XCODE="${XCODE:-/Applications/Xcode.app}"
+          sudo xcode-select -switch "$XCODE"
+
+      - name: Download build products
+        uses: actions/download-artifact@v8
+        with:
+          name: build-products
+
+      - name: Unpack build products
+        run: |
+          mkdir -p DerivedData/Build
+          tar -xzf build-products.tar.gz -C DerivedData/Build
+
+      - name: Run full UI tests
+        run: |
+          set -o pipefail
+          XCTESTRUN="$(ls DerivedData/Build/Products/*Full*.xctestrun | head -n1)"
+          xcodebuild test-without-building \
+            -xctestrun "$XCTESTRUN" \
+            -destination "$DESTINATION" \
+            -only-testing:MoneyLoverUITests \
+            -resultBundlePath UIFullResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee ui.log
+
+      - name: Extract failures
+        if: ${{ always() }}
+        run: |
+          { grep -E "' failed \(" ui.log || true; } \
+            | sed -E "s/.*Test Case '-\[(.+)\]' failed.*/- \1/" \
+            | sort -u > failures-ui.txt
+          echo "ui failures:"; cat failures-ui.txt
+
+      - name: Upload UI failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failures-ui
+          path: failures-ui.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # 4. Report — one sticky issue, opened/updated on failure, closed on green.
+  report:
+    name: Report nightly result
+    needs: [unit-tests, ui-full]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      MARKER_LABEL: nightly-failure
+      ISSUE_TITLE: "🌙 Nightly Full regression failing"
+    steps:
+      - name: Download failure lists
+        uses: actions/download-artifact@v8
+        with:
+          pattern: failures-*
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Upsert / close nightly issue
+        run: |
+          set -euo pipefail
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          stamp="$(date -u '+%Y-%m-%d %H:%M UTC')"
+          unit_result="${{ needs.unit-tests.result }}"
+          ui_result="${{ needs.ui-full.result }}"
+          echo "unit=$unit_result ui=$ui_result"
+
+          # Idempotent labels.
+          gh label create "$MARKER_LABEL" --color B60205 \
+            --description "Sticky nightly full-regression failure" 2>/dev/null || true
+          gh label create "ci" --color 1D76DB \
+            --description "Continuous integration" 2>/dev/null || true
+
+          existing="$(gh issue list --label "$MARKER_LABEL" --state open \
+            --json number --jq '.[0].number // empty')"
+
+          if [ "$unit_result" = "success" ] && [ "$ui_result" = "success" ]; then
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --body "✅ Nightly green on ${stamp}. Closing · [run log](${run_url})"
+              gh issue close "$existing"
+              echo "Closed #$existing (green)"
+            else
+              echo "Nightly green, no open issue — nothing to do."
+            fi
+            exit 0
+          fi
+
+          # Build the body. Failed-test lists come from the per-job artifacts.
+          {
+            echo "_Nightly full regression — ${stamp} · [run log](${run_url})_"
+            echo
+            [ "$unit_result" != "success" ] && echo "- **Unit tests:** \`$unit_result\`"
+            [ "$ui_result"   != "success" ] && echo "- **Full UI tests:** \`$ui_result\`"
+            echo
+            if [ -s failures-ui.txt ] || [ -s failures-unit.txt ]; then
+              echo "#### Failing tests"
+              cat failures-unit.txt failures-ui.txt 2>/dev/null || true
+            else
+              echo "_No per-test list captured (job may have timed out or crashed). See the run log._"
+            fi
+            echo
+            echo "---"
+            echo "These tests run nightly only — they are not part of the PR Smoke gate (ADR-0011)."
+            echo "Triage: fix on a branch, or move a flaky test out of Full. This issue auto-closes on the next green nightly."
+          } > issue.md
+
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body-file issue.md
+            gh issue comment "$existing" --body "🔁 Still failing ${stamp} — description updated · [run log](${run_url})"
+            echo "Updated #$existing"
+          else
+            gh issue create \
+              --title "$ISSUE_TITLE" \
+              --label "$MARKER_LABEL" \
+              --label "needs-triage" \
+              --label "ci" \
+              --body-file issue.md
+            echo "Opened nightly failure issue"
+          fi

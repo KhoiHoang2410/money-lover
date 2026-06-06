@@ -12,12 +12,11 @@ struct AddSourceScreen: View {
     @State private var openingText = ""
     @State private var iconName = "banknote.fill"
     @State private var logo = Self.noLogo
-    @State private var quantity: Decimal = 0
-    @State private var unit: HoldingUnit = .chi
-    @State private var ticker = ""
 
     private static let noLogo = "none"
     private let bankLogos = ["mbbank", "vpbank", "vib", "wise"]
+    /// Holdings (gold/stock) are added on the dedicated Holdings screen (ADR-0010), not here.
+    private let sourceKinds: [SourceKind] = [.account, .creditCard]
 
     var body: some View {
         NavigationStack {
@@ -27,7 +26,7 @@ struct AddSourceScreen: View {
                 }
                 Section {
                     Picker("Type", selection: $kind) {
-                        ForEach(SourceKind.allCases) { Text($0.title).tag($0) }
+                        ForEach(sourceKinds) { Text($0.title).tag($0) }
                     }
                     Picker("Currency", selection: $currency) {
                         ForEach(Currency.allCases) { Text($0.rawValue).tag($0) }
@@ -48,19 +47,6 @@ struct AddSourceScreen: View {
                     .onChange(of: currency) { _, _ in
                         // A new currency changes the allowed fraction digits — re-group the display.
                         openingText = openingFormatter.display(for: openingMajor)
-                    }
-                }
-                if kind == .holding {
-                    Section("Holding") {
-                        LabeledContent("Quantity") {
-                            TextField("Qty", value: $quantity, format: .number)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                        }
-                        Picker("Unit", selection: $unit) {
-                            ForEach(HoldingUnit.allCases) { Text($0.label).tag($0) }
-                        }
-                        TextField("Ticker (optional)", text: $ticker)
                     }
                 }
                 if kind == .account {
@@ -97,17 +83,13 @@ struct AddSourceScreen: View {
 
     private func save() {
         let minor = NSDecimalNumber(decimal: openingMajor * Decimal(currency.minorUnitScale)).intValue
-        let holding: HoldingInfo? = kind == .holding
-            ? HoldingInfo(quantity: quantity, unit: unit, ticker: ticker.isEmpty ? nil : ticker)
-            : nil
         let source = Source(
             name: name,
             kind: kind,
             currency: currency,
             openingBalance: Money(minorUnits: minor, currency: currency),
             iconName: iconName,
-            logoAsset: logo == Self.noLogo ? nil : logo,
-            holding: holding
+            logoAsset: logo == Self.noLogo ? nil : logo
         )
         onSave(source)
         dismiss()

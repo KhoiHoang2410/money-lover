@@ -15,7 +15,7 @@ final class BackfillUITests: XCTestCase {
 
         // Backfill an expense from Cash (default date = today), with a unique note to find it.
         app.selectTab("Add")
-        app.element(A11y.Input.backfill).tap()
+        app.tapElement(A11y.Input.backfill)
         XCTAssertTrue(app.navigationBars["Backfill"].waitForExistence(timeout: 5))
         app.typeInField(A11y.Txn.amount, "99000")
         app.selectPickerOption(A11y.Txn.source, "Cash")

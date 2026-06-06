@@ -22,34 +22,19 @@
 
 ---
 
-## TC-16-02 — Add a Gold Holding in chỉ *(Positive — valuation)*
+## TC-16-02 — Holdings are added on their own screen, not here *(Positive — valuation)*
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** none (candidate)
+- **Automation:** see flow 21 (`AddHoldingUITests`)
 - **Preconditions:** Config → Sources.
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Add Holding | kind Gold, quantity 5, unit chỉ | Saved; Overview shows VND value = 5 × per-chỉ SJC price |
-| 2 | Add Holding in lượng | quantity 1, unit lượng | Value uses the ×10 conversion (1 lượng = 10 chỉ) |
+| 1 | Open Add source | — | The Type picker offers **Account** and **Credit card** only — Holdings live under Config → **Holdings (gold & stock)** now (ADR-0010) |
+| 2 | Add gold / stock | see flow 21 | Done on the dedicated Holdings screen, by quantity only (no VND opening balance) |
 
-- **Postconditions:** Holdings added.
-
----
-
-## TC-16-03 — Add a HOSE stock Holding *(Positive)*
-
-- **Priority:** Medium
-- **Type:** Positive
-- **Automation:** none (candidate)
-- **Preconditions:** Config → Sources.
-
-| # | Step | Test Data | Expected Result |
-|---|------|-----------|-----------------|
-| 1 | Add Holding | kind Stock, ticker FPT, quantity 500 | Saved; Overview shows VND value = 500 × HOSE price for FPT |
-
-- **Postconditions:** One Holding added.
+- **Postconditions:** Sources screen lists Accounts and Cards only.
 
 ---
 

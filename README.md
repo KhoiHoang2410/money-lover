@@ -124,6 +124,22 @@ xcodebuild test -project MoneyLover.xcodeproj -scheme MoneyLover \
 
 In Xcode: **⌘U**.
 
+### Test tiers (Smoke / Full)
+
+The UI suite is split into two test plans (ADR-0011). PRs run **Smoke** (the curated ≤5 min gate); the **Full** suite runs nightly. Pick a plan with `-testPlan`:
+
+```bash
+# Smoke — the PR gate (~2.5 min UI exec): unit suite + curated UI subset
+xcodebuild test -project MoneyLover.xcodeproj -scheme MoneyLover \
+  -destination 'platform=iOS Simulator,name=iPhone 17' -testPlan Smoke
+
+# Full — everything (the nightly regression)
+xcodebuild test -project MoneyLover.xcodeproj -scheme MoneyLover \
+  -destination 'platform=iOS Simulator,name=iPhone 17' -testPlan Full
+```
+
+In Xcode, switch plans from the scheme's test-plan selector. Which test belongs in which tier — and the merge gate that requires `build`/`unit-tests`/`ui-smoke` — is documented in [`docs/guidelines/testing.md`](docs/guidelines/testing.md) § Test tiers.
+
 ---
 
 ## Built & verified by AI

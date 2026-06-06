@@ -32,6 +32,12 @@ enum BalanceEngine {
             if t.sourceID == id { return t.amount.negated }
             if t.destinationID == id { return t.destinationAmount ?? t.amount }
             return nil
+        case .invest:
+            // Only the VND Account side (`sourceID`) has a money delta: a Buy spends it, a Sell
+            // credits it. The Holding side carries a quantity delta, not money (ADR-0010) —
+            // see HoldingQuantityEngine — so it contributes nothing here.
+            guard t.sourceID == id, let direction = t.tradeDirection else { return nil }
+            return direction == .buy ? t.amount.negated : t.amount
         }
     }
 }

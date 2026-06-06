@@ -38,6 +38,7 @@ struct TransactionRow: View {
         case .income: "plus.circle.fill"
         case .transfer: "arrow.left.arrow.right"
         case .adjustment: "slider.horizontal.3"
+        case .invest: "chart.line.uptrend.xyaxis"
         }
     }
 }

@@ -8,6 +8,23 @@ cards; budgets via Envelopes; three savings Goals. These scenarios drive the see
 
 Each scenario: **Goal → Steps → Expected**. The "Automated" line names the test that encodes it.
 
+### Which tier runs each test (ADR-0011)
+
+Tests split into **Smoke** (the curated PR gate, ≤5 min — `Smoke.xctestplan`) and **Full** (everything, nightly — `Full.xctestplan`). The slow cross-tab + relaunch persistence guards are deliberately Full-only:
+
+| Scenario | Smoke (PR gate) | Full-only (nightly) |
+|---|---|---|
+| S1 Navigation | `testAllTabsReachable`, `testSeedDataPresent` | — |
+| S2 Privacy | `testAmountsCensoredByDefault`, `testToggleRevealsAmounts` | — |
+| S3 Account history | `testTapAccountOpensHistory`, `testTapGoalAssetOpensDetail` | — |
+| S4 Cash expense | `testAddExpenseSavesAndReturns`, `testSaveDisabledWithoutAmount` | `testExpensePropagatesAcrossTabsAndSurvivesRelaunch` |
+| S5 Cross-currency transfer | — | `testCrossCurrencyTransferComputesFeeAndSaves`, `…ChangesNetWorthByFee` |
+| S6 Reconcile | `testEnteringRealBalanceEnablesRecord` | `testReconcileAdjustsBalanceAndNetWorth` |
+| S7 Fund goal | `testContributeToGoal` | `testContributionKeepsNetWorthAndReducesFundingAccount` |
+| Income / Transfer / Envelope / Backfill / Source freshness / Amount grouping / Config areas / Voice-removed | — | all of `IncomeUITests`, `TransferUITests`, `EnvelopesUITests`, `BackfillUITests`, `SourceFreshnessUITests`, `AmountGroupingUITests`, `ConfigUITests`, `VoiceRemovedUITests` |
+
+Rule for new tests: **Full-only by default**; promote to Smoke only if core-flow + single-launch + fast + budget holds (`docs/guidelines/testing.md` § Test tiers).
+
 Seed snapshot the scenarios assume:
 - Accounts: MBBank, VPBank, VIB, Wise SGD, Wise USD, Cash, Savings
 - Holdings: Gold SJC (5 chỉ), FPT (500 shares)
