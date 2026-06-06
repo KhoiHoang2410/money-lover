@@ -27,7 +27,6 @@ enum A11y {
 
     enum Input {
         static let addTransaction = "input.addTransaction"
-        static let voice = "input.voice"
         static let reconcile = "input.reconcile"
         static let backfill = "input.backfill"
     }

@@ -19,7 +19,6 @@ struct InputScreen: View {
                 if let store {
                     switch route {
                     case .transaction: TransactionForm(store: store)
-                    case .voice: VoiceEntryScreen()
                     case .reconcile: ReconcileScreen()
                     case .backfill: BackfillForm(store: store)
                     }

@@ -10,10 +10,6 @@ struct InputHub: View {
                 Label("Add transaction", systemImage: "plus.circle.fill")
             }
             .accessibilityIdentifier(A11y.Input.addTransaction)
-            NavigationLink(value: InputRoute.voice) {
-                Label("Voice expense", systemImage: "mic.fill")
-            }
-            .accessibilityIdentifier(A11y.Input.voice)
             NavigationLink(value: InputRoute.reconcile) {
                 Label("Update balances", systemImage: "checkmark.circle.badge.questionmark")
             }
