@@ -48,6 +48,28 @@ final class EnvelopesStore {
         run { try envelopesRepo.setReserve(id: envelope.id) }
     }
 
+    /// True once any Envelope is the Reserve (the month-end catch-all).
+    var hasReserve: Bool { envelopes.contains { $0.isReserve } }
+
+    /// Normalized names of existing Envelopes, for graying out matching starter entries (feat 4).
+    var existingNames: Set<String> { Set(envelopes.map { StarterEnvelope.key($0.name) }) }
+
+    /// Adds the chosen Starter envelopes (name + icon, ₫0 Allocation). If no Reserve exists yet and
+    /// the chosen set includes the designated one (Savings), that one becomes the Reserve (feat 4).
+    func applyStarter(_ chosen: [StarterEnvelope]) {
+        let existing = existingNames
+        let assignReserve = !hasReserve
+        run {
+            var reserveID: UUID?
+            for starter in chosen where !existing.contains(StarterEnvelope.key(starter.name)) {
+                let envelope = Envelope(name: starter.name, iconName: starter.iconName, allocation: .zero(.vnd))
+                try envelopesRepo.add(envelope)
+                if assignReserve, starter.isReserveDefault, reserveID == nil { reserveID = envelope.id }
+            }
+            if let reserveID { try envelopesRepo.setReserve(id: reserveID) }
+        }
+    }
+
     /// The month-end sweep outcome for the currently loaded envelopes/transactions.
     func monthEndOutcome() -> MonthEndOutcome {
         let spentByEnvelope = Dictionary(uniqueKeysWithValues: envelopes.map { ($0.id, spent(for: $0)) })
