@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Select newest Xcode 26
         run: |
@@ -67,7 +67,7 @@ jobs:
         run: tar -czf build-products.tar.gz -C DerivedData/Build Products
 
       - name: Upload build products
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-products
           path: build-products.tar.gz
@@ -87,7 +87,7 @@ jobs:
           sudo xcode-select -switch "$XCODE"
 
       - name: Download build products
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-products
 
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload unit test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: UnitTestResults
           path: UnitTestResults.xcresult
@@ -133,7 +133,7 @@ jobs:
           sudo xcode-select -switch "$XCODE"
 
       - name: Download build products
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-products
 
@@ -156,7 +156,7 @@ jobs:
 
       - name: Upload UI test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: UITestResults
           path: UITestResults.xcresult
