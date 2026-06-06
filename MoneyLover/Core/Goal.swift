@@ -1,7 +1,7 @@
 import Foundation
 
 /// A long-term savings target with a per-month contribution schedule. Amounts are VND.
-struct Goal: Identifiable, Hashable, Sendable {
+struct Goal: Identifiable, Hashable, Sendable, Codable {
     let id: UUID
     var name: String
     var iconName: String

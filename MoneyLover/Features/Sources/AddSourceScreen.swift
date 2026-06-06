@@ -1,7 +1,10 @@
 import SwiftUI
 
-/// Form to add a new Source (Account / Credit card / Holding) with an opening balance.
+/// Form to add a new Source (Account / Credit card) or edit an existing one — including updating its
+/// opening balance (feat). Holdings (gold/stock) are managed on the dedicated Holdings screen.
 struct AddSourceScreen: View {
+    /// When set, the form edits this source in place (Save keeps its id). Nil = add a new one.
+    var editing: Source?
     let onSave: (Source) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -12,6 +15,7 @@ struct AddSourceScreen: View {
     @State private var openingText = ""
     @State private var iconName = "banknote.fill"
     @State private var logo = Self.noLogo
+    @State private var loaded = false
 
     private static let noLogo = "none"
     private let bankLogos = ["mbbank", "vpbank", "vib", "wise"]
@@ -61,7 +65,7 @@ struct AddSourceScreen: View {
                     IconPicker(selection: $iconName)
                 }
             }
-            .navigationTitle("Add source")
+            .navigationTitle(editing == nil ? "Add source" : "Edit source")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -71,6 +75,7 @@ struct AddSourceScreen: View {
                     Button("Cancel", action: dismiss.callAsFunction)
                 }
             }
+            .onAppear(perform: loadIfNeeded)
         }
     }
 
@@ -81,15 +86,31 @@ struct AddSourceScreen: View {
         AmountInputFormatter(maximumFractionDigits: currency.fractionDigits)
     }
 
+    /// Populate the form once from the edited source (no-op when adding).
+    private func loadIfNeeded() {
+        guard !loaded else { return }
+        loaded = true
+        guard let source = editing else { return }
+        name = source.name
+        kind = source.kind == .holding ? .account : source.kind
+        currency = source.currency
+        openingMajor = source.openingBalance.amount
+        openingText = openingFormatter.display(for: openingMajor)
+        iconName = source.iconName
+        logo = source.logoAsset ?? Self.noLogo
+    }
+
     private func save() {
         let minor = NSDecimalNumber(decimal: openingMajor * Decimal(currency.minorUnitScale)).intValue
         let source = Source(
+            id: editing?.id ?? UUID(),
             name: name,
             kind: kind,
             currency: currency,
             openingBalance: Money(minorUnits: minor, currency: currency),
             iconName: iconName,
-            logoAsset: logo == Self.noLogo ? nil : logo
+            logoAsset: logo == Self.noLogo ? nil : logo,
+            holding: editing?.holding
         )
         onSave(source)
         dismiss()

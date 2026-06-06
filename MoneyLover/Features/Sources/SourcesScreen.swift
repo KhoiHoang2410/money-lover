@@ -15,7 +15,8 @@ struct SourcesScreen: View {
                     .task {
                         let newStore = SourcesStore(
                             sources: SourceRepository(context: context),
-                            transactions: TransactionRepository(context: context)
+                            transactions: TransactionRepository(context: context),
+                            rates: RatesRepository(context: context)
                         )
                         newStore.load()
                         store = newStore

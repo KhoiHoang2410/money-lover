@@ -9,4 +9,5 @@ enum ConfigRoute: Hashable {
     case rates
     case advice
     case appearance
+    case backup
 }

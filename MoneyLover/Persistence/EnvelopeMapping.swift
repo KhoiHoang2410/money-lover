@@ -9,7 +9,9 @@ extension EnvelopeRecord {
             iconName: e.iconName,
             allocationMinorUnits: e.allocation.minorUnits,
             carriedMinorUnits: e.carried.minorUnits,
-            isReserve: e.isReserve
+            isReserve: e.isReserve,
+            weeklyCapMinorUnits: e.weeklyCap?.minorUnits,
+            monthlyCapMinorUnits: e.monthlyCap?.minorUnits
         )
     }
 
@@ -20,7 +22,9 @@ extension EnvelopeRecord {
             iconName: iconName,
             allocation: Money(minorUnits: allocationMinorUnits, currency: .vnd),
             carried: Money(minorUnits: carriedMinorUnits, currency: .vnd),
-            isReserve: isReserve
+            isReserve: isReserve,
+            weeklyCap: weeklyCapMinorUnits.map { Money(minorUnits: $0, currency: .vnd) },
+            monthlyCap: monthlyCapMinorUnits.map { Money(minorUnits: $0, currency: .vnd) }
         )
     }
 
@@ -30,5 +34,7 @@ extension EnvelopeRecord {
         allocationMinorUnits = e.allocation.minorUnits
         carriedMinorUnits = e.carried.minorUnits
         isReserve = e.isReserve
+        weeklyCapMinorUnits = e.weeklyCap?.minorUnits
+        monthlyCapMinorUnits = e.monthlyCap?.minorUnits
     }
 }

@@ -44,7 +44,20 @@ final class HoldingsStore {
     }
 
     func add(_ source: Source) {
-        run { try sourcesRepo.add(source) }
+        run {
+            try sourcesRepo.add(source)
+            // Gold/stock needs a price to value in VND — seed a placeholder rate so it appears on the
+            // Rates screen immediately (feat: auto-add price for new holding).
+            try ratesRepo.ensure(keys: RateKeys.required(for: source))
+        }
+    }
+
+    /// Saves an in-place edit of an existing Holding (same id), e.g. an updated opening quantity.
+    func update(_ source: Source) {
+        run {
+            try sourcesRepo.update(source)
+            try ratesRepo.ensure(keys: RateKeys.required(for: source))
+        }
     }
 
     func delete(at offsets: IndexSet) {

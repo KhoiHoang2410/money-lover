@@ -70,6 +70,8 @@ enum A11y {
     enum Source {
         static let add = "source.add"
         static let openingBalance = "source.openingBalance"
+        /// A source row in Config → Sources (tap to edit its opening balance), keyed by name.
+        static func row(_ name: String) -> String { "source.row.\(name)" }
     }
 
     enum Holding {
@@ -81,6 +83,13 @@ enum A11y {
         static let save = "holding.save"
         /// The live VND value on a holding row, keyed by name.
         static func value(_ name: String) -> String { "holding.value.\(name)" }
+        /// A holding row in Config → Holdings (tap to edit its opening quantity), keyed by name.
+        static func row(_ name: String) -> String { "holding.row.\(name)" }
+    }
+
+    enum Backup {
+        static let export = "backup.export"
+        static let importData = "backup.import"
     }
 
     enum Config {
@@ -96,6 +105,7 @@ enum A11y {
         static let seedSample = "config.seedSample"
         static let clearData = "config.clearData"
         static let version = "config.version"
+        static let backup = "config.backup"
     }
 
     enum Calendar {
@@ -113,6 +123,8 @@ enum A11y {
         /// The remaining amount on an envelope row, keyed by name — lets a test assert spending
         /// reduced the right envelope's remaining.
         static func remaining(_ name: String) -> String { "envelope.remaining.\(name)" }
+        /// An envelope row (tap to edit allocation and weekly/monthly caps), keyed by name.
+        static func row(_ name: String) -> String { "envelope.row.\(name)" }
     }
 
     enum Starter {

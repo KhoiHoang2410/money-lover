@@ -170,12 +170,24 @@ enum SampleData {
 
     @MainActor
     static func clear(into context: ModelContext) {
-        try? context.delete(model: TransactionRecord.self)
-        try? context.delete(model: SourceRecord.self)
-        try? context.delete(model: EnvelopeRecord.self)
-        try? context.delete(model: RateRecord.self)
-        try? context.delete(model: GoalRecord.self)
+        // Delete fetched records individually rather than via `delete(model:)`: a batch delete runs
+        // straight on the store and the following `save()` has no pending changes, so `didSave` never
+        // posts and the observing stores keep their stale rows until a relaunch (BUG: data lingered
+        // after "Clear all data"). Per-record deletes register changes, so `save()` fires `didSave`
+        // and every screen refreshes immediately.
+        deleteAll(TransactionRecord.self, from: context)
+        deleteAll(SourceRecord.self, from: context)
+        deleteAll(EnvelopeRecord.self, from: context)
+        deleteAll(RateRecord.self, from: context)
+        deleteAll(GoalRecord.self, from: context)
         try? context.save()
+    }
+
+    @MainActor
+    private static func deleteAll<T: PersistentModel>(_ type: T.Type, from context: ModelContext) {
+        for record in (try? context.fetch(FetchDescriptor<T>())) ?? [] {
+            context.delete(record)
+        }
     }
 }
 #endif
