@@ -61,6 +61,13 @@ schemes:
         MoneyLoverTests: [test]
         MoneyLoverUITests: [test]
     test:
+      # Two tiers (ADR-0011): Smoke is the curated PR gate, Full is the nightly
+      # regression. Both are committed .xctestplan files — the single source of
+      # truth for which tests run, usable here and locally in Xcode (⌘U → plan).
+      testPlans:
+        - path: Full.xctestplan
+          defaultPlan: true
+        - path: Smoke.xctestplan
       targets:
         - MoneyLoverTests
         - MoneyLoverUITests

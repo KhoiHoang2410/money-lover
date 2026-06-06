@@ -23,7 +23,7 @@ jobs:
   #    targets, then we tar the products (preserving the +x bit, which
   #    upload-artifact's zip would drop) for the test jobs to reuse.
   build:
-    name: Build (type-check + compile)
+    name: build
     runs-on: macos-26
     timeout-minutes: 30
     steps:
@@ -47,18 +47,37 @@ jobs:
         run: xcodegen generate
 
       # -quiet drops the per-file compile commands; warnings + errors still
-      # print, and a non-zero exit still fails the step.
-      - name: Build for testing
+      # print, and a non-zero exit still fails the step. This compiles
+      # everything and emits the Full-plan .xctestrun manifest.
+      - name: Build for testing (Full plan)
         run: |
           set -o pipefail
           xcodebuild build-for-testing \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
+            -testPlan Full \
             -destination "$DESTINATION" \
             -derivedDataPath DerivedData \
             -quiet \
             CODE_SIGNING_ALLOWED=NO
           echo "✅ Build succeeded"
+
+      # The test bundles are identical across plans — only the selection differs.
+      # Re-running build-for-testing for the Smoke plan is incremental (no
+      # recompile) and just writes the Smoke .xctestrun alongside Full, so the
+      # smoke (PR) and full (nightly) test jobs both reuse this single build.
+      - name: Emit Smoke plan manifest
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -testPlan Smoke \
+            -destination "$DESTINATION" \
+            -derivedDataPath DerivedData \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO
+          ls DerivedData/Build/Products/*.xctestrun
 
       # tar preserves the executable bit + bundle layout; the .xctestrun uses
       # __TESTROOT__-relative paths, so the absolute workspace path is irrelevant
@@ -75,7 +94,7 @@ jobs:
 
   # 2. Unit tests (Swift Testing) — reuse the compiled products, no rebuild.
   unit-tests:
-    name: Unit tests
+    name: unit-tests
     needs: build
     runs-on: macos-26
     timeout-minutes: 20
@@ -99,7 +118,7 @@ jobs:
       - name: Run unit tests
         run: |
           set -o pipefail
-          XCTESTRUN="$(ls DerivedData/Build/Products/*.xctestrun | head -n1)"
+          XCTESTRUN="$(ls DerivedData/Build/Products/*Full*.xctestrun | head -n1)"
           echo "Using $XCTESTRUN"
           xcodebuild test-without-building \
             -xctestrun "$XCTESTRUN" \
@@ -117,14 +136,16 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # 3. UI tests (XCUITest) — reuse the compiled products, no rebuild. Runs in
-  #    parallel with the unit tests so the slow UI suite no longer blocks
-  #    fast unit feedback.
-  ui-tests:
-    name: UI tests
+  # 3. UI smoke tests (XCUITest, Smoke plan) — the curated PR gate. Reuses the
+  #    compiled products, no rebuild, and runs in parallel with unit tests. The
+  #    full UI suite runs nightly (nightly.yml), not here. See ADR-0011.
+  #    Smoke exec is ~2.5 min today; timeout-minutes is a backstop against the
+  #    suite creeping past the 5-min budget (sim boot + exec).
+  ui-smoke:
+    name: ui-smoke
     needs: build
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 12
     steps:
       - name: Select newest Xcode 26
         run: |
@@ -142,23 +163,23 @@ jobs:
           mkdir -p DerivedData/Build
           tar -xzf build-products.tar.gz -C DerivedData/Build
 
-      - name: Run UI tests
+      - name: Run UI smoke tests
         run: |
           set -o pipefail
-          XCTESTRUN="$(ls DerivedData/Build/Products/*.xctestrun | head -n1)"
+          XCTESTRUN="$(ls DerivedData/Build/Products/*Smoke*.xctestrun | head -n1)"
           echo "Using $XCTESTRUN"
           xcodebuild test-without-building \
             -xctestrun "$XCTESTRUN" \
             -destination "$DESTINATION" \
             -only-testing:MoneyLoverUITests \
-            -resultBundlePath UITestResults.xcresult \
+            -resultBundlePath UISmokeResults.xcresult \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Upload UI test results
+      - name: Upload UI smoke results
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: UITestResults
-          path: UITestResults.xcresult
+          name: UISmokeResults
+          path: UISmokeResults.xcresult
           if-no-files-found: ignore
           retention-days: 7

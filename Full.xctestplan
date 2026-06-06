@@ -1,0 +1,35 @@
+{
+  "configurations" : [
+    {
+      "id" : "A1F00000-0000-4000-A000-000000000001",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:MoneyLover.xcodeproj",
+      "identifier" : "FAC92990EA13DE011CA07319",
+      "name" : "MoneyLover"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:MoneyLover.xcodeproj",
+        "identifier" : "12F2E26919DA19DA08D23492",
+        "name" : "MoneyLoverTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:MoneyLover.xcodeproj",
+        "identifier" : "FBD49AB4AFBB20FA95EDDF9B",
+        "name" : "MoneyLoverUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

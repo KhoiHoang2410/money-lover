@@ -36,6 +36,14 @@ Core (pure, TDD) → Persistence (Records + Repository + mapping) → Services (
 ## Definition of Done (per change)
 Zero-warning build · tests added & green for any Core logic · no deprecated API · design tokens used (no magic numbers/colors) · bottom inset reserved · FormatStyle for all money/date/number · Dynamic Type + VoiceOver + Reduce-Motion verified · no force-unwrap · one type per file · `#Preview` present · glossary vocabulary used · invariants above upheld.
 
+## Test decisions on every PR (don't skip)
+For each PR, explicitly answer — and do — the following (rules: `docs/guidelines/testing.md` § Test tiers):
+- [ ] **Changed Core/domain logic?** → add or adjust a **unit** `@Test`. (Default — covers most changes; runs on every PR.)
+- [ ] **New/changed user-facing flow a unit test can't reach** (multi-screen, cross-tab freshness, relaunch persistence, navigation)? → add an **XCUITest**.
+- [ ] **Chose the new UI test's tier**: **Full-only by default**; promote to **Smoke** only if it's a *core money flow, single-launch, fast (≲30 s), and the smoke suite stays < 5 min*. Smoke promotion = add its `Suite/test()` id to `Smoke.xctestplan`.
+- [ ] **Merge gate is green**: `build`, `unit-tests`, `ui-smoke` must pass — these block the merge button (ADR-0011). The nightly `ui-full` does *not* gate PRs.
+- [ ] If you only touched docs/CI/config (no code logic), a version bump is **not** required (ADR-0008 amendment).
+
 ## Helper skills to invoke
 - `/tdd` — every Core module, test-first.
 - `swiftui-pro` — review SwiftUI before merging a feature.
