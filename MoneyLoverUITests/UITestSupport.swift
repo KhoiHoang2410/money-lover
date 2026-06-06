@@ -142,15 +142,41 @@ extension XCUIApplication {
     /// Type into a text field found by identifier, clearing any existing value first.
     /// Numeric fields in a Form don't show a "Clear text" affordance, so clear by sending
     /// `delete` keystrokes — robust across keyboard types.
+    ///
+    /// Amount fields group thousands live (see `AmountGroupingUITests`), so every keystroke triggers
+    /// a reformat and a single rapid `typeText` burst can let a slow CI runner swallow a keystroke
+    /// mid-reformat (observed as "250,000" for "2500000"). To stay both fast and reliable we burst-
+    /// type once, then verify the field's digits match what we asked for; only if a digit was dropped
+    /// do we fall back to the slow one-character-at-a-time path. The common case is a single burst —
+    /// char-by-char across the whole suite timed the UI job out on CI.
     func typeInField(_ identifier: String, _ text: String) {
         let field = textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "Field '\(identifier)' not found")
         field.tap()
-        if let existing = field.value as? String, !existing.isEmpty, existing != "0" {
-            let deletes = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count + 2)
-            field.typeText(deletes)
-        }
+        clearTextField(field)
         field.typeText(text)
+
+        let wantDigits = text.filter(\.isNumber)
+        let gotDigits = (field.value as? String ?? "").filter(\.isNumber)
+        if !wantDigits.isEmpty, gotDigits != wantDigits {
+            clearTextField(field)
+            for character in text { field.typeText(String(character)) }
+        }
+    }
+
+    /// Clears a focused text field by sending deletes (numeric Forms have no "Clear text" affordance).
+    private func clearTextField(_ field: XCUIElement) {
+        guard let existing = field.value as? String, !existing.isEmpty, existing != "0" else { return }
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count + 2))
+    }
+
+    /// Wait for an element (matched across all XCUI types by `identifier`) to exist, then tap it.
+    /// `element(_:).tap()` on its own does NOT wait, so tapping right after a tab switch races the
+    /// hub's first render — seen on CI as "No matches found for input.backfill" (`BackfillUITests`).
+    func tapElement(_ identifier: String, file: StaticString = #filePath, line: UInt = #line) {
+        let target = element(identifier)
+        XCTAssertTrue(target.waitForExistence(timeout: 5), "Element '\(identifier)' not found", file: file, line: line)
+        target.tap()
     }
 
     /// Drive a SwiftUI `Picker` (menu/navigation style) identified by `identifier` to `option`.
