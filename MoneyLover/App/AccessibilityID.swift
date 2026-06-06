@@ -61,6 +61,11 @@ enum A11y {
         static let contributionSave = "contribution.save"
     }
 
+    enum Source {
+        static let add = "source.add"
+        static let openingBalance = "source.openingBalance"
+    }
+
     enum Config {
         static let sources = "config.sources"
         static let envelopes = "config.envelopes"

@@ -4,6 +4,15 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.4.0] — Grouped amount entry
+
+### Added
+- Amount fields in **Add transaction** (amount / amount-out / amount-in) and **Add source** (opening balance) now show locale grouping separators live as you type (e.g. `1.000.000`), matching the Overview's display format. Driven by the pure, locale-aware `AmountInputFormatter` (regroups every keystroke, keeps the bound `Decimal` exact, respects each currency's fraction digits).
+- `AmountInputFormatterTests`: grouping per locale separator, idempotency under re-feed, leading-zero handling, fraction truncation (incl. VND's zero-fraction rule), and display⇄value agreement.
+
+### Changed
+- Add-transaction amount fields switched from `TextField(value:format: .number)` to a grouped `TextField(text:)` binding; the Rate field stays `.number`. The opening-balance field re-groups when the selected currency changes.
+
 ## [0.3.0] — Cross-tab freshness fix + Effect-Contract e2e tests
 
 ### Fixed

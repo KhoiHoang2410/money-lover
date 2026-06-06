@@ -16,6 +16,7 @@ struct TransactionForm: View {
 
     // Shared
     @State private var amountMajor: Decimal = 0
+    @State private var amountText = ""
     @State private var note = ""
 
     // Expense / Income
@@ -27,6 +28,7 @@ struct TransactionForm: View {
     @State private var fromID: UUID?
     @State private var toID: UUID?
     @State private var amountInMajor: Decimal = 0
+    @State private var amountInText = ""
     @State private var rate: Decimal = 0
 
     var body: some View {
@@ -62,7 +64,7 @@ struct TransactionForm: View {
 
     @ViewBuilder
     private var expenseFields: some View {
-        Section { decimalField("Amount", $amountMajor, focus: .amount, id: A11y.Txn.amount) }
+        Section { amountField("Amount", text: $amountText, value: $amountMajor, focus: .amount, id: A11y.Txn.amount) }
         Section {
             Picker("From", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
@@ -87,7 +89,7 @@ struct TransactionForm: View {
 
     @ViewBuilder
     private var incomeFields: some View {
-        Section { decimalField("Amount", $amountMajor, focus: .amount, id: A11y.Txn.amount) }
+        Section { amountField("Amount", text: $amountText, value: $amountMajor, focus: .amount, id: A11y.Txn.amount) }
         Section {
             Picker("Into", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
@@ -120,9 +122,9 @@ struct TransactionForm: View {
             .accessibilityIdentifier(A11y.Txn.destination)
         }
         Section {
-            decimalField(method == .crossCurrency ? "Amount out" : "Amount", $amountMajor, focus: .amount, id: A11y.Txn.amount)
+            amountField(method == .crossCurrency ? "Amount out" : "Amount", text: $amountText, value: $amountMajor, focus: .amount, id: A11y.Txn.amount)
             if method == .crossCurrency {
-                decimalField("Amount in", $amountInMajor, focus: .amountIn, id: A11y.Txn.amountIn)
+                amountField("Amount in", text: $amountInText, value: $amountInMajor, focus: .amountIn, id: A11y.Txn.amountIn)
                 decimalField("Rate", $rate, focus: .rate, id: A11y.Txn.rate)
                 if let fee = computedFee {
                     LabeledContent("Fee") {
@@ -149,6 +151,30 @@ struct TransactionForm: View {
                 .multilineTextAlignment(.trailing)
                 .focused($focus, equals: field)
                 .accessibilityIdentifier(id)
+        }
+    }
+
+    /// A money field that shows locale grouping separators live as the user types (e.g. "1,000,000"),
+    /// keeping the bound `Decimal` exact. The source currency isn't known until a source is picked, so
+    /// it allows up to 2 fraction digits (the max across currencies); `Money(major:)` rounds to the
+    /// currency's grid at save.
+    ///
+    /// Re-grouping happens in `.onChange` (not inside the binding's setter): reformatting mid-keystroke
+    /// from within the setter is dropped by SwiftUI's editing buffer, whereas onChange runs in the next
+    /// update cycle so the regrouped string is reflected back into the field.
+    private func amountField(_ title: String, text: Binding<String>, value: Binding<Decimal>, focus field: Field, id: String) -> some View {
+        let formatter = AmountInputFormatter(maximumFractionDigits: 2)
+        return LabeledContent(title) {
+            TextField(title, text: text)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .focused($focus, equals: field)
+                .accessibilityIdentifier(id)
+                .onChange(of: text.wrappedValue) { _, newValue in
+                    let formatted = formatter.format(newValue)
+                    if formatted != newValue { text.wrappedValue = formatted }
+                    value.wrappedValue = formatter.value(formatted)
+                }
         }
     }
 
