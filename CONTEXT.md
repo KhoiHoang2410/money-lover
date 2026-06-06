@@ -11,7 +11,7 @@ A balance held directly in a single currency, read off as one number. The bank a
 _Avoid_: Wallet, source
 
 **Holding**:
-Something owned whose value is quantity × market price rather than a fixed balance — Gold and Stock. Requires a valuation to express in money.
+Something owned whose value is quantity × market price rather than a fixed balance — Gold and Stock. Requires a valuation to express in money. Created with only an **opening quantity** (e.g. 3 chỉ, 120 shares) — never a money amount. Its live quantity = opening quantity + Σ Buys − Σ Sells (see **Invest**).
 _Avoid_: Asset (reserved for the computed total), Investment
 
 **Card**:
@@ -52,6 +52,10 @@ _Avoid_: Budget, limit
 The saved default set of Envelope Allocations, auto-applied at the start of each month and editable for that month. Allocations are independent of any single Income — they plan over total available money, not one paycheck.
 _Avoid_: Budget template
 
+**Starter envelopes**:
+A single hard-coded set of suggested Envelopes (name + icon, Allocation ₫0) the owner picks from to populate the Envelopes list — wholly or in part. Applied over existing Envelopes, any whose name already matches (case-insensitive, trimmed) is shown disabled. One member is the designated Reserve, which becomes the Reserve only if none exists yet. A one-time seed, distinct from the recurring *Allocation template*.
+_Avoid_: Template, preset
+
 **Reserve**:
 The single Envelope marked as default. At month-end, each other Envelope's leftover (Allocation − spent) sweeps into the Reserve — positive leftover adds to it, an overspent (negative) Envelope deducts from it. The Reserve accumulates and does not reset.
 _Avoid_: Savings, default, surplus
@@ -78,7 +82,7 @@ The status of a Schedule line, judged cumulatively against total contributed: **
 ### Balances and corrections
 
 **Opening balance**:
-The amount of a source (Account / Liability / Holding) entered once when the app starts tracking it. The anchor for all balance math.
+The amount of an Account or Liability entered once when the app starts tracking it. The anchor for all balance math. (A Holding has no opening money balance — it anchors on an **opening quantity** instead; see **Holding**.)
 
 **Current balance**:
 A source's live amount = Opening balance + Σ of its balance-affecting Transactions. Always meant to equal reality.
@@ -123,6 +127,10 @@ _Avoid_: Move
 
 **Fee**:
 The cost of a cross-currency Transfer, computed as (amount out × Rate) − amount in, expressed in the destination currency. Not entered directly.
+
+**Invest**:
+A Buy or Sell of a Holding, recorded as a movement between a VND Account and a Holding. **Buy**: an Account pays quantity × unit price and the Holding's quantity increases. **Sell**: the Holding's quantity decreases and the Account receives quantity × unit price. The unit price is the manually-entered *accepted* price actually transacted at — distinct from the auto-fetched valuation Rate. A Holding's live quantity = opening quantity + Σ Buys − Σ Sells (the balance invariant applied to quantity). VND-only; selling more than held is blocked. See `docs/adr/0010-holding-trades-derive-quantity.md`.
+_Avoid_: Trade, Investment (the entity stays a Holding)
 
 **Adjustment**:
 A Transaction created during Reconcile to absorb the difference between a source's Current balance and its real balance. Carries a description and an Envelope assignment.

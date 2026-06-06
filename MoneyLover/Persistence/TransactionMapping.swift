@@ -18,6 +18,8 @@ extension TransactionRecord {
             note: t.note,
             envelopeID: t.envelopeID,
             goalID: t.goalID,
+            tradeQuantity: t.tradeQuantity,
+            tradeDirectionRaw: t.tradeDirection?.rawValue,
             affectsBalance: t.affectsBalance
         )
     }
@@ -51,6 +53,8 @@ extension TransactionRecord {
             note: note,
             envelopeID: envelopeID,
             goalID: goalID,
+            tradeQuantity: tradeQuantity,
+            tradeDirection: tradeDirectionRaw.flatMap(TradeDirection.init(rawValue:)),
             affectsBalance: affectsBalance
         )
     }

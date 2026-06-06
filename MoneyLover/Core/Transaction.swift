@@ -23,6 +23,12 @@ struct Transaction: Identifiable, Hashable, Sendable {
     /// The Goal this transfer funds (ADR-0007). Set only on a Contribution: a `.transfer` from
     /// an Account to a Goal — `sourceID` is the Account, there is no destination Source.
     var goalID: UUID?
+    /// Units traded on an Invest (ADR-0010). Set only on `.invest`: `sourceID` is the VND Account,
+    /// `destinationID` is the Holding, `amount` is the VND moved (quantity × unit price), and
+    /// `tradeDirection` says whether the Holding's quantity rises (buy) or falls (sell).
+    var tradeQuantity: Decimal?
+    /// Buy or Sell, for an `.invest` transaction. Nil for every other kind.
+    var tradeDirection: TradeDirection?
     /// False for informational Backfill entries that must not move the current balance.
     var affectsBalance: Bool
 
@@ -38,6 +44,8 @@ struct Transaction: Identifiable, Hashable, Sendable {
         note: String = "",
         envelopeID: UUID? = nil,
         goalID: UUID? = nil,
+        tradeQuantity: Decimal? = nil,
+        tradeDirection: TradeDirection? = nil,
         affectsBalance: Bool = true
     ) {
         self.id = id
@@ -51,6 +59,8 @@ struct Transaction: Identifiable, Hashable, Sendable {
         self.note = note
         self.envelopeID = envelopeID
         self.goalID = goalID
+        self.tradeQuantity = tradeQuantity
+        self.tradeDirection = tradeDirection
         self.affectsBalance = affectsBalance
     }
 }

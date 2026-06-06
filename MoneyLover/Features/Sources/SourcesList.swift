@@ -7,17 +7,17 @@ struct SourcesList: View {
 
     var body: some View {
         List {
-            ForEach(store.sources) { source in
+            ForEach(store.manualSources) { source in
                 SourceRow(source: source, balance: store.balance(for: source))
             }
             .onDelete(perform: store.delete)
         }
         .overlay {
-            if store.sources.isEmpty {
+            if store.manualSources.isEmpty {
                 ContentUnavailableView(
                     "No sources yet",
                     systemImage: "creditcard",
-                    description: Text("Add your first account, card, or holding.")
+                    description: Text("Add your first account or card.")
                 )
             }
         }

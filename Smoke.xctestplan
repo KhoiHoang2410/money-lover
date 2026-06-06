@@ -1,0 +1,47 @@
+{
+  "configurations" : [
+    {
+      "id" : "A1F00000-0000-4000-A000-000000000002",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:MoneyLover.xcodeproj",
+      "identifier" : "FAC92990EA13DE011CA07319",
+      "name" : "MoneyLover"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:MoneyLover.xcodeproj",
+        "identifier" : "12F2E26919DA19DA08D23492",
+        "name" : "MoneyLoverTests"
+      }
+    },
+    {
+      "selectedTests" : [
+        "AddExpenseUITests\/testAddExpenseSavesAndReturns()",
+        "AddExpenseUITests\/testSaveDisabledWithoutAmount()",
+        "GoalContributionUITests\/testContributeToGoal()",
+        "NavigationUITests\/testAllTabsReachable()",
+        "NavigationUITests\/testSeedDataPresent()",
+        "OverviewPrivacyUITests\/testAmountsCensoredByDefault()",
+        "OverviewPrivacyUITests\/testTapAccountOpensHistory()",
+        "OverviewPrivacyUITests\/testTapGoalAssetOpensDetail()",
+        "OverviewPrivacyUITests\/testToggleRevealsAmounts()",
+        "ReconcileUITests\/testEnteringRealBalanceEnablesRecord()"
+      ],
+      "target" : {
+        "containerPath" : "container:MoneyLover.xcodeproj",
+        "identifier" : "FBD49AB4AFBB20FA95EDDF9B",
+        "name" : "MoneyLoverUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

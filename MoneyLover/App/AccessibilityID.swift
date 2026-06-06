@@ -43,6 +43,12 @@ enum A11y {
         static let method = "txn.method"
         static let note = "txn.note"
         static let save = "txn.save"
+        // Invest (Buy/Sell of a Holding), ADR-0010.
+        static let tradeDirection = "txn.tradeDirection"
+        static let holding = "txn.holding"
+        static let quantity = "txn.quantity"
+        static let unitPrice = "txn.unitPrice"
+        static let date = "txn.date"
     }
 
     enum Reconcile {
@@ -66,8 +72,20 @@ enum A11y {
         static let openingBalance = "source.openingBalance"
     }
 
+    enum Holding {
+        static let add = "holding.add"
+        static let assetType = "holding.assetType"
+        static let quantity = "holding.quantity"
+        static let unit = "holding.unit"
+        static let stockPicker = "holding.stockPicker"
+        static let save = "holding.save"
+        /// The live VND value on a holding row, keyed by name.
+        static func value(_ name: String) -> String { "holding.value.\(name)" }
+    }
+
     enum Config {
         static let sources = "config.sources"
+        static let holdings = "config.holdings"
         static let envelopes = "config.envelopes"
         static let rates = "config.rates"
         static let monthEnd = "config.monthEnd"
