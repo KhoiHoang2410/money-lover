@@ -142,6 +142,13 @@ extension XCUIApplication {
     /// Type into a text field found by identifier, clearing any existing value first.
     /// Numeric fields in a Form don't show a "Clear text" affordance, so clear by sending
     /// `delete` keystrokes — robust across keyboard types.
+    ///
+    /// Characters are sent one at a time: amount fields group thousands live (see
+    /// `AmountGroupingUITests`), so every keystroke triggers a reformat. A single rapid
+    /// `typeText("2500000")` burst lets a slow CI runner swallow a keystroke mid-reformat
+    /// (observed on CI as "250,000" for "2500000"). Sending one character per `typeText` makes
+    /// XCUITest wait for the app to idle — i.e. for the reformat to finish — between keystrokes, so
+    /// no digit is dropped.
     func typeInField(_ identifier: String, _ text: String) {
         let field = textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "Field '\(identifier)' not found")
@@ -150,7 +157,18 @@ extension XCUIApplication {
             let deletes = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count + 2)
             field.typeText(deletes)
         }
-        field.typeText(text)
+        for character in text {
+            field.typeText(String(character))
+        }
+    }
+
+    /// Wait for an element (matched across all XCUI types by `identifier`) to exist, then tap it.
+    /// `element(_:).tap()` on its own does NOT wait, so tapping right after a tab switch races the
+    /// hub's first render — seen on CI as "No matches found for input.backfill" (`BackfillUITests`).
+    func tapElement(_ identifier: String, file: StaticString = #filePath, line: UInt = #line) {
+        let target = element(identifier)
+        XCTAssertTrue(target.waitForExistence(timeout: 5), "Element '\(identifier)' not found", file: file, line: line)
+        target.tap()
     }
 
     /// Drive a SwiftUI `Picker` (menu/navigation style) identified by `identifier` to `option`.

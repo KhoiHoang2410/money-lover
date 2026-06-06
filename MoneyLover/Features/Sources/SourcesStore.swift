@@ -27,6 +27,9 @@ final class SourcesStore {
         }
     }
 
+    /// Accounts and cards only — Holdings live on the dedicated Holdings screen (ADR-0010).
+    var manualSources: [Source] { sources.filter { $0.kind != .holding } }
+
     /// Current balance for a source (opening + balance-affecting transactions).
     func balance(for source: Source) -> Money {
         (try? BalanceEngine.balance(of: source, transactions: transactions)) ?? source.openingBalance
@@ -41,8 +44,9 @@ final class SourcesStore {
         }
     }
 
+    /// Deletes the manual sources at `offsets` within `manualSources`.
     func delete(at offsets: IndexSet) {
-        let ids = offsets.map { sources[$0].id }
+        let ids = offsets.map { manualSources[$0].id }
         do {
             for id in ids {
                 try sourcesRepo.delete(id: id)

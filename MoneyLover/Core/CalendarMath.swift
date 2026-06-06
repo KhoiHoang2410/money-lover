@@ -15,7 +15,8 @@ enum CalendarMath {
             case .expense: totals[day, default: 0] -= transaction.amount.minorUnits
             case .income: totals[day, default: 0] += transaction.amount.minorUnits
             case .adjustment: totals[day, default: 0] += transaction.amount.minorUnits
-            case .transfer: continue
+            // Transfers and Invests are internal moves (own place ↔ holding) — not cash flow.
+            case .transfer, .invest: continue
             }
         }
         return totals.mapValues { Money(minorUnits: $0, currency: .vnd) }

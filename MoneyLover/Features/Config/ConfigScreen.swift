@@ -13,6 +13,10 @@ struct ConfigScreen: View {
                         Label("Sources & balances", systemImage: "building.columns.fill")
                     }
                     .accessibilityIdentifier(A11y.Config.sources)
+                    NavigationLink(value: ConfigRoute.holdings) {
+                        Label("Holdings (gold & stock)", systemImage: "chart.pie.fill")
+                    }
+                    .accessibilityIdentifier(A11y.Config.holdings)
                     NavigationLink(value: ConfigRoute.envelopes) {
                         Label("Envelopes & template", systemImage: "tray.full.fill")
                     }
@@ -73,6 +77,7 @@ struct ConfigScreen: View {
             .navigationDestination(for: ConfigRoute.self) { route in
                 switch route {
                 case .sources: SourcesScreen()
+                case .holdings: HoldingsScreen()
                 case .envelopes: EnvelopesScreen()
                 case .monthEnd: MonthEndScreen()
                 case .rates: RatesScreen()

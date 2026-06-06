@@ -11,6 +11,8 @@ final class InputStore {
     private(set) var sources: [Source] = []
     private(set) var envelopes: [Envelope] = []
     private(set) var transactions: [Transaction] = []
+    /// The owner's Holdings (gold, stock) — the trade destinations for an Invest (ADR-0010).
+    var holdings: [Source] { sources.filter { $0.kind == .holding } }
     private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 

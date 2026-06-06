@@ -39,12 +39,13 @@ final class OverviewStore {
         (try? BalanceEngine.balance(of: source, transactions: transactions)) ?? source.openingBalance
     }
 
-    /// The amount shown on a source's row, in VND: a Holding's value is quantity × Rate
+    /// The amount shown on a source's row, in VND: a Holding's value is live quantity × Rate
     /// (its money balance is always zero), while Accounts/cards show their own-currency balance.
     func displayValue(for source: Source) -> Money {
         switch source.kind {
         case .holding:
-            return Valuator.valueInVND(source: source, balance: balance(for: source), rates: rates)
+            let resolved = HoldingQuantityEngine.resolved(source, transactions: transactions)
+            return Valuator.valueInVND(source: resolved, balance: .zero(.vnd), rates: rates)
         case .account, .creditCard:
             return balance(for: source)
         }
@@ -62,8 +63,10 @@ final class OverviewStore {
     var fundedGoals: [Goal] { goals.filter { balance(for: $0).minorUnits > 0 } }
 
     var netWorth: NetWorth {
+        // Resolve each Holding to its live quantity so the Valuator values current units; Accounts
+        // and cards are returned unchanged and still carry their money balance (ADR-0010).
         NetWorthEngine.compute(
-            entries: sources.map { ($0, balance(for: $0)) },
+            entries: sources.map { (HoldingQuantityEngine.resolved($0, transactions: transactions), balance(for: $0)) },
             rates: rates,
             goalBalances: goals.map { balance(for: $0) }
         )
