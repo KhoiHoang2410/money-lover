@@ -44,6 +44,7 @@ struct ConfigScreen: View {
                     NavigationLink(value: ConfigRoute.appearance) {
                         Label("Appearance", systemImage: "paintpalette.fill")
                     }
+                    .accessibilityIdentifier(A11y.Config.appearance)
                     Button {
                         onboarding = true
                     } label: {

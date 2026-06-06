@@ -48,6 +48,25 @@ final class CalendarStore {
         }
     }
 
+    func delete(_ transaction: Transaction) {
+        do {
+            try repo.delete(id: transaction.id)
+            load()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// The date a new transaction should default to: the selected day in the displayed month, or
+    /// today when no day is picked (feat 1).
+    var prefillDate: Date {
+        if let day = selectedDay,
+           let date = calendar.date(from: DateComponents(year: year, month: month, day: day)) {
+            return date
+        }
+        return today
+    }
+
     var dailyNet: [Int: Money] {
         CalendarMath.dailyNet(transactions: transactions, year: year, month: month, calendar: calendar)
     }

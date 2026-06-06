@@ -62,6 +62,7 @@ struct RootView: View {
                 let defaults = UserDefaults.standard
                 defaults.set(true, forKey: "censorAmounts")
                 defaults.set(false, forKey: "reduceMotion")
+                defaults.set(false, forKey: "confirmBeforeDelete")
                 didOnboard = true
                 return
             }

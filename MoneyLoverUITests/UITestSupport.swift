@@ -143,23 +143,31 @@ extension XCUIApplication {
     /// Numeric fields in a Form don't show a "Clear text" affordance, so clear by sending
     /// `delete` keystrokes — robust across keyboard types.
     ///
-    /// Characters are sent one at a time: amount fields group thousands live (see
-    /// `AmountGroupingUITests`), so every keystroke triggers a reformat. A single rapid
-    /// `typeText("2500000")` burst lets a slow CI runner swallow a keystroke mid-reformat
-    /// (observed on CI as "250,000" for "2500000"). Sending one character per `typeText` makes
-    /// XCUITest wait for the app to idle — i.e. for the reformat to finish — between keystrokes, so
-    /// no digit is dropped.
+    /// Amount fields group thousands live (see `AmountGroupingUITests`), so every keystroke triggers
+    /// a reformat and a single rapid `typeText` burst can let a slow CI runner swallow a keystroke
+    /// mid-reformat (observed as "250,000" for "2500000"). To stay both fast and reliable we burst-
+    /// type once, then verify the field's digits match what we asked for; only if a digit was dropped
+    /// do we fall back to the slow one-character-at-a-time path. The common case is a single burst —
+    /// char-by-char across the whole suite timed the UI job out on CI.
     func typeInField(_ identifier: String, _ text: String) {
         let field = textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "Field '\(identifier)' not found")
         field.tap()
-        if let existing = field.value as? String, !existing.isEmpty, existing != "0" {
-            let deletes = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count + 2)
-            field.typeText(deletes)
+        clearTextField(field)
+        field.typeText(text)
+
+        let wantDigits = text.filter(\.isNumber)
+        let gotDigits = (field.value as? String ?? "").filter(\.isNumber)
+        if !wantDigits.isEmpty, gotDigits != wantDigits {
+            clearTextField(field)
+            for character in text { field.typeText(String(character)) }
         }
-        for character in text {
-            field.typeText(String(character))
-        }
+    }
+
+    /// Clears a focused text field by sending deletes (numeric Forms have no "Clear text" affordance).
+    private func clearTextField(_ field: XCUIElement) {
+        guard let existing = field.value as? String, !existing.isEmpty, existing != "0" else { return }
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count + 2))
     }
 
     /// Wait for an element (matched across all XCUI types by `identifier`) to exist, then tap it.
