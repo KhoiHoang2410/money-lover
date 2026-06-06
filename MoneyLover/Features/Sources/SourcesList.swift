@@ -25,6 +25,7 @@ struct SourcesList: View {
             Button("Add source", systemImage: "plus") {
                 showingAdd = true
             }
+            .accessibilityIdentifier(A11y.Source.add)
         }
         .sheet(isPresented: $showingAdd) {
             AddSourceScreen(onSave: store.add)
