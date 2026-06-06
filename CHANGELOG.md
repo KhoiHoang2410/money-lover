@@ -4,6 +4,16 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.4.2] — Demo + AI verification
+
+### Added
+- **README demo** — an animated GIF walkthrough (Overview → Goals → Add transaction) plus a screenshot row, under a new `## Demo` section. Media lives in `docs/media/` and is captured on the iPhone 17 Pro simulator (iOS 26.5) by driving the seeded app through its stable [accessibility identifiers](MoneyLover/App/AccessibilityID.swift) — the same handles the XCUITest suite uses.
+- **README `## Built & verified by AI`** — documents that the app is authored entirely by Claude and that every change runs the full gauntlet (TDD → CI build + unit + UI tests → AI PR review → versioned), with setup instructions for the `ANTHROPIC_API_KEY` secret.
+- `.github/workflows/claude-review.yml` — on every PR (and on `@claude review` comments), Claude reviews its own diff against `CLAUDE.md`, the engineering/testing guidelines, the ADRs, and the money-correctness invariants, posting inline findings. Skips cleanly without the secret (forks never fail red).
+
+### Changed
+- README intro now states the project is built entirely by Claude and notes the personal-savings motivation behind it.
+
 ## [0.4.1] — Security automation
 
 ### Added
