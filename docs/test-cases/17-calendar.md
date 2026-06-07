@@ -92,7 +92,7 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Tap the floating + | — | The full add-transaction form opens (same as the Add tab; Expense/Income/Transfer/Invest) |
+| 1 | Tap the floating + | — | The full add-transaction form opens (Expense/Income/Transfer/Invest) |
 | 2 | The date is prefilled | selected day, else today | Matches the day being viewed; editable in the form |
 | 3 | Save an expense | VPBank, 123,000 | It appears under that day's detail and in the account history |
 

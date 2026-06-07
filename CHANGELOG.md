@@ -4,6 +4,15 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.15.0] — Charts tab replaces the Add tab
+
+### Changed
+- **Charts is now a root tab (feat):** the bottom tab bar's **Add** tab is replaced by a **Charts** tab that opens the trend cards directly — no more drilling through Config. Charts also remains reachable from Config → Charts & trends and the Calendar toolbar.
+- **Update balances moved to Config (feat):** the reconcile flow is now **Config → Update balances** (Money section), where the rest of the balance setup lives.
+
+### Removed
+- **The Add tab and its hub (feat):** adding a transaction is done from the **Calendar's floating +** (introduced earlier), so the separate Add tab and its two-item hub (Add transaction / Update balances) are gone.
+
 ## [0.14.0] — Calendar: weekend columns & circular days
 
 ### Changed

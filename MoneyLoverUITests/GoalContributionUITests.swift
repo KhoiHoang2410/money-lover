@@ -66,17 +66,14 @@ final class GoalContributionUITests: XCTestCase {
         let nwBefore = app.revealedNetWorth()
         let mbBefore = app.revealedSourceRow("MBBank")
 
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
         app.selectPickerOption(A11y.Txn.method, "Goal")
         app.selectPickerOption(A11y.Txn.source, "MBBank")
         app.selectPickerOption(A11y.Txn.destination, "Travel")
         app.typeInField(A11y.Txn.amount, "2000000")
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after funding the goal")
+        app.assertReturnedToCalendar("Did not return to the Calendar after funding the goal")
 
         // Net worth UNCHANGED (asset→asset); the funding account dropped.
         XCTAssertEqual(nwBefore, app.revealedNetWorth(),
@@ -98,16 +95,14 @@ final class GoalContributionUITests: XCTestCase {
 
         // Create a contribution dated today (Transfer → Goal defaults to today), then open it from
         // the Calendar day detail by its note.
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
         app.selectPickerOption(A11y.Txn.method, "Goal")
         app.selectPickerOption(A11y.Txn.source, "MBBank")
         app.selectPickerOption(A11y.Txn.destination, "Travel")
         app.typeInField(A11y.Txn.amount, "1500000")
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5))
+        app.assertReturnedToCalendar()
 
         XCTAssertTrue(app.calendarTodayContains(note: "→ Travel"),
                       "The goal contribution is not listed under today in the Calendar.")

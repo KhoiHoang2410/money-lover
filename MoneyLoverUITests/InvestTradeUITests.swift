@@ -10,9 +10,7 @@ final class InvestTradeUITests: XCTestCase {
 
         let vpBefore = app.revealedSourceRow("VPBank")
 
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Invest")
         app.selectPickerOption(A11y.Txn.tradeDirection, "Buy")
         app.selectPickerOption(A11y.Txn.source, "VPBank")
@@ -20,8 +18,7 @@ final class InvestTradeUITests: XCTestCase {
         app.typeInField(A11y.Txn.quantity, "2")
         app.typeInField(A11y.Txn.unitPrice, "7000000")
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after the Buy")
+        app.assertReturnedToCalendar("Did not return to the Calendar after the Buy")
 
         // FRESHNESS — the funding account dropped (₫14,000,000 spent on gold).
         let vpAfter = app.revealedSourceRow("VPBank")
@@ -48,9 +45,7 @@ final class InvestTradeUITests: XCTestCase {
     /// once (no re-typing — a single type is the reliable path through `typeInField`).
     private func openSellForm(quantity: String) -> XCUIApplication {
         let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Invest")
         app.selectPickerOption(A11y.Txn.tradeDirection, "Sell")
         app.selectPickerOption(A11y.Txn.source, "VPBank")

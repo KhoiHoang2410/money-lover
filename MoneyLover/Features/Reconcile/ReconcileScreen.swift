@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Reconcile ("update balance"): the owner re-enters each source's real balance and any
-/// drift is recorded as an Adjustment carrying a note and an Envelope. Pushed from the
-/// Input hub, so it carries no `NavigationStack` of its own.
+/// drift is recorded as an Adjustment carrying a note and an Envelope. Pushed from
+/// Config → Update balances, so it carries no `NavigationStack` of its own.
 struct ReconcileScreen: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss

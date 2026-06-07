@@ -16,17 +16,14 @@ final class BackfillUITests: XCTestCase {
         let cashBefore = app.revealedSourceRow("Cash")
 
         // Add an expense from Cash, marked Backfilled (default date = today), unique note to find it.
-        app.selectTab("Add")
-        app.tapElement(A11y.Input.addTransaction)
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.typeInField(A11y.Txn.amount, "99000")
         app.selectPickerOption(A11y.Txn.source, "Cash")
         app.selectPickerOption(A11y.Txn.envelope, "Food")
         app.typeInField(A11y.Txn.note, "bf-99000")
         app.setToggle(A11y.Txn.backfilled, on: true)
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after saving the backfill")
+        app.assertReturnedToCalendar("Did not return to the Calendar after saving the backfill")
 
         // A backfill is an ordinary transaction: it shows on the calendar grid for its date (today).
         XCTAssertTrue(app.calendarTodayContains(note: "bf-99000"),
