@@ -70,15 +70,17 @@ struct ConfigScreen: View {
                 }
 
                 #if DEBUG
-                Section("Debug") {
-                    Button("Seed sample data", systemImage: "wand.and.stars") {
-                        SampleData.seed(into: context)
+                if debugToolsEnabled {
+                    Section("Debug") {
+                        Button("Seed sample data", systemImage: "wand.and.stars") {
+                            SampleData.seed(into: context)
+                        }
+                        .accessibilityIdentifier(A11y.Config.seedSample)
+                        Button("Clear all data", systemImage: "trash", role: .destructive) {
+                            SampleData.clear(into: context)
+                        }
+                        .accessibilityIdentifier(A11y.Config.clearData)
                     }
-                    .accessibilityIdentifier(A11y.Config.seedSample)
-                    Button("Clear all data", systemImage: "trash", role: .destructive) {
-                        SampleData.clear(into: context)
-                    }
-                    .accessibilityIdentifier(A11y.Config.clearData)
                 }
                 #endif
 
@@ -120,6 +122,19 @@ struct ConfigScreen: View {
             }
         }
     }
+
+    #if DEBUG
+    /// The sample-data Debug tools are dev-only. They show only when running in the Simulator or
+    /// under a UI test (`UITEST=1`) — never on a build installed on a physical device, where this
+    /// stays `false`. (The whole section is already compiled out of Release builds entirely.)
+    private var debugToolsEnabled: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return ProcessInfo.processInfo.environment["UITEST"] == "1"
+        #endif
+    }
+    #endif
 
     private func deleteAllData() {
         do {

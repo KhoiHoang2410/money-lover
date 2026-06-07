@@ -4,6 +4,15 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.12.0] — Fund a goal from the add-transaction form
+
+### Added
+- **Transfer to a Goal (feat, ADR-0007):** the add-transaction form's **Transfer** type now has a **Goal** method. Pick a funding VND Account as *From*, a Goal as *To*, enter an amount, and Save records a contribution — the same Account → Goal transfer the goal detail's "Add money" already creates. There is no undo for this action in the form.
+
+### Changed
+- **Goal contributions open read-only (fix):** tapping a goal contribution (e.g. from the Calendar day detail) now shows a read-only summary instead of the editable transfer form. Previously the form would render with an empty destination and, on Save, silently drop the contribution's goal link.
+- **Debug tools are now Simulator/test-only:** the Config → Debug section ("Seed sample data", "Clear all data") appears only when running in the Simulator or under UI tests, never on a build installed on a physical device. (It was already excluded from Release builds entirely.)
+
 ## [0.11.0] — App icon
 
 ### Added
