@@ -8,18 +8,22 @@ final class InputStore {
     private let sourcesRepo: SourceRepository
     private let transactionsRepo: TransactionRepository
     private let envelopesRepo: EnvelopeRepository
+    private let goalsRepo: GoalRepository
     private(set) var sources: [Source] = []
     private(set) var envelopes: [Envelope] = []
     private(set) var transactions: [Transaction] = []
+    /// Goals the user can fund with a Transfer (ADR-0007).
+    private(set) var goals: [Goal] = []
     /// The owner's Holdings (gold, stock) — the trade destinations for an Invest (ADR-0010).
     var holdings: [Source] { sources.filter { $0.kind == .holding } }
     private let changeObserver = ModelChangeObserver()
     var errorMessage: String?
 
-    init(sources: SourceRepository, transactions: TransactionRepository, envelopes: EnvelopeRepository) {
+    init(sources: SourceRepository, transactions: TransactionRepository, envelopes: EnvelopeRepository, goals: GoalRepository) {
         self.sourcesRepo = sources
         self.transactionsRepo = transactions
         self.envelopesRepo = envelopes
+        self.goalsRepo = goals
         changeObserver.observe { [weak self] in self?.load() }
     }
 
@@ -28,6 +32,7 @@ final class InputStore {
             sources = try sourcesRepo.all()
             envelopes = try envelopesRepo.all()
             transactions = try transactionsRepo.all()
+            goals = try goalsRepo.all()
         } catch {
             errorMessage = error.localizedDescription
         }
