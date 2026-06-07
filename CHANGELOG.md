@@ -9,6 +9,11 @@ pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped versi
 ### Changed
 - **Same-currency and cross-currency Transfer are now one mode (feat):** the Transfer **Method** switch no longer asks you to pick "Same currency" vs "Cross-currency" up front. A single **Transfer** mode now decides from the Sources you pick — when From and To share a currency it shows a single **Amount**; when they differ it reveals **Amount out / Amount in / Rate** and the computed **Fee**. The form shifts layout as you change Sources. Pay-card and Goal modes are unchanged. No change to how transfers are stored or to balances.
 
+## [0.17.1] — Calendar day circles no longer overlap
+
+### Fixed
+- **Calendar day circles fit their column (fix):** the circular day cells were sized to a fixed 52pt + padding, which made each circle wider than a one-seventh column on an iPhone, so adjacent circles overlapped. Each circle now fills its grid column and stays square, with the day number and net amount centered as an overlay so they always sit inside the circle. The grid padding and column spacing were trimmed slightly so the circles read a little larger.
+
 ## [0.17.0] — Consistent number formatting on every input
 
 ### Changed

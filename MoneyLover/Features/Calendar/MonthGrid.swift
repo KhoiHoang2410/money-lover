@@ -5,7 +5,7 @@ struct MonthGrid: View {
     let store: CalendarStore
     @Binding var pickingMonth: Bool
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 5), count: 7)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     private let weekdays = ["S", "M", "T", "W", "T", "F", "S"]
 
     var body: some View {
@@ -30,7 +30,7 @@ struct MonthGrid: View {
             }
             .padding(.horizontal, Theme.Spacing.lg)
 
-            LazyVGrid(columns: columns, spacing: 5) {
+            LazyVGrid(columns: columns, spacing: 4) {
                 ForEach(weekdays.indices, id: \.self) { index in
                     // Index 0 = Sunday, 6 = Saturday — weekend columns read red.
                     let isWeekend = index == 0 || index == 6
@@ -39,7 +39,10 @@ struct MonthGrid: View {
                         .foregroundStyle(isWeekend ? AnyShapeStyle(Theme.Palette.bad) : AnyShapeStyle(.secondary))
                 }
                 ForEach(0..<(store.firstWeekday - 1), id: \.self) { _ in
-                    Color.clear.frame(height: 52)
+                    // Match a day cell's square footprint so the first row lines up with the rest.
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(1, contentMode: .fit)
                 }
                 ForEach(1...store.daysInMonth, id: \.self) { day in
                     let net = store.dailyNet[day]
@@ -54,7 +57,7 @@ struct MonthGrid: View {
                     }
                 }
             }
-            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.horizontal, Theme.Spacing.sm)
         }
     }
 
