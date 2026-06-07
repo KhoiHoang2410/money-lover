@@ -10,8 +10,9 @@ final class CrossCurrencyTransferUITests: XCTestCase {
         app.openNewTransaction()
 
         app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
-        app.selectPickerOption(A11y.Txn.method, "Cross-currency")
 
+        // Picking Sources of differing currencies (SGD → VND) makes the merged Transfer form reveal
+        // the Amount in / Rate fields — no separate "Cross-currency" method to choose.
         app.selectPickerOption(A11y.Txn.source, "Wise SGD")
         app.selectPickerOption(A11y.Txn.destination, "VPBank")
 
@@ -39,7 +40,6 @@ final class CrossCurrencyTransferUITests: XCTestCase {
 
         app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
-        app.selectPickerOption(A11y.Txn.method, "Cross-currency")
         app.selectPickerOption(A11y.Txn.source, "Wise SGD")
         app.selectPickerOption(A11y.Txn.destination, "VPBank")
         app.typeInField(A11y.Txn.amount, "100")

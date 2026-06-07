@@ -76,8 +76,8 @@ and the expense reduces Cash / Food remaining.
 **Goal:** As the owner, transfer SGD to VND and let the app compute the Fee (PRD #16).
 **Steps:**
 1. Calendar → floating +.
-2. Type = Transfer; Method = Cross-currency.
-3. From = Wise SGD; To = VPBank.
+2. Type = Transfer.
+3. From = Wise SGD; To = VPBank — differing currencies reveal the cross-currency fields.
 4. Amount out 100; Amount in 1,800,000; Rate 18,500.
 5. Tap Save.
 **Expected:** A Fee row appears (amount out × rate − amount in); Save enabled only when all three

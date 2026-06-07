@@ -14,10 +14,10 @@ final class TransferUITests: XCTestCase {
         let vpBefore = app.revealedSourceRow("VPBank")
         let cashBefore = app.revealedSourceRow("Cash")
 
-        // VPBank → Cash, same currency (both VND).
+        // VPBank → Cash, same currency (both VND) — the merged Transfer mode shows a single Amount
+        // when the two Sources share a currency (no Amount in / Rate).
         app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
-        app.selectPickerOption(A11y.Txn.method, "Same currency")
         app.selectPickerOption(A11y.Txn.source, "VPBank")
         app.selectPickerOption(A11y.Txn.destination, "Cash")
         app.typeInField(A11y.Txn.amount, "500000")

@@ -2,8 +2,9 @@ import SwiftUI
 
 /// One merged entry form for the three everyday Transaction kinds, switched by a segmented **Type**
 /// control (Expense default / Income / Transfer). The amount auto-focuses the number pad on open;
-/// only the note uses the normal (alphabet) keyboard. Transfer keeps its full power — same-currency,
-/// cross-currency (manual Rate + computed Fee), and pay-card — under a secondary **Method** switch.
+/// only the note uses the normal (alphabet) keyboard. Transfer keeps its full power — a plain
+/// **Transfer** (which auto-reveals the cross-currency Rate + computed Fee when the two Sources differ
+/// in currency), plus **pay-card** and **goal** — under a secondary **Method** switch.
 struct TransactionForm: View {
     let store: InputStore
     /// When set, the form edits this transaction in place (Save updates, keeps its id). Nil = add.
@@ -48,7 +49,7 @@ struct TransactionForm: View {
     @State private var backfilled = false
 
     // Transfer
-    @State private var method: TransferMode = .sameCurrency
+    @State private var method: TransferMode = .transfer
     @State private var fromID: UUID?
     @State private var toID: UUID?
     @State private var amountInMajor: Decimal = 0
@@ -287,8 +288,8 @@ struct TransactionForm: View {
             }
         }
         Section {
-            amountRow(method == .crossCurrency ? "Amount out" : "Amount", value: $amountMajor, focus: .amount, id: A11y.Txn.amount)
-            if method == .crossCurrency {
+            amountRow(isCrossCurrency ? "Amount out" : "Amount", value: $amountMajor, focus: .amount, id: A11y.Txn.amount)
+            if isCrossCurrency {
                 amountRow("Amount in", value: $amountInMajor, focus: .amountIn, id: A11y.Txn.amountIn)
                 amountRow("Rate", value: $rate, fractionDigits: 6, focus: .rate, id: A11y.Txn.rate)
                 if let fee = computedFee {
@@ -410,8 +411,16 @@ struct TransactionForm: View {
         kind == .income ? accounts.first { $0.id == sourceID } : store.sources.first { $0.id == sourceID }
     }
 
+    /// A plain Transfer crosses currencies when its two picked Sources hold different currencies —
+    /// the form then reveals Amount out / Amount in + Rate (and a computed Fee) instead of one Amount.
+    /// Pay-card and Goal never cross-currency here.
+    private var isCrossCurrency: Bool {
+        guard method == .transfer, let from = fromSource, let to = toSource else { return false }
+        return from.currency != to.currency
+    }
+
     private var computedFee: Money? {
-        guard method == .crossCurrency, let from = fromSource, let to = toSource, rate > 0 else { return nil }
+        guard isCrossCurrency, let from = fromSource, let to = toSource, rate > 0 else { return nil }
         return TransferEngine.fee(
             amountOut: Money(major: amountMajor, currency: from.currency),
             amountIn: Money(major: amountInMajor, currency: to.currency),
@@ -449,7 +458,7 @@ struct TransactionForm: View {
                 return fromSource != nil && toID != nil && amountMajor > 0
             }
             guard let from = fromSource, let to = toSource, from.id != to.id, amountMajor > 0 else { return false }
-            return method != .crossCurrency || (amountInMajor > 0 && rate > 0)
+            return !isCrossCurrency || (amountInMajor > 0 && rate > 0)
         case .invest:
             guard accountID != nil, let holdingID, quantity > 0, unitPriceMajor > 0 else { return false }
             // A Sell cannot exceed the units currently held (ADR-0010).
@@ -497,7 +506,7 @@ struct TransactionForm: View {
             }
             guard let to = toSource else { return }
             let out = Money(major: amountMajor, currency: from.currency)
-            if method == .crossCurrency {
+            if isCrossCurrency {
                 let received = Money(major: amountInMajor, currency: to.currency)
                 persist(Transaction(
                     id: id, date: date, kind: .transfer, amount: out, sourceID: from.id, destinationID: to.id,
@@ -621,7 +630,9 @@ struct TransactionForm: View {
             amountMajor = t.amount.amount
             fromID = t.sourceID; toID = t.destinationID
             if let received = t.destinationAmount {
-                method = .crossCurrency
+                // Cross-currency: a stored destinationAmount means the Sources differ in currency, so
+                // the merged Transfer mode re-derives `isCrossCurrency` and shows Amount out / in + Rate.
+                method = .transfer
                 amountInMajor = received.amount
                 // Rate isn't stored; recover it from amounts + fee: fee = out×rate − in ⇒ rate = (in+fee)/out.
                 let feeAmount = t.fee?.amount ?? 0
@@ -629,7 +640,7 @@ struct TransactionForm: View {
             } else if store.sources.first(where: { $0.id == t.destinationID })?.kind == .creditCard {
                 method = .payCard
             } else {
-                method = .sameCurrency
+                method = .transfer
             }
         case .invest:
             direction = t.tradeDirection ?? .buy
