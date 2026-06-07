@@ -6,12 +6,14 @@ struct DayCell: View {
     let net: Money?
     var isSelected: Bool = false
     var isToday: Bool = false
+    /// Saturdays and Sundays render their day number in red to match the weekend columns.
+    var isWeekend: Bool = false
 
     var body: some View {
         VStack(spacing: 3) {
             Text("\(day)")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(isWeekend ? Theme.Palette.bad : .primary)
             // Always reserve the diff line so day numbers stay vertically aligned across cells.
             Text(netLabel)
                 .font(.system(size: 10, weight: .bold))
@@ -20,23 +22,24 @@ struct DayCell: View {
                 .minimumScaleFactor(0.6)
                 .opacity(hasNet ? 1 : 0)
         }
-        .frame(maxWidth: .infinity, minHeight: 52, alignment: .center)
+        .frame(width: 52, height: 52, alignment: .center)
         .padding(4)
         .background {
-            RoundedRectangle(cornerRadius: 10)
+            Circle()
                 .fill(Color(.secondarySystemBackground))
                 .overlay {
                     // Today reads as a translucent pink tint — distinct from the selected border,
                     // and stacks with it when today is also the selected day.
-                    RoundedRectangle(cornerRadius: 10)
+                    Circle()
                         .fill(isToday ? Theme.Palette.pink.opacity(0.18) : .clear)
                 }
         }
         .overlay {
             if isSelected {
-                RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.Palette.pink, lineWidth: 2)
+                Circle().strokeBorder(Theme.Palette.pink, lineWidth: 2)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var hasNet: Bool {

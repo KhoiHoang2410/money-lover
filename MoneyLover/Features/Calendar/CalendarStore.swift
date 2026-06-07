@@ -31,6 +31,14 @@ final class CalendarStore {
         return c.year == year && c.month == month && c.day == day
     }
 
+    /// True when `day` in the displayed month/year falls on Saturday or Sunday.
+    func isWeekend(_ day: Int) -> Bool {
+        let comps = DateComponents(year: year, month: month, day: day)
+        guard let date = calendar.date(from: comps) else { return false }
+        let weekday = calendar.component(.weekday, from: date) // 1 = Sunday, 7 = Saturday
+        return weekday == 1 || weekday == 7
+    }
+
     /// Jump the grid to the current month/year and select today.
     /// Setting month/year clears `selectedDay` (didSet), so select today afterwards.
     func jumpToToday() {
