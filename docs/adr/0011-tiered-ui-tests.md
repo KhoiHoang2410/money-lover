@@ -37,7 +37,7 @@ New UI tests are **Full-only by default**. A test is promoted to Smoke only if i
 
 ## Amendment (2026-06-07): skip build + tests when no app/test code changed
 
-`ci.yml` now opens with a cheap `changes` job (Ubuntu, ~git diff) that decides whether the push/PR touches anything that ships in or builds the app: the `MoneyLover/`, `MoneyLoverTests/`, `MoneyLoverUITests/` folders, `project.yml` (the XcodeGen build definition), or `ci.yml` itself. If none changed — a docs-only, `.claude/skills/`, or repo-config PR — `build`, `unit-tests`, and `ui-smoke` are gated off with `if: needs.changes.outputs.code == 'true'` and don't burn macOS runner minutes. This is the CI analogue of ADR-0008's "no app logic → no version bump": an identical binary needn't be rebuilt or retested.
+`ci.yml` now opens with a cheap `changes` job (Ubuntu, ~git diff) that decides whether the push/PR touches anything that ships in or builds the app: the `MoneyLover/`, `MoneyLoverTests/`, `MoneyLoverUITests/` folders, or `project.yml` (the XcodeGen build definition). If none changed — a docs-only, `.claude/skills/`, repo-config, or CI-only PR — `build`, `unit-tests`, and `ui-smoke` are gated off with `if: needs.changes.outputs.code == 'true'` and don't burn macOS runner minutes. (Editing `ci.yml` itself does not trigger a run; a workflow change is validated when it next lands alongside real code.) This is the CI analogue of ADR-0008's "no app logic → no version bump": an identical binary needn't be rebuilt or retested.
 
 This is **not** the per-PR risk-based *test selection* rejected above (a path→test map that drifts). It's a coarse, binary "did any buildable code change at all" gate — all-or-nothing, no mapping to maintain.
 

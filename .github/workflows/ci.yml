@@ -71,9 +71,9 @@ jobs:
 
           # Paths that affect the shipped/built app: the three source+test
           # folders, plus project.yml (XcodeGen build definition — changing it
-          # can alter the build without touching a source file) and this CI
-          # file itself (so workflow edits are validated by a real run).
-          if echo "$changed" | grep -Eq '^(MoneyLover/|MoneyLoverTests/|MoneyLoverUITests/|project\.yml$|\.github/workflows/ci\.yml$)'; then
+          # can alter the build without touching a source file). Editing this CI
+          # file itself does NOT trigger a run.
+          if echo "$changed" | grep -Eq '^(MoneyLover/|MoneyLoverTests/|MoneyLoverUITests/|project\.yml$)'; then
             echo "Build/test-affecting changes detected → running CI."
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
