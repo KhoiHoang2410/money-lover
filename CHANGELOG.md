@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.10.0] — Calendar: pick any day
+
+### Changed
+- **Calendar day selection:** every day in the grid is now selectable, including days with no transactions. Picking a blank day opens its (empty) detail and lets the floating **+** prefill that date, so you can add the first transaction on any day. Previously only days that already had activity were tappable.
+
 ## [0.9.0] — Backfill is a normal transaction
 
 ### Added
