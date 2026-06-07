@@ -4,6 +4,12 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.11.0] — Goals: start & end month
+
+### Changed
+- **Goal funding window is now month-based (feat):** the Add Goal form replaces the single **Target date** picker with a **Start month** and **End month** selector. Contributions to a Goal happen monthly, so picking an exact day was confusing. The monthly contribution is now derived automatically (target ÷ months in the window) and a flat Schedule that sums exactly to the target is generated across `[start, end]`. The Goal detail screen shows the funding window (e.g. "Jan 2026 – Sep 2026").
+- **Domain & storage:** `Goal.targetDate` is replaced by `startMonth`/`endMonth` (a new `YearMonth` value type); `GoalRecord` stores them as month indices. Existing on-device goals are not migrated (pre-1.0) — reset/reseed to pick up the new shape.
+
 ## [0.10.0] — Calendar: pick any day
 
 ### Changed

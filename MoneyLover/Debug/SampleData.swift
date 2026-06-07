@@ -144,11 +144,14 @@ enum SampleData {
             func sched(_ y: Int, _ m: Int, _ millions: Int) -> ScheduledContribution {
                 ScheduledContribution(year: y, month: m, amount: vnd(millions * 1_000_000))
             }
-            let house = Goal(name: "House", iconName: "house.fill", target: vnd(3_000_000_000), targetDate: daysAgo(-365),
+            let house = Goal(name: "House", iconName: "house.fill", target: vnd(3_000_000_000),
+                             startMonth: YearMonth(year: 2026, month: 1), endMonth: YearMonth(year: 2026, month: 9),
                              schedule: [sched(2026,1,100), sched(2026,2,100), sched(2026,3,100), sched(2026,5,150), sched(2026,7,100), sched(2026,8,100), sched(2026,9,100)])
-            let car = Goal(name: "Car", iconName: "car.fill", target: vnd(600_000_000), targetDate: daysAgo(-365),
+            let car = Goal(name: "Car", iconName: "car.fill", target: vnd(600_000_000),
+                           startMonth: YearMonth(year: 2026, month: 1), endMonth: YearMonth(year: 2026, month: 12),
                            schedule: (1...12).map { sched(2026, $0, 25) })
-            let travel = Goal(name: "Travel", iconName: "airplane", target: vnd(80_000_000), targetDate: daysAgo(-200),
+            let travel = Goal(name: "Travel", iconName: "airplane", target: vnd(80_000_000),
+                              startMonth: YearMonth(year: 2026, month: 1), endMonth: YearMonth(year: 2026, month: 8),
                               schedule: (1...8).map { sched(2026, $0, 10) })
             for goal in [house, car, travel] { try goalsRepo.add(goal) }
 
