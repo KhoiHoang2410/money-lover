@@ -42,7 +42,7 @@ For each PR, explicitly answer — and do — the following (rules: `docs/guidel
 - [ ] **New/changed user-facing flow a unit test can't reach** (multi-screen, cross-tab freshness, relaunch persistence, navigation)? → add an **XCUITest**.
 - [ ] **Chose the new UI test's tier**: **Full-only by default**; promote to **Smoke** only if it's a *core money flow, single-launch, fast (≲30 s), and the smoke suite stays < 5 min*. Smoke promotion = add its `Suite/test()` id to `Smoke.xctestplan`.
 - [ ] **Merge gate is green**: `build`, `unit-tests`, `ui-smoke` must pass — these block the merge button (ADR-0011). The nightly `ui-full` does *not* gate PRs.
-- [ ] If you only touched docs/CI/config (no code logic), a version bump is **not** required (ADR-0008 amendment).
+- [ ] **Bump the version only if the PR changed application logic** (shipping `MoneyLover/` code or build-altering `project.yml`). Test-only changes (new tests, test refactors), CI, config, and docs ship an identical binary → **no bump** (ADR-0008).
 
 ## Helper skills to invoke
 - `/tdd` — every Core module, test-first.

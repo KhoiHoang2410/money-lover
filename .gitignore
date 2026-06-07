@@ -30,3 +30,13 @@ Package.resolved
 
 # Claude Code runtime scratch (scheduled-task locks, etc.)
 .claude/
+# ...but vendor skills so they travel with the repo (e.g. coding from iPhone)
+!.claude/
+!.claude/skills/
+!.claude/skills/**
+.claude/worktrees/
+.claude/*.lock
+
+# Python bytecode in vendored skills
+.claude/skills/**/__pycache__/
+.claude/skills/**/*.pyc
