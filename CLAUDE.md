@@ -9,12 +9,14 @@
 
 Target iOS 26 / Swift 6.2 / SwiftUI only. No third-party frameworks without asking.
 
-## Versioning — bump on every PR (ADR-0008)
+## Versioning — bump when application logic changes (ADR-0008)
 
-**Every PR must bump the app version** before it opens. SemVer, pre-1.0 simplified (`https://semver.org/`, spec §4):
+**Bump the app version only when the PR changes application logic** — code that ships in the app bundle (`MoneyLover/` source, or `project.yml` settings that alter the build). A PR that changes **only** tests, test refactors, CI, repo config, or docs ships a byte-for-byte identical binary → **no bump** (e.g. `test:`-only, `ci:`, `chore:` config, `docs:`). When in doubt, bump.
 
-1. **MARKETING_VERSION** — any `feat:` commit in the branch → MINOR (`0.2.0`→`0.3.0`); only `fix:`/`chore:`/`docs:`/`refactor:`/`test:` → PATCH (`0.2.0`→`0.2.1`). Breaking change → MINOR too (no MAJOR until the 1.0 release). One bump per PR, by its highest-priority change.
-2. **CURRENT_PROJECT_VERSION** — always `+1`, every PR.
+When a bump *is* required, SemVer, pre-1.0 simplified (`https://semver.org/`, spec §4):
+
+1. **MARKETING_VERSION** — any `feat:` commit in the branch → MINOR (`0.2.0`→`0.3.0`); only `fix:`/`refactor:` (of app code) → PATCH (`0.2.0`→`0.2.1`). Breaking change → MINOR too (no MAJOR until the 1.0 release). One bump per PR, by its highest-priority change.
+2. **CURRENT_PROJECT_VERSION** — `+1` on every bumping PR.
 3. Edit the values in **`project.yml`** — the only committed source of truth (`MoneyLover.xcodeproj` is gitignored, regenerated via `xcodegen generate`). Don't hand-edit the pbxproj.
 4. Add a `CHANGELOG.md` entry under the new version (Keep a Changelog format).
 
