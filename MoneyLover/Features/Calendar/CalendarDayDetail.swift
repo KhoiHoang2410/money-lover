@@ -12,7 +12,11 @@ struct CalendarDayDetail: View {
             if let day = store.selectedDay {
                 let transactions = store.transactions(onDay: day)
                 if transactions.isEmpty {
-                    ContentUnavailableView("No transactions", systemImage: "calendar")
+                    ContentUnavailableView(
+                        "No transactions",
+                        systemImage: "calendar",
+                        description: Text("Tap + to add one on this day.")
+                    )
                 } else {
                     List {
                         ForEach(transactions) { transaction in

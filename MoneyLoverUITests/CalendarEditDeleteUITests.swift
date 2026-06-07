@@ -14,6 +14,27 @@ final class CalendarEditDeleteUITests: XCTestCase {
                       "Transaction added via the floating + did not appear on today.")
     }
 
+    func testEmptyDayIsSelectableAndFloatingButtonAddsThere() {
+        let app = XCUIApplication.launchSeeded()
+        app.selectTab("Calendar")
+
+        // The seed fills only the current month, so next month starts with every day blank.
+        app.element(A11y.Calendar.nextMonth).tap()
+
+        // The feat: a day with no transactions must still be selectable so the + can prefill it.
+        let blankDay = app.element(A11y.Calendar.day(15))
+        XCTAssertTrue(blankDay.waitForExistence(timeout: 5),
+                      "A day with no transactions is not tappable in the grid.")
+        blankDay.tap()
+        XCTAssertTrue(app.staticTexts["No transactions"].waitForExistence(timeout: 5),
+                      "Selecting a blank day did not open its (empty) day detail.")
+
+        // The floating + prefills the picked blank day, so the new expense lands on it (not today).
+        addExpenseViaFAB(app, note: "Blank day buy", amount: "42000")
+        XCTAssertTrue(app.element(A11y.Calendar.txn("Blank day buy")).waitForExistence(timeout: 5),
+                      "Expense added from a blank day did not appear on that day's detail.")
+    }
+
     func testEditFromCalendarChangesTheAmount() {
         let app = XCUIApplication.launchSeeded()
         addExpenseViaFAB(app, note: "Edit me", amount: "100000")
