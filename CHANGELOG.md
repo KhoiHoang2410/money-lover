@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.17.1] — Calendar day circles no longer overlap
+
+### Fixed
+- **Calendar day circles fit their column (fix):** the circular day cells were sized to a fixed 52pt + padding, which made each circle wider than a one-seventh column on an iPhone, so adjacent circles overlapped. Each circle now fills its grid column and stays square, with the day number and net amount centered as an overlay so they always sit inside the circle. The grid padding and column spacing were trimmed slightly so the circles read a little larger.
+
 ## [0.17.0] — Consistent number formatting on every input
 
 ### Changed
