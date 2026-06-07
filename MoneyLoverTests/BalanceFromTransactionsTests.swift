@@ -28,11 +28,6 @@ import Foundation
         #expect(try BalanceEngine.balance(of: card, transactions: [tx]) == Money(minorUnits: -19_000_000, currency: .vnd))
     }
 
-    @Test func informationalTransactionIsIgnored() throws {
-        let tx = Transaction(kind: .expense, amount: Money(minorUnits: 250_000, currency: .vnd), sourceID: account.id, affectsBalance: false)
-        #expect(try BalanceEngine.balance(of: account, transactions: [tx]) == account.openingBalance)
-    }
-
     @Test func unrelatedTransactionDoesNotAffectSource() throws {
         let tx = Transaction(kind: .expense, amount: Money(minorUnits: 1, currency: .vnd), sourceID: card.id)
         #expect(try BalanceEngine.balance(of: account, transactions: [tx]) == account.openingBalance)

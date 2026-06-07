@@ -21,13 +21,25 @@ final class SourceRepository {
     }
 
     func update(_ source: Source) throws {
+        try stageUpdate(source)
+        try context.save()
+    }
+
+    /// Applies an update (or insert if absent) to the shared context **without saving**, so a caller
+    /// can batch it with other writes into a single `save()` — one atomic commit, one `didSave`.
+    /// Used by Backfill to restate an opening balance and add its transaction together (ADR-0012).
+    func stageUpdate(_ source: Source) throws {
         let id = source.id
         let descriptor = FetchDescriptor<SourceRecord>(predicate: #Predicate { $0.id == id })
         guard let record = try context.fetch(descriptor).first else {
-            try add(source)
+            context.insert(SourceRecord(domain: source))
             return
         }
         record.update(from: source)
+    }
+
+    /// Commits writes staged via `stageUpdate` (and any other pending change on the shared context).
+    func save() throws {
         try context.save()
     }
 

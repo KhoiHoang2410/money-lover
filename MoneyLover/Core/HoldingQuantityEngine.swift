@@ -8,7 +8,7 @@ enum HoldingQuantityEngine {
     /// The signed unit delta an Invest applies to the Holding `id`, or nil if it doesn't touch it.
     /// A Buy adds units, a Sell removes them. `sourceID` is the Account, `destinationID` the Holding.
     static func unitDelta(of t: Transaction, forHolding id: UUID) -> Decimal? {
-        guard t.kind == .invest, t.affectsBalance, t.destinationID == id,
+        guard t.kind == .invest, t.destinationID == id,
               let quantity = t.tradeQuantity, let direction = t.tradeDirection
         else { return nil }
         return direction == .buy ? quantity : -quantity

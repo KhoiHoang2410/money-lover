@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// One transaction line: kind icon, note/title, an optional date or "backfilled" subtitle, and
-/// the amount (income in green). Shared by account history and the calendar day detail.
+/// One transaction line: kind icon, note/title, an optional date subtitle, and the amount
+/// (income in green). Shared by account history and the calendar day detail.
 struct TransactionRow: View {
     let transaction: Transaction
     var showsDate: Bool = false
@@ -27,8 +27,7 @@ struct TransactionRow: View {
     }
 
     private var subtitle: String {
-        let kind = transaction.kind.rawValue.capitalized
-        let label = transaction.affectsBalance ? kind : "\(kind) · backfilled"
+        let label = transaction.kind.rawValue.capitalized
         return showsDate ? "\(label) · \(transaction.date.formatted(.dateTime.day().month().year()))" : label
     }
 

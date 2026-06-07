@@ -2,8 +2,9 @@ import Foundation
 
 /// Computes a source's current balance from its opening balance and transactions.
 ///
-/// Current balance = Opening balance + Σ of balance-affecting transactions.
-/// Backfill (informational) transactions are excluded.
+/// Current balance = Opening balance + Σ of every transaction's signed delta. A Backfill is an
+/// ordinary transaction here — it stays current-balance-neutral because its opening balance was
+/// restated by the opposite amount when it was recorded (see `InputStore.addBackfill`, ADR-0012).
 enum BalanceEngine {
     /// Sums signed deltas (same currency) onto an opening balance.
     static func current(opening: Money, deltas: [Money] = []) throws -> Money {
@@ -16,11 +17,10 @@ enum BalanceEngine {
         return try current(opening: source.openingBalance, deltas: deltas)
     }
 
-    /// The signed effect a transaction has on the given source, or nil if it doesn't touch it
-    /// (or is informational). Expense subtracts from / adds debt to the charged source;
-    /// income adds; a transfer subtracts from its source and adds to its destination.
+    /// The signed effect a transaction has on the given source, or nil if it doesn't touch it.
+    /// Expense subtracts from / adds debt to the charged source; income adds; a transfer subtracts
+    /// from its source and adds to its destination.
     private static func signedDelta(of t: Transaction, forSource id: UUID) -> Money? {
-        guard t.affectsBalance else { return nil }
         switch t.kind {
         case .expense:
             return t.sourceID == id ? t.amount.negated : nil

@@ -63,9 +63,11 @@ struct RootView: View {
                 defaults.set(true, forKey: "censorAmounts")
                 defaults.set(false, forKey: "reduceMotion")
                 defaults.set(false, forKey: "confirmBeforeDelete")
-                // Remembered transaction-picker defaults (feat 2) must not leak between runs.
+                // Remembered transaction-picker defaults (feat 2) and the Backfilled toggle (ADR-0012)
+                // must not leak between runs.
                 for key in ["txn.default.expenseSource", "txn.default.incomeSource", "txn.default.envelope",
-                            "txn.default.transferFrom", "txn.default.transferTo", "txn.default.investAccount"] {
+                            "txn.default.transferFrom", "txn.default.transferTo", "txn.default.investAccount",
+                            "txn.default.backfilled"] {
                     defaults.removeObject(forKey: key)
                 }
                 didOnboard = true

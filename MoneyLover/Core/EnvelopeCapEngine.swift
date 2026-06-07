@@ -56,7 +56,6 @@ enum EnvelopeCapEngine {
         let total = transactions
             .filter {
                 $0.kind == .expense
-                    && $0.affectsBalance
                     && $0.envelopeID == envelopeID
                     && $0.amount.currency == .vnd
                     && interval.contains($0.date)

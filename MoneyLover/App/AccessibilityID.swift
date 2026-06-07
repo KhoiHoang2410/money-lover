@@ -28,7 +28,6 @@ enum A11y {
     enum Input {
         static let addTransaction = "input.addTransaction"
         static let reconcile = "input.reconcile"
-        static let backfill = "input.backfill"
     }
 
     enum Txn {
@@ -42,6 +41,8 @@ enum A11y {
         static let method = "txn.method"
         static let note = "txn.note"
         static let save = "txn.save"
+        /// The "Backfilled" toggle on a new Expense/Income (records a past entry, restates opening).
+        static let backfilled = "txn.backfilled"
         // Invest (Buy/Sell of a Holding), ADR-0010.
         static let tradeDirection = "txn.tradeDirection"
         static let holding = "txn.holding"

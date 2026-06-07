@@ -15,7 +15,7 @@ Core (pure, TDD) → Persistence (Records + Repository + mapping) → Services (
 ## Money-correctness invariants (get these wrong = the app lies)
 - **Money is integer minor units + currency. Never `Double`/`Float` for money. Ever.**
 - `Current balance = Opening balance + Σ balance-affecting Transactions`. Current is always meant to equal reality.
-- **Backfill** transactions are informational (`affectsBalance == false`) → they appear in history/reports but do NOT move balances.
+- **Backfill** transactions are ordinary transactions recorded together with an offsetting **Opening balance** restatement (`InputStore.addBackfill`), so they appear on the calendar/in reports yet leave the **Current balance** unchanged (ADR-0012). There is no `affectsBalance` flag.
 - **Reconcile** never silently changes a balance: a diff becomes an **Adjustment** (with description + envelope).
 - Credit-card Expense increases that **Liability** at purchase time; it does not touch any Account. Paying the bill is a **Transfer** (Account ↓, Liability ↓), not an Expense.
 - Cross-currency **Transfer**: user enters amount-out, amount-in, manual rate; the app **computes the Fee** = out×rate − in. Don't use the auto-fetched valuation rate here.

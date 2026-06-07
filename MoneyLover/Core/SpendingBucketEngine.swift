@@ -29,8 +29,7 @@ enum SpendingBucketEngine {
             let bars = windows.map { window -> SpendBar in
                 let total = transactions
                     .filter {
-                        $0.affectsBalance
-                            && $0.kind == .expense
+                        $0.kind == .expense
                             && $0.envelopeID == envelope.id
                             && $0.date >= window.start
                             && $0.date < window.endExclusive

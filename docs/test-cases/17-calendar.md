@@ -68,16 +68,16 @@
 
 ---
 
-## TC-17-05 — Day net excludes informational Backfill *(Edge — money correctness)*
+## TC-17-05 — Day net includes Backfill *(Edge — money correctness)*
 
 - **Priority:** Medium
 - **Type:** Edge
-- **Automation:** none (candidate)
-- **Preconditions:** A backfilled informational transaction on a past day (see flow 08).
+- **Automation:** `CalendarMathTests.includesBackfilledEntries`
+- **Preconditions:** A backfilled transaction on a past day (see flow 08). A Backfill is an ordinary transaction (ADR-0012).
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | View that day's net | — | The day **lists** the backfilled transaction (history complete) — confirm whether it counts toward day-net consistently with how current balance treats it; assert the spec's intended rule, not a guess |
+| 1 | View that day's net | — | The day **lists** the backfilled transaction **and** counts it toward the day-net, exactly like any other expense/income — it is an ordinary transaction. (Its source's Current balance is unchanged because the Opening balance was restated when it was recorded.) |
 
 - **Postconditions:** None.
 

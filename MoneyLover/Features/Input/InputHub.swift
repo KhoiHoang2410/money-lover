@@ -14,10 +14,6 @@ struct InputHub: View {
                 Label("Update balances", systemImage: "checkmark.circle.badge.questionmark")
             }
             .accessibilityIdentifier(A11y.Input.reconcile)
-            NavigationLink(value: InputRoute.backfill) {
-                Label("Backfill", systemImage: "clock.arrow.circlepath")
-            }
-            .accessibilityIdentifier(A11y.Input.backfill)
         }
         .overlay {
             if store.sources.isEmpty {

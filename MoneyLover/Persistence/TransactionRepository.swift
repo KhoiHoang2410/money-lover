@@ -19,8 +19,14 @@ final class TransactionRepository {
     }
 
     func add(_ transaction: Transaction) throws {
-        context.insert(TransactionRecord(domain: transaction))
+        stageAdd(transaction)
         try context.save()
+    }
+
+    /// Inserts without saving, so a caller can batch it with other writes into one `save()`
+    /// (see `SourceRepository.stageUpdate`). Used by Backfill (ADR-0012).
+    func stageAdd(_ transaction: Transaction) {
+        context.insert(TransactionRecord(domain: transaction))
     }
 
     /// Overwrites the stored transaction with the same id, or inserts it if absent.

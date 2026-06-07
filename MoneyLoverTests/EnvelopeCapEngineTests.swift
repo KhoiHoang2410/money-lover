@@ -43,11 +43,10 @@ import Foundation
         #expect(spent == vnd(420_000))
     }
 
-    @Test func ignoresOtherEnvelopesBackfillAndForeignCurrency() {
+    @Test func ignoresOtherEnvelopesAndForeignCurrency() {
         let inWeek = calendar.dateInterval(of: .weekOfYear, for: asOf)!.start
         let txns = [
             makeExpense(vnd(100_000), source: UUID(), envelope: UUID(), date: inWeek),           // other envelope
-            makeBackfill(amount: vnd(100_000), source: UUID(), envelope: food.id, date: inWeek), // informational
             makeExpense(sgd(50_00), source: UUID(), envelope: food.id, date: inWeek),            // foreign currency
             makeIncome(vnd(100_000), source: UUID(), date: inWeek),                              // not an expense
         ]

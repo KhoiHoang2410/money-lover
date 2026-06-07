@@ -20,14 +20,15 @@ import Foundation
         #expect(net[25] == vnd(80_000_000))
     }
 
-    @Test func excludesInformationalBackfillEntries() {
-        // A backfilled (informational) expense appears in history but must not move the day's net.
+    @Test func includesBackfilledEntries() {
+        // A Backfill is an ordinary transaction (ADR-0012): it lands on its past date and counts in
+        // the day's net like any other expense.
         let txs = [
             Transaction(date: date(2026,5,12), kind: .expense, amount: vnd(200_000), sourceID: UUID()),
-            Transaction(date: date(2026,5,12), kind: .expense, amount: vnd(500_000), sourceID: UUID(), affectsBalance: false)
+            Transaction(date: date(2026,5,12), kind: .expense, amount: vnd(500_000), sourceID: UUID())
         ]
         let net = CalendarMath.dailyNet(transactions: txs, year: 2026, month: 5, calendar: cal)
-        #expect(net[12] == vnd(-200_000))
+        #expect(net[12] == vnd(-700_000))
     }
 
     @Test func excludesForeignCurrencyEntries() {

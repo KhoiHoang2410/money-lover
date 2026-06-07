@@ -25,6 +25,8 @@ struct TransactionForm: View {
     @AppStorage("txn.default.transferFrom") private var defaultTransferFrom = ""
     @AppStorage("txn.default.transferTo") private var defaultTransferTo = ""
     @AppStorage("txn.default.investAccount") private var defaultInvestAccount = ""
+    /// Whether the Backfilled toggle was last left on — remembered for the next new Expense/Income.
+    @AppStorage("txn.default.backfilled") private var defaultBackfilled = false
 
     private enum Field: Hashable { case amount, amountIn, rate, unitPrice, note }
     @FocusState private var focus: Field?
@@ -42,6 +44,9 @@ struct TransactionForm: View {
     // Expense / Income
     @State private var sourceID: UUID?
     @State private var envelopeID: UUID?
+    /// Marks a new Expense/Income as a Backfill — a forgotten past entry recorded normally but with
+    /// an offsetting opening-balance restatement so the current balance stays put (ADR-0012).
+    @State private var backfilled = false
 
     // Transfer
     @State private var method: TransferMode = .sameCurrency
@@ -180,6 +185,7 @@ struct TransactionForm: View {
             .accessibilityIdentifier(A11y.Txn.envelope)
         }
         noteSection
+        backfillToggle
         if let nudge {
             Section {
                 SignalCard(signal: nudge)
@@ -200,6 +206,20 @@ struct TransactionForm: View {
             .accessibilityIdentifier(A11y.Txn.source)
         }
         noteSection
+        backfillToggle
+    }
+
+    /// Offered only when adding (not editing): mark a forgotten past Expense/Income as a Backfill.
+    @ViewBuilder
+    private var backfillToggle: some View {
+        if editing == nil {
+            Section {
+                Toggle("Backfilled", isOn: $backfilled)
+                    .accessibilityIdentifier(A11y.Txn.backfilled)
+            } footer: {
+                Text("A forgotten past entry. It's recorded like a normal transaction and shows on the calendar; your opening balance is restated so your current balance doesn't change.")
+            }
+        }
     }
 
     @ViewBuilder
@@ -420,9 +440,8 @@ struct TransactionForm: View {
 
     private func save() {
         rememberDefaults()
-        // Editing keeps the original id and informational flag; a new entry gets a fresh id.
+        // Editing keeps the original id; a new entry gets a fresh id.
         let id = editing?.id ?? UUID()
-        let affects = editing?.affectsBalance ?? true
 
         switch kind {
         case .expense:
@@ -430,15 +449,15 @@ struct TransactionForm: View {
             persist(Transaction(
                 id: id, date: date, kind: .expense,
                 amount: Money(major: amountMajor, currency: source.currency),
-                sourceID: source.id, note: note, envelopeID: envelopeID, affectsBalance: affects
-            ))
+                sourceID: source.id, note: note, envelopeID: envelopeID
+            ), backfillSource: backfillSource(source))
         case .income:
             guard let source = selectedSource else { return }
             persist(Transaction(
                 id: id, date: date, kind: .income,
                 amount: Money(major: amountMajor, currency: source.currency),
-                sourceID: source.id, note: note, affectsBalance: affects
-            ))
+                sourceID: source.id, note: note
+            ), backfillSource: backfillSource(source))
         case .transfer:
             guard let from = fromSource, let to = toSource else { return }
             let out = Money(major: amountMajor, currency: from.currency)
@@ -448,13 +467,12 @@ struct TransactionForm: View {
                     id: id, date: date, kind: .transfer, amount: out, sourceID: from.id, destinationID: to.id,
                     destinationAmount: received,
                     fee: TransferEngine.fee(amountOut: out, amountIn: received, rate: rate),
-                    note: note.isEmpty ? "Transfer" : note, affectsBalance: affects
+                    note: note.isEmpty ? "Transfer" : note
                 ))
             } else {
                 persist(Transaction(
                     id: id, date: date, kind: .transfer, amount: out, sourceID: from.id, destinationID: to.id,
-                    note: note.isEmpty ? (method == .payCard ? "Card payment" : "Transfer") : note,
-                    affectsBalance: affects
+                    note: note.isEmpty ? (method == .payCard ? "Card payment" : "Transfer") : note
                 ))
             }
         case .invest:
@@ -464,16 +482,28 @@ struct TransactionForm: View {
                 id: id, date: date, kind: .invest,
                 amount: investTotal, sourceID: accountID, destinationID: holdingID,
                 note: note.isEmpty ? "\(direction.title) \(holdingName)" : note,
-                tradeQuantity: quantity, tradeDirection: direction, affectsBalance: affects
+                tradeQuantity: quantity, tradeDirection: direction
             ))
         case .adjustment:
             return
         }
     }
 
-    /// Add a new transaction or update the edited one, then dismiss.
-    private func persist(_ transaction: Transaction) {
-        if editing == nil { store.add(transaction) } else { store.update(transaction) }
+    /// The source to restate when saving — non-nil only for a *new* Expense/Income marked Backfilled.
+    private func backfillSource(_ source: Source) -> Source? {
+        editing == nil && backfilled ? source : nil
+    }
+
+    /// Add a new transaction (compensating the opening balance when it's a Backfill) or update the
+    /// edited one, then dismiss.
+    private func persist(_ transaction: Transaction, backfillSource: Source? = nil) {
+        if let backfillSource {
+            store.addBackfill(transaction, source: backfillSource)
+        } else if editing == nil {
+            store.add(transaction)
+        } else {
+            store.update(transaction)
+        }
         dismiss()
     }
 
@@ -482,6 +512,8 @@ struct TransactionForm: View {
     /// Prefill the source/envelope pickers for a *new* transaction from the last-picked option for
     /// that kind, but only when the remembered id still exists in the current data.
     private func applyDefaults(for kind: TransactionKind) {
+        // The Backfilled toggle only applies to Expense/Income; restore its last state there.
+        backfilled = (kind == .expense || kind == .income) && defaultBackfilled
         switch kind {
         case .expense:
             if let id = storedID(defaultExpenseSource, in: spendableSources) { sourceID = id }
@@ -500,6 +532,8 @@ struct TransactionForm: View {
 
     /// Record the options the user actually committed as the defaults for the next new transaction.
     private func rememberDefaults() {
+        // Remember the Backfilled choice for the next new Expense/Income (it's hidden when editing).
+        if editing == nil, kind == .expense || kind == .income { defaultBackfilled = backfilled }
         switch kind {
         case .expense:
             if let sourceID { defaultExpenseSource = sourceID.uuidString }

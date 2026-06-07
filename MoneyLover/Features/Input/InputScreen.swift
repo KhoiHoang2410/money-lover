@@ -20,7 +20,6 @@ struct InputScreen: View {
                     switch route {
                     case .transaction: TransactionForm(store: store)
                     case .reconcile: ReconcileScreen()
-                    case .backfill: BackfillForm(store: store)
                     }
                 }
             }
