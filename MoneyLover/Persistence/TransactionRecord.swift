@@ -22,7 +22,6 @@ final class TransactionRecord {
     var tradeQuantity: Decimal?
     /// Buy/Sell raw value for an `.invest` transaction; nil otherwise.
     var tradeDirectionRaw: String?
-    var affectsBalance: Bool
 
     init(
         id: UUID,
@@ -40,8 +39,7 @@ final class TransactionRecord {
         envelopeID: UUID?,
         goalID: UUID? = nil,
         tradeQuantity: Decimal? = nil,
-        tradeDirectionRaw: String? = nil,
-        affectsBalance: Bool
+        tradeDirectionRaw: String? = nil
     ) {
         self.id = id
         self.date = date
@@ -59,6 +57,5 @@ final class TransactionRecord {
         self.goalID = goalID
         self.tradeQuantity = tradeQuantity
         self.tradeDirectionRaw = tradeDirectionRaw
-        self.affectsBalance = affectsBalance
     }
 }

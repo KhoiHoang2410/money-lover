@@ -1,42 +1,42 @@
 # 08 — Backfill a forgotten past transaction
 
-**Flow:** The owner logs a forgotten past transaction flagged informational; history is completed without disturbing the current (already-correct) balance.
-**Source:** PRD #42; ADR-0006 (BalanceEngine ignores Backfill); CONTEXT.md (affectsBalance flag)
+**Flow:** The owner logs a forgotten past transaction via the **Backfilled** toggle on the add-transaction form. It is recorded as an ordinary transaction (it shows on the calendar and in history), and the source's **Opening balance** is restated by the offsetting amount so the Current balance is unchanged.
+**Source:** PRD #42; ADR-0012 (Backfill = normal transaction + opening restatement); CONTEXT.md (Backfill).
 **Seed:** Cash and MBBank Accounts with current balances.
 
 ---
 
-## TC-08-01 — Backfill adds history without changing current balance *(Happy path — money correctness)*
+## TC-08-01 — Backfill shows on the calendar but keeps the current balance *(Happy path — money correctness)*
 
 - **Priority:** High
 - **Type:** Positive
-- **Automation:** BackfillUITests.testBackfillShowsInHistoryButDoesNotMoveBalance — shows in history, balance + net worth UNCHANGED, survives relaunch (EFFECT-CONTRACT.md)
-- **Preconditions:** Note Cash current balance C; net worth N.
+- **Automation:** BackfillUITests.testBackfillShowsOnCalendarButKeepsBalance — shows on calendar + history, Cash balance UNCHANGED, survives relaunch (EFFECT-CONTRACT.md)
+- **Preconditions:** Note Cash current balance C.
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Open Backfill mode | — | Backfill entry shown, marked informational |
-| 2 | Enter a past expense | date = last month, amount 60,000, source Cash, Envelope Food | Form accepts a past date |
-| 3 | Save | — | Transaction appears in Cash history with the past date AND an informational flag |
-| 4 | Read Cash current balance | — | **C unchanged** (Backfill does not affect current balance) |
-| 5 | Read net worth | — | **N unchanged** |
+| 1 | Open the add-transaction form (calendar `+`), pick Expense | — | The form shows a **Backfilled** toggle |
+| 2 | Enter a past expense and turn on **Backfilled** | date = today/past, amount 99,000, source Cash, Envelope Food | Form accepts it |
+| 3 | Save | — | The transaction appears on the calendar day and in Cash history, with no special marker (it's an ordinary transaction) |
+| 4 | Read Cash current balance | — | **C unchanged** (the Opening balance was restated to absorb it) |
 
-- **Postconditions:** One informational transaction persisted.
+- **Postconditions:** One transaction persisted; Cash Opening balance raised by the amount.
 
 ---
 
-## TC-08-02 — Backfill is excluded from current-balance math *(Negative)*
+## TC-08-02 — Current balance stays put via the opening restatement *(Positive — money correctness)*
 
 - **Priority:** High
-- **Type:** Negative
-- **Automation:** none (candidate)
-- **Preconditions:** Cash current C.
+- **Type:** Positive
+- **Automation:** InputStoreBackfillTests.backfillExpenseRestatesOpeningAndKeepsCurrentBalance / backfillIncomeRestatesOpeningAndKeepsCurrentBalance
+- **Preconditions:** A source with a known current balance C and opening O.
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Backfill several past transactions | varied amounts/dates | Cash current balance still = C after all of them (sum excludes informational txns) |
+| 1 | Backfill an expense of A | amount A | Opening becomes O + A; current balance still = C; the entry is counted by `CalendarMath.dailyNet` on its day |
+| 2 | Backfill an income of B | amount B | Opening becomes O − B; current balance still = C |
 
-- **Postconditions:** Informational transactions persisted.
+- **Postconditions:** Transactions persisted; current balance unchanged.
 
 ---
 
@@ -44,26 +44,26 @@
 
 - **Priority:** Medium
 - **Type:** Edge
-- **Automation:** none (candidate)
-- **Preconditions:** Backfill a transaction dated to a past month.
+- **Automation:** CalendarMathTests.includesBackfilledEntries (engine); BackfillUITests (e2e, today)
+- **Preconditions:** Backfill a transaction dated to a past day.
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Open Calendar, navigate to the backfilled month | — | The day shows the transaction; it contributes to that day's net and historical charts, but not to current balance |
+| 1 | Open Calendar, navigate to the backfilled day | — | The day lists the transaction and **counts it toward that day's net** and historical charts, like any other entry. The source's current balance is unchanged (opening restated). |
 
 - **Postconditions:** None.
 
 ---
 
-## TC-08-04 — Backfill does not affect Envelope remaining for the current month *(Edge — money correctness)*
+## TC-08-04 — A backfilled envelope expense reduces that envelope's remaining *(Edge — money correctness)*
 
 - **Priority:** Medium
 - **Type:** Edge
 - **Automation:** none (candidate)
-- **Preconditions:** Note current-month Food remaining R.
+- **Preconditions:** Note Food remaining R. (A Backfill is an ordinary expense — ADR-0012 — so it counts toward its envelope; this supersedes the old "informational, excluded" rule.)
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Backfill a past-month Food expense | last-month date, 60,000 | Current-month Food remaining still = R (informational past spend doesn't reopen a closed month's budget) |
+| 1 | Backfill a Food expense | amount 60,000, Envelope Food | Food remaining becomes R − 60,000 — a backfilled expense counts like any other expense in that envelope |
 
-- **Postconditions:** Informational transaction persisted.
+- **Postconditions:** Transaction persisted.

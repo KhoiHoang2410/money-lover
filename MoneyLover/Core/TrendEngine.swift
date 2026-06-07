@@ -44,7 +44,7 @@ enum TrendEngine {
         monthStarts(asOf: asOf, months: months, calendar: calendar).map { start in
             let end = calendar.date(byAdding: .month, value: 1, to: start) ?? start
             let total = transactions
-                .filter { $0.affectsBalance && $0.kind == .expense && $0.date >= start && $0.date < end }
+                .filter { $0.kind == .expense && $0.date >= start && $0.date < end }
                 .reduce(0) { $0 + $1.amount.minorUnits }
             return MonthPoint(date: start, value: Money(minorUnits: total, currency: .vnd))
         }

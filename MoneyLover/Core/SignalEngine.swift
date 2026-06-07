@@ -158,7 +158,7 @@ enum SignalEngine {
         let cal = snapshot.calendar
         let target = cal.dateComponents([.year, .month], from: snapshot.asOf)
         return snapshot.transactions.filter {
-            guard $0.affectsBalance, $0.kind == .expense else { return false }
+            guard $0.kind == .expense else { return false }
             let comps = cal.dateComponents([.year, .month], from: $0.date)
             return comps.year == target.year && comps.month == target.month
         }

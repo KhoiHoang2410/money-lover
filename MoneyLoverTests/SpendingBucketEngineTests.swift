@@ -108,12 +108,11 @@ import Foundation
         #expect(transportSeries.bars.reduce(0) { $0 + $1.total.minorUnits } == 500_000)
     }
 
-    @Test func excludesOtherEnvelopesAndInformationalEntries() {
+    @Test func excludesOtherEnvelopes() {
         let asOf = date(2026, 5, 29)
         let other = Transaction(date: date(2026, 5, 28), kind: .expense, amount: vnd(999_000), sourceID: UUID(), envelopeID: UUID())
-        let backfill = Transaction(date: date(2026, 5, 28), kind: .expense, amount: vnd(500_000), sourceID: UUID(), envelopeID: envID, affectsBalance: false)
         let outcome = SpendingBucketEngine.spending(
-            range: .week, envelopes: [food()], transactions: [other, backfill, expense(2026, 5, 28, 30_000)],
+            range: .week, envelopes: [food()], transactions: [other, expense(2026, 5, 28, 30_000)],
             asOf: asOf, earliest: date(2026, 1, 1), calendar: cal
         )
         guard case let .series(series) = outcome else { Issue.record("expected series"); return }

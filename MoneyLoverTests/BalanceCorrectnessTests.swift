@@ -94,40 +94,13 @@ import Foundation
         }
     }
 
-    // MARK: - 08 — Backfill (informational; excluded from current balance)
-
-    /// TC-08-01 — A Backfill adds history without changing current balance or net worth.
-    @Test func backfillExcludedFromBalanceAndNetWorth() {
-        let past = makeBackfill(.expense, amount: vnd(60_000), source: Fixtures.cash.id,
-                                envelope: Fixtures.food.id, date: date(2026, 5, 12))
-
-        #expect(balance(Fixtures.cash, [past]) == Fixtures.cash.openingBalance)
-        #expect(netWorth([past]).net == netWorth([]).net)
-    }
-
-    /// TC-08-02 — Current balance = opening + Σ of balance-affecting txns only; many Backfills change nothing.
-    @Test func manyBackfillsLeaveCurrentBalanceAtOpening() {
-        let backfills = [
-            makeBackfill(.expense, amount: vnd(60_000), source: Fixtures.cash.id, date: date(2026, 1, 3)),
-            makeBackfill(.income, amount: vnd(500_000), source: Fixtures.cash.id, date: date(2026, 2, 9)),
-            makeBackfill(.expense, amount: vnd(1_250_000), source: Fixtures.cash.id, date: date(2026, 4, 21)),
-        ]
-        #expect(balance(Fixtures.cash, backfills) == Fixtures.cash.openingBalance)
-    }
-
-    /// TC-08-04 — A Backfill must not reopen a budget: it should not reduce Envelope remaining.
-    ///
-    /// KNOWN DEFECT — `BudgetEngine.spent` filters only on `kind == .expense && envelopeID`, ignoring
-    /// `affectsBalance`. An informational Backfill expense assigned to an Envelope is therefore counted
-    /// as spend. `BalanceEngine` excludes it correctly (TC-08-01); the budget side does not.
-    @Test func backfillDoesNotReduceEnvelopeRemaining() {
-        let pastFood = makeBackfill(.expense, amount: vnd(60_000), source: Fixtures.cash.id,
-                                    envelope: Fixtures.food.id, date: date(2026, 5, 12))
-        withKnownIssue("TC-08-04: BudgetEngine.spent ignores affectsBalance — Backfill leaks into Envelope spend") {
-            let base = try BudgetEngine.remaining(envelope: Fixtures.food, transactions: [])
-            #expect(try BudgetEngine.remaining(envelope: Fixtures.food, transactions: [pastFood]) == base)
-        }
-    }
+    // MARK: - 08 — Backfill (an ordinary transaction; current balance kept via opening restatement)
+    //
+    // A Backfill is no longer informational (ADR-0012): the stored Transaction counts everywhere a
+    // normal one does, and its current-balance neutrality comes from the opening-balance restatement
+    // `InputStore.addBackfill` performs at save time. Those invariants are exercised at the store
+    // level in `InputStoreBackfillTests`, not here (there's nothing balance-specific left in the
+    // pure engine to assert).
 
     // MARK: - 15 — Income (increases Account; Envelopes untouched)
 
@@ -163,7 +136,6 @@ import Foundation
             makeIncome(vnd(2_000_000), source: Fixtures.mbBank.id),
             makeExpense(vnd(960_000), source: Fixtures.mbBank.id),
             makeTransfer(vnd(1_000_000), from: Fixtures.mbBank.id, to: Fixtures.savings.id),
-            makeBackfill(.expense, amount: vnd(9_999_999), source: Fixtures.mbBank.id), // excluded
         ]
         // 80,000,000 − 40,000 + 2,000,000 − 960,000 − 1,000,000 = 80,000,000.
         #expect(balance(Fixtures.mbBank, txns) == vnd(80_000_000))

@@ -104,8 +104,7 @@ func makeTransaction(
     fee: Money? = nil,
     note: String = "",
     envelopeID: UUID? = nil,
-    goalID: UUID? = nil,
-    affectsBalance: Bool = true
+    goalID: UUID? = nil
 ) -> Transaction {
     Transaction(
         date: txnDate,
@@ -117,8 +116,7 @@ func makeTransaction(
         fee: fee,
         note: note,
         envelopeID: envelopeID,
-        goalID: goalID,
-        affectsBalance: affectsBalance
+        goalID: goalID
     )
 }
 
@@ -158,11 +156,6 @@ func makeAdjustment(_ amount: Money, source: UUID, envelope: UUID? = nil, date t
     makeTransaction(.adjustment, amount: amount, sourceID: source, date: txnDate, note: note, envelopeID: envelope)
 }
 
-/// A Backfill: an informational past Transaction that must NOT move the current balance.
-func makeBackfill(_ kind: TransactionKind = .expense, amount: Money, source: UUID, envelope: UUID? = nil, date txnDate: Date = anchor2026, note: String = "Backfill") -> Transaction {
-    makeTransaction(kind, amount: amount, sourceID: source, date: txnDate, note: note, envelopeID: envelope, affectsBalance: false)
-}
-
 /// An Invest (Buy/Sell of a Holding, ADR-0010): VND `account` (sourceID) trades `quantity` units of
 /// `holding` (destinationID) at `unitPrice`; `amount` = quantity × unitPrice in VND.
 func makeInvest(
@@ -171,8 +164,7 @@ func makeInvest(
     unitPrice: Money,
     account: UUID,
     holding: UUID,
-    date txnDate: Date = anchor2026,
-    affectsBalance: Bool = true
+    date txnDate: Date = anchor2026
 ) -> Transaction {
     Transaction(
         date: txnDate,
@@ -182,8 +174,7 @@ func makeInvest(
         destinationID: holding,
         note: "\(direction.title) holding",
         tradeQuantity: quantity,
-        tradeDirection: direction,
-        affectsBalance: affectsBalance
+        tradeDirection: direction
     )
 }
 

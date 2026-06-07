@@ -3,7 +3,6 @@ import Foundation
 /// A money movement. Pure domain value type; persistence maps to/from `TransactionRecord`.
 ///
 /// `amount` is a positive magnitude for expense/income/transfer; for adjustment it may be signed.
-/// `affectsBalance` is false for Backfill (informational) entries (slice 12).
 struct Transaction: Identifiable, Hashable, Sendable, Codable {
     let id: UUID
     var date: Date
@@ -29,8 +28,6 @@ struct Transaction: Identifiable, Hashable, Sendable, Codable {
     var tradeQuantity: Decimal?
     /// Buy or Sell, for an `.invest` transaction. Nil for every other kind.
     var tradeDirection: TradeDirection?
-    /// False for informational Backfill entries that must not move the current balance.
-    var affectsBalance: Bool
 
     init(
         id: UUID = UUID(),
@@ -45,8 +42,7 @@ struct Transaction: Identifiable, Hashable, Sendable, Codable {
         envelopeID: UUID? = nil,
         goalID: UUID? = nil,
         tradeQuantity: Decimal? = nil,
-        tradeDirection: TradeDirection? = nil,
-        affectsBalance: Bool = true
+        tradeDirection: TradeDirection? = nil
     ) {
         self.id = id
         self.date = date
@@ -61,6 +57,5 @@ struct Transaction: Identifiable, Hashable, Sendable, Codable {
         self.goalID = goalID
         self.tradeQuantity = tradeQuantity
         self.tradeDirection = tradeDirection
-        self.affectsBalance = affectsBalance
     }
 }

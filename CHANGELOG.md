@@ -4,6 +4,18 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.8.0] — Backfill is a normal transaction
+
+### Added
+- **Backfilled toggle on the add-transaction form (feat):** the calendar `+` Expense/Income form now has a **Backfilled** switch for logging a forgotten *past* entry. The last choice is remembered for the next new transaction (`@AppStorage`, the existing `txn.default.*` convention).
+
+### Changed
+- **Backfill is now an ordinary transaction (feat, ADR-0012):** a backfilled entry shows on the **calendar** and in history and counts toward envelopes/trends/signals like any other transaction. Its account's **current balance stays unchanged** because the entry's **opening (beginning) balance** is restated by the offsetting amount when it's recorded. Previously a backfill was *informational* (`affectsBalance == false`) and was invisible on the calendar grid. The `affectsBalance` flag is removed entirely, and the two writes commit in a single save so observing screens reload one consistent state.
+- **Backfill consolidated into the add-transaction form (feat):** the standalone Backfill screen (Add → Backfill) is removed; the toggle replaces it.
+
+### Fixed
+- **Backfilled expenses now count toward their envelope (feat):** an envelope-assigned backfill reduces that envelope's remaining like any expense (previously the known TC-08-04 defect — now intended behaviour).
+
 ## [0.7.0] — Editable balances & caps, adjustment delete, data backup
 
 ### Added

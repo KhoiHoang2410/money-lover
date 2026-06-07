@@ -55,23 +55,4 @@ import SwiftData
         #expect(all.count == 1)
         #expect(all.first?.note == "B")
     }
-
-    @Test func inputStoreEditPreservesInformationalFlag() throws {
-        let context = try makeContext()
-        let repo = TransactionRepository(context: context)
-        let store = InputStore(
-            sources: SourceRepository(context: context),
-            transactions: repo,
-            envelopes: EnvelopeRepository(context: context)
-        )
-        // A backfilled (informational) expense edited to a new amount must stay informational.
-        let backfill = makeBackfill(amount: Money(minorUnits: 40_000, currency: .vnd), source: account)
-        try repo.add(backfill)
-        let edited = Transaction(
-            id: backfill.id, date: backfill.date, kind: .expense,
-            amount: Money(minorUnits: 70_000, currency: .vnd), sourceID: account, affectsBalance: false
-        )
-        store.update(edited)
-        #expect(try repo.all().first?.affectsBalance == false)
-    }
 }

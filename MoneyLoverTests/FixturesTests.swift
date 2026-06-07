@@ -44,11 +44,6 @@ import Foundation
         #expect(result == vnd(79_955_000))
     }
 
-    @Test func backfillIsInformationalOnly() {
-        let backfill = makeBackfill(amount: vnd(120_000), source: Fixtures.cash.id, envelope: Fixtures.food.id)
-        #expect(backfill.affectsBalance == false)
-    }
-
     @Test func contributionTargetsGoalWithoutDestinationSource() {
         let contribution = makeContribution(vnd(2_000_000), from: Fixtures.mbBank.id, goal: Fixtures.travelGoal.id)
         #expect(contribution.kind == .transfer)

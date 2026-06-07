@@ -88,7 +88,7 @@ The amount of an Account or Liability entered once when the app starts tracking 
 A source's live amount = Opening balance + Σ of its balance-affecting Transactions. Always meant to equal reality.
 
 **Backfill**:
-A past Transaction logged after the fact for history/reporting, flagged informational so it does NOT move the Current balance (the money already left; the balance is already correct).
+A forgotten past Transaction logged after the fact. It is an ordinary Transaction (it shows on the calendar and in reports), but recording it also restates its source's Opening balance by the offsetting amount, so the Current balance is unchanged — the money already left or arrived before tracking began (ADR-0012).
 _Avoid_: Backdated, late entry
 
 **Reconcile**:

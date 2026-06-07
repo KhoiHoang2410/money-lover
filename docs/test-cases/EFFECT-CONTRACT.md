@@ -32,9 +32,10 @@ Every state-changing flow asserts its change on **every surface it touches**, th
 | Calendar day cell + detail | `calendarTodayContains(note:)` / `A11y.Calendar.day(_)` |
 | Relaunch survives | `relaunchPreservingData()` |
 
-Note: the calendar grid excludes **transfers** and informational **backfills** (`CalendarMath.dailyNet`),
-so those flows assert via source rows / history, not the day cell. Seed data can be future-dated, so
-`accountHistoryContains` scrolls to find a freshly-added (now-dated) row.
+Note: the calendar grid excludes **transfers** (`CalendarMath.dailyNet`), so transfer flows assert via
+source rows / history, not the day cell. **Backfills are ordinary transactions** and DO appear on the
+grid (ADR-0012). Seed data can be future-dated, so `accountHistoryContains` scrolls to find a
+freshly-added (now-dated) row.
 
 ## Where it's enforced (write-flows in the `00`–`20` catalog)
 
@@ -44,7 +45,7 @@ so those flows assert via source rows / history, not the day cell. Seed data can
 | `05` Cross-currency transfer | `CrossCurrencyTransferUITests.testCrossCurrencyTransferChangesNetWorthByFee` |
 | `06` Same-currency transfer | `TransferUITests.testSameCurrencyTransferMovesBalancesAndKeepsNetWorth` |
 | `07` Reconcile | `ReconcileUITests.testReconcileAdjustsBalanceAndNetWorth` |
-| `08` Backfill | `BackfillUITests.testBackfillShowsInHistoryButDoesNotMoveBalance` |
+| `08` Backfill | `BackfillUITests.testBackfillShowsOnCalendarButKeepsBalance` |
 | `09` Fund goal | `GoalContributionUITests.testContributionKeepsNetWorthAndReducesFundingAccount` |
 | `11` Envelope budgeting | `EnvelopesUITests.testExpenseReducesEnvelopeRemainingAndPersists` |
 | `15` Income | `IncomeUITests.testIncomePropagatesAcrossTabsAndSurvivesRelaunch` |

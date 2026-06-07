@@ -24,21 +24,11 @@ import Foundation
         #expect(TransactionRecord(domain: tx).toDomain() == tx)
     }
 
-    @Test func informationalFlagRoundTrips() {
-        let tx = Transaction(
-            kind: .expense,
-            amount: Money(minorUnits: 250_000, currency: .vnd),
-            sourceID: UUID(),
-            affectsBalance: false
-        )
-        #expect(TransactionRecord(domain: tx).toDomain()?.affectsBalance == false)
-    }
-
     @Test func invalidRawReturnsNil() {
         let record = TransactionRecord(
             id: UUID(), date: .now, kindRaw: "bogus", amountMinorUnits: 0,
             amountCurrencyRaw: "VND", sourceID: UUID(), destinationID: nil,
-            note: "", envelopeID: nil, affectsBalance: true
+            note: "", envelopeID: nil
         )
         #expect(record.toDomain() == nil)
     }

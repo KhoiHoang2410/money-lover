@@ -77,8 +77,8 @@ extension XCUIApplication {
     /// Whether a transaction with the given note is listed under today in the Calendar day detail.
     /// `TransactionRow` renders the note as its title, so a unique note is a robust handle that needs
     /// no amount parsing. Returns false (not a failure) when today has no activity at all.
-    /// NOTE: the grid excludes transfers and informational backfills (`CalendarMath.dailyNet`), so
-    /// use `accountHistoryContains` for those.
+    /// NOTE: the grid excludes transfers (`CalendarMath.dailyNet`); backfilled expenses/income are
+    /// ordinary entries and DO appear here (ADR-0012).
     func calendarTodayContains(note: String) -> Bool {
         selectTab("Calendar")
         let today = element(A11y.Calendar.day(todayDayNumber))
@@ -181,6 +181,22 @@ extension XCUIApplication {
         let target = element(identifier)
         XCTAssertTrue(target.waitForExistence(timeout: 5), "Element '\(identifier)' not found", file: file, line: line)
         target.tap()
+    }
+
+    /// Drive a SwiftUI `Toggle` (surfaces as a switch) identified by `identifier` to `on`. Reads its
+    /// current value first so it only taps when a change is needed — idempotent across runs — and
+    /// verifies the resulting state (a tap on the row label doesn't always flip the binding).
+    func setToggle(_ identifier: String, on: Bool, file: StaticString = #filePath, line: UInt = #line) {
+        let toggle = switches[identifier]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "Toggle '\(identifier)' not found", file: file, line: line)
+        for _ in 0..<3 {
+            if ((toggle.value as? String) == "1") == on { return }
+            // A plain `.tap()` on a SwiftUI Toggle in a Form often lands on the row label and doesn't
+            // flip it; tapping the switch's own coordinate (where the knob sits) does.
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        }
+        XCTAssertEqual(toggle.value as? String, on ? "1" : "0",
+                       "Toggle '\(identifier)' would not move to \(on)", file: file, line: line)
     }
 
     /// Drive a SwiftUI `Picker` (menu/navigation style) identified by `identifier` to `option`.

@@ -31,7 +31,6 @@ import Foundation
         #expect(adjustment.kind == .adjustment)
         #expect(adjustment.amount == Money(minorUnits: 50_000, currency: .vnd))
         #expect(adjustment.sourceID == source.id)
-        #expect(adjustment.affectsBalance)
     }
 
     @Test func realLowerThanComputedAddsNegativeAdjustment() throws {

@@ -46,10 +46,4 @@ import Foundation
         #expect(value == Money(minorUnits: 24_000_000, currency: .vnd))
     }
 
-    @Test func backfilledInvestDoesNotMoveAccountOrQuantity() throws {
-        let (account, gold) = setup()
-        let buy = makeInvest(.buy, quantity: 3, unitPrice: Money(minorUnits: 7_000_000, currency: .vnd), account: account.id, holding: gold.id, affectsBalance: false)
-        #expect(try BalanceEngine.balance(of: account, transactions: [buy]) == account.openingBalance)
-        #expect(HoldingQuantityEngine.liveQuantity(of: gold, transactions: [buy]) == 0)
-    }
 }

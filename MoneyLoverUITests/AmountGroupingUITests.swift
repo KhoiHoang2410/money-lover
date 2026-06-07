@@ -17,16 +17,6 @@ final class AmountGroupingUITests: XCTestCase {
         app.assertGrouped(A11y.Txn.amount, digits: "1000000")
     }
 
-    func testBackfillAmountGroupsThousandsWhileTyping() {
-        let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
-        app.tapElement(A11y.Input.backfill)
-        XCTAssertTrue(app.navigationBars["Backfill"].waitForExistence(timeout: 5))
-
-        app.typeInField(A11y.Txn.amount, "1000000")
-        app.assertGrouped(A11y.Txn.amount, digits: "1000000")
-    }
-
     func testOpeningBalanceGroupsThousandsWhileTyping() {
         let app = XCUIApplication.launchSeeded()
         app.selectTab("Config")
