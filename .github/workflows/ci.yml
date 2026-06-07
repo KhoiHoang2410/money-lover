@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least-privilege GITHUB_TOKEN for all jobs: this workflow only checks out
+# code and uploads/downloads artifacts (artifact actions need no extra scope).
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

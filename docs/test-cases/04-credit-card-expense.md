@@ -15,7 +15,7 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Add tab → Expense | amount 500,000 | Field accepts |
+| 1 | Calendar + → Expense | amount 500,000 | Field accepts |
 | 2 | Set source = VPBank Credit, Envelope = Fun | — | Credit card selectable as a spend source |
 | 3 | Tap Save | — | VPBank Credit debt = **D + 500,000₫**; VPBank Account = **A unchanged** |
 | 4 | Open Overview | — | Debt total rose by 500,000₫; Asset total unchanged |

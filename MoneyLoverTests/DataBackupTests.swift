@@ -24,7 +24,7 @@ import Foundation
         let food = Envelope(name: "Food", iconName: "fork.knife", allocation: vnd(5_000_000),
                             weeklyCap: vnd(300_000), monthlyCap: vnd(1_200_000))
         let expense = makeExpense(vnd(40_000), source: account.id, envelope: food.id, date: date(2026, 6, 2))
-        let goal = makeGoal(target: vnd(80_000_000), targetDate: date(2026, 12, 1),
+        let goal = makeGoal(target: vnd(80_000_000), startMonth: ym(2026, 1), endMonth: ym(2026, 8),
                             schedule: [sched(2026, 1, vnd(10_000_000))])
         let rate = DataBackup.Rate(key: "gold", value: 15_950_000, isManual: false, fetchedAt: date(2026, 6, 1))
         return DataBackup(

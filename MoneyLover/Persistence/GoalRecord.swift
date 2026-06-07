@@ -8,15 +8,18 @@ final class GoalRecord {
     var name: String
     var iconName: String
     var targetMinorUnits: Int
-    var targetDate: Date
+    /// Funding window stored as chronological month indices (`YearMonth.index`).
+    var startMonthIndex: Int
+    var endMonthIndex: Int
     var scheduleData: Data
 
-    init(id: UUID, name: String, iconName: String, targetMinorUnits: Int, targetDate: Date, scheduleData: Data) {
+    init(id: UUID, name: String, iconName: String, targetMinorUnits: Int, startMonthIndex: Int, endMonthIndex: Int, scheduleData: Data) {
         self.id = id
         self.name = name
         self.iconName = iconName
         self.targetMinorUnits = targetMinorUnits
-        self.targetDate = targetDate
+        self.startMonthIndex = startMonthIndex
+        self.endMonthIndex = endMonthIndex
         self.scheduleData = scheduleData
     }
 }

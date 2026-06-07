@@ -12,21 +12,17 @@ final class TransactionFormImprovementsUITests: XCTestCase {
     /// default, so Save stays disabled until the first save establishes it.
     func testRemembersSourceForNextTransaction() {
         let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
 
         // First entry — pick Cash explicitly and save.
-        app.tapElement(A11y.Input.addTransaction)
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.typeInField(A11y.Txn.amount, "45000")
         app.selectPickerOption(A11y.Txn.source, "Cash")
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after saving")
+        app.assertReturnedToCalendar("Did not return to the Calendar after saving")
 
         // Second entry — amount only, no source pick. Save should already be enabled because the
         // remembered Cash default was applied.
-        app.tapElement(A11y.Input.addTransaction)
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.typeInField(A11y.Txn.amount, "12000")
         let save = app.buttons[A11y.Txn.save]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
@@ -38,9 +34,7 @@ final class TransactionFormImprovementsUITests: XCTestCase {
     /// keyboard when tapped.
     func testKeyboardOKDismissesTheKeyboard() {
         let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
-        app.tapElement(A11y.Input.addTransaction)
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
 
         let ok = app.buttons[A11y.Txn.keyboardDone]
         XCTAssertTrue(ok.waitForExistence(timeout: 5),

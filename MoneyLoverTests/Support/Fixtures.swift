@@ -82,15 +82,19 @@ func sched(_ year: Int, _ month: Int, _ amount: Money) -> ScheduledContribution 
     ScheduledContribution(year: year, month: month, amount: amount)
 }
 
-/// Goal builder.
+/// A `YearMonth` (year + 1...12 month).
+func ym(_ year: Int, _ month: Int) -> YearMonth { YearMonth(year: year, month: month) }
+
+/// Goal builder. Window defaults to all of 2026.
 func makeGoal(
     name: String = "Goal",
     iconName: String = "target",
     target: Money,
-    targetDate: Date,
+    startMonth: YearMonth = YearMonth(year: 2026, month: 1),
+    endMonth: YearMonth = YearMonth(year: 2026, month: 12),
     schedule: [ScheduledContribution] = []
 ) -> Goal {
-    Goal(name: name, iconName: iconName, target: target, targetDate: targetDate, schedule: schedule)
+    Goal(name: name, iconName: iconName, target: target, startMonth: startMonth, endMonth: endMonth, schedule: schedule)
 }
 
 /// Generic transaction builder — every kind flows through here.
@@ -223,7 +227,8 @@ enum Fixtures {
     // Goals — non-flat schedules with gap months, exactly like the seed.
     /// House: Jan–Mar 100M, May 150M, Jul–Sep 100M (note the Apr and Jun gaps).
     static let houseGoal = makeGoal(
-        name: "House", iconName: "house.fill", target: vnd(3_000_000_000), targetDate: date(2027, 6, 1),
+        name: "House", iconName: "house.fill", target: vnd(3_000_000_000),
+        startMonth: ym(2026, 1), endMonth: ym(2026, 9),
         schedule: [
             sched(2026, 1, vnd(100_000_000)), sched(2026, 2, vnd(100_000_000)), sched(2026, 3, vnd(100_000_000)),
             sched(2026, 5, vnd(150_000_000)),
@@ -232,12 +237,14 @@ enum Fixtures {
     )
     /// Car: a flat 25M every month, Jan–Dec.
     static let carGoal = makeGoal(
-        name: "Car", iconName: "car.fill", target: vnd(600_000_000), targetDate: date(2027, 6, 1),
+        name: "Car", iconName: "car.fill", target: vnd(600_000_000),
+        startMonth: ym(2026, 1), endMonth: ym(2026, 12),
         schedule: (1...12).map { sched(2026, $0, vnd(25_000_000)) }
     )
     /// Travel: 10M a month, Jan–Aug.
     static let travelGoal = makeGoal(
-        name: "Travel", iconName: "airplane", target: vnd(80_000_000), targetDate: date(2026, 12, 1),
+        name: "Travel", iconName: "airplane", target: vnd(80_000_000),
+        startMonth: ym(2026, 1), endMonth: ym(2026, 8),
         schedule: (1...8).map { sched(2026, $0, vnd(10_000_000)) }
     )
 

@@ -12,7 +12,7 @@ enum A11y {
         static let overview = "tab.overview"
         static let goals = "tab.goals"
         static let calendar = "tab.calendar"
-        static let input = "tab.input"
+        static let charts = "tab.charts"
         static let config = "tab.config"
     }
 
@@ -23,11 +23,6 @@ enum A11y {
         static let censorToggle = "overview.censorToggle"
         static func sourceRow(_ name: String) -> String { "overview.source.\(name)" }
         static func goalRow(_ name: String) -> String { "overview.goalAsset.\(name)" }
-    }
-
-    enum Input {
-        static let addTransaction = "input.addTransaction"
-        static let reconcile = "input.reconcile"
     }
 
     enum Txn {
@@ -101,6 +96,7 @@ enum A11y {
         static let envelopes = "config.envelopes"
         static let rates = "config.rates"
         static let monthEnd = "config.monthEnd"
+        static let reconcile = "config.reconcile"
         static let charts = "config.charts"
         static let advice = "config.advice"
         static let appearance = "config.appearance"

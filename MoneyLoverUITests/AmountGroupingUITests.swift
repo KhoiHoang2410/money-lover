@@ -9,9 +9,7 @@ final class AmountGroupingUITests: XCTestCase {
 
     func testTransactionAmountGroupsThousandsWhileTyping() {
         let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
 
         app.typeInField(A11y.Txn.amount, "1000000")
         app.assertGrouped(A11y.Txn.amount, digits: "1000000")

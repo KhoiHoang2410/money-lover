@@ -22,8 +22,10 @@ struct RootView: View {
             Tab(AppTab.calendar.title, systemImage: AppTab.calendar.symbol, value: AppTab.calendar) {
                 CalendarScreen()
             }
-            Tab(AppTab.input.title, systemImage: AppTab.input.symbol, value: AppTab.input) {
-                InputScreen()
+            Tab(AppTab.charts.title, systemImage: AppTab.charts.symbol, value: AppTab.charts) {
+                NavigationStack {
+                    ChartsScreen()
+                }
             }
             Tab(AppTab.config.title, systemImage: AppTab.config.symbol, value: AppTab.config) {
                 ConfigScreen()

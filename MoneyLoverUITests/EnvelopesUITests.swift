@@ -12,15 +12,12 @@ final class EnvelopesUITests: XCTestCase {
         let foodBefore = app.envelopeRemaining("Food")
 
         // Spend 50,000₫ against Food from Cash.
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.typeInField(A11y.Txn.amount, "50000")
         app.selectPickerOption(A11y.Txn.source, "Cash")
         app.selectPickerOption(A11y.Txn.envelope, "Food")
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after saving")
+        app.assertReturnedToCalendar("Did not return to the Calendar after saving")
 
         // FRESHNESS — Food's remaining dropped, reflected on the Envelopes screen with no relaunch.
         let foodAfter = app.envelopeRemaining("Food")

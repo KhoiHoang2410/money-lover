@@ -7,8 +7,7 @@ final class CrossCurrencyTransferUITests: XCTestCase {
 
     func testCrossCurrencyTransferComputesFeeAndSaves() {
         let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
+        app.openNewTransaction()
 
         app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
         app.selectPickerOption(A11y.Txn.method, "Cross-currency")
@@ -28,8 +27,7 @@ final class CrossCurrencyTransferUITests: XCTestCase {
         XCTAssertTrue(save.isEnabled, "Save should be enabled for a complete cross-currency transfer")
         save.tap()
 
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to Input hub after a cross-currency transfer")
+        app.assertReturnedToCalendar("Did not return to the Calendar after a cross-currency transfer")
     }
 
     /// Effect Contract: a cross-currency transfer carries a Fee, so net worth must DROP (the only
@@ -39,9 +37,7 @@ final class CrossCurrencyTransferUITests: XCTestCase {
 
         let nwBefore = app.revealedNetWorth()
 
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
         app.selectPickerOption(A11y.Txn.method, "Cross-currency")
         app.selectPickerOption(A11y.Txn.source, "Wise SGD")
@@ -50,7 +46,7 @@ final class CrossCurrencyTransferUITests: XCTestCase {
         app.typeInField(A11y.Txn.amountIn, "1800000")
         app.typeInField(A11y.Txn.rate, "18500")
         app.element(A11y.Txn.save).tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5))
+        app.assertReturnedToCalendar()
 
         // The Fee is the only real-money change → net worth moved.
         let nwAfter = app.revealedNetWorth()

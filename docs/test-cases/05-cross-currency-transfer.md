@@ -15,7 +15,7 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Add tab → Transfer → Cross-currency | — | Cross-currency form shown |
+| 1 | Calendar + → Transfer → Cross-currency | — | Cross-currency form shown |
 | 2 | Set From = Wise SGD, To = VPBank | — | Selections reflected |
 | 3 | Enter amount out / in / rate | out 100, in 1,800,000, rate 18,500 | A Fee row appears = **out × rate − in = 50,000₫** |
 | 4 | Tap Save | — | Wise SGD − 100 SGD; VPBank + 1,800,000₫; saved transfer carries the Fee; returns to Add hub |
