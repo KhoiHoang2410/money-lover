@@ -105,6 +105,8 @@ enum A11y {
         static let advice = "config.advice"
         static let appearance = "config.appearance"
         static let confirmDelete = "config.confirmDelete"
+        static let deleteAll = "config.deleteAll"
+        static let confirmDeleteAll = "config.confirmDeleteAll"
         static let seedSample = "config.seedSample"
         static let clearData = "config.clearData"
         static let version = "config.version"

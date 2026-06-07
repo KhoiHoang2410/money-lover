@@ -4,6 +4,8 @@ import SwiftUI
 struct ConfigScreen: View {
     @Environment(\.modelContext) private var context
     @State private var onboarding = false
+    @State private var confirmingDeleteAll = false
+    @State private var deleteError: String?
 
     var body: some View {
         NavigationStack {
@@ -56,6 +58,17 @@ struct ConfigScreen: View {
                     .accessibilityIdentifier(A11y.Config.backup)
                 }
 
+                Section {
+                    Button(role: .destructive) {
+                        confirmingDeleteAll = true
+                    } label: {
+                        Label("Delete all data", systemImage: "trash.fill")
+                    }
+                    .accessibilityIdentifier(A11y.Config.deleteAll)
+                } footer: {
+                    Text("Permanently erases every account, transaction, envelope, goal, and saved rate. This can’t be undone.")
+                }
+
                 #if DEBUG
                 Section("Debug") {
                     Button("Seed sample data", systemImage: "wand.and.stars") {
@@ -97,6 +110,22 @@ struct ConfigScreen: View {
             .sheet(isPresented: $onboarding) {
                 OnboardingScreen()
             }
+            .sheet(isPresented: $confirmingDeleteAll) {
+                DeleteAllDataSheet(onConfirm: deleteAllData)
+            }
+            .alert("Couldn’t delete data", isPresented: .constant(deleteError != nil)) {
+                Button("OK") { deleteError = nil }
+            } message: {
+                Text(deleteError ?? "")
+            }
+        }
+    }
+
+    private func deleteAllData() {
+        do {
+            try DataReset.eraseAll(into: context)
+        } catch {
+            deleteError = error.localizedDescription
         }
     }
 }
