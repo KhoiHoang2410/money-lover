@@ -28,7 +28,7 @@ import SwiftData
         try transactions.add(Transaction(date: .now, kind: .expense, amount: Money(minorUnits: 1_000, currency: .vnd), sourceID: account.id))
         try envelopes.add(Envelope(name: "Food", iconName: "fork.knife", allocation: Money(minorUnits: 5_000, currency: .vnd)))
         try rates.upsert(key: "fx.USD", value: 25_500, isManual: false, fetchedAt: .now)
-        try goals.add(Goal(name: "House", iconName: "house.fill", target: Money(minorUnits: 9_000, currency: .vnd), targetDate: .now))
+        try goals.add(Goal(name: "House", iconName: "house.fill", target: Money(minorUnits: 9_000, currency: .vnd), startMonth: YearMonth(year: 2026, month: 1), endMonth: YearMonth(year: 2026, month: 12)))
 
         // Sanity: the store is populated before the wipe.
         #expect(try sources.all().isEmpty == false)

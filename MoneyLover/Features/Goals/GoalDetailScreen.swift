@@ -14,6 +14,9 @@ struct GoalDetailScreen: View {
                     LabeledContent("Target") {
                         Text(goal.target.amount, format: .currency(code: goal.target.currency.rawValue))
                     }
+                    LabeledContent("Plan") {
+                        Text("\(Self.monthLabel(goal.startMonth)) – \(Self.monthLabel(goal.endMonth))")
+                    }
                     LabeledContent("Saved") {
                         Text(store.contributed(for: goal).amount, format: .currency(code: "VND"))
                     }
@@ -58,5 +61,12 @@ struct GoalDetailScreen: View {
     private static func monthKey(_ date: Date) -> Int {
         let c = Calendar.current.dateComponents([.year, .month], from: date)
         return (c.year ?? 0) * 12 + (c.month ?? 0)
+    }
+
+    /// Short month + year label, e.g. "Jan 2026".
+    private static func monthLabel(_ ym: YearMonth) -> String {
+        let symbols = Calendar.current.shortMonthSymbols
+        let name = symbols[max(0, min(symbols.count - 1, ym.month - 1))]
+        return "\(name) \(ym.year)"
     }
 }
