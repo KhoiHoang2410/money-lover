@@ -18,13 +18,11 @@ struct AddGoalScreen: View {
                 Section {
                     TextField("Name", text: $name)
                     LabeledContent("Target (₫)") {
-                        TextField("Amount", value: $targetMajor, format: .number)
-                            .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                        AmountField("Amount", value: $targetMajor, fractionDigits: 0, keyboard: .numberPad)
                     }
                     DatePicker("Target date", selection: $targetDate, displayedComponents: .date)
                     LabeledContent("Monthly plan (₫)") {
-                        TextField("Amount", value: $monthlyMajor, format: .number)
-                            .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                        AmountField("Amount", value: $monthlyMajor, fractionDigits: 0, keyboard: .numberPad)
                     }
                 }
                 Section("Icon") {

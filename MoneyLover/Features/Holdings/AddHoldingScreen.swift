@@ -38,10 +38,8 @@ struct AddHoldingScreen: View {
                     TextField("Name", text: $name)
                         .onChange(of: name) { _, _ in nameEdited = true }
                     LabeledContent(assetType == .gold ? "Quantity" : "Shares") {
-                        TextField("Qty", value: $quantity, format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .accessibilityIdentifier(A11y.Holding.quantity)
+                        // Up to 4 fraction digits for fractional gold weights (chỉ/lượng); shares are whole.
+                        AmountField("Qty", value: $quantity, fractionDigits: 4, accessibilityID: A11y.Holding.quantity)
                     }
                     if assetType == .gold {
                         Picker("Unit", selection: $goldUnit) {

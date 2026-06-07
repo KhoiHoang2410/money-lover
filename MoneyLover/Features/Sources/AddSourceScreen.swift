@@ -12,7 +12,6 @@ struct AddSourceScreen: View {
     @State private var kind: SourceKind = .account
     @State private var currency: Currency = .vnd
     @State private var openingMajor: Decimal = 0
-    @State private var openingText = ""
     @State private var iconName = "banknote.fill"
     @State private var logo = Self.noLogo
     @State private var loaded = false
@@ -36,21 +35,9 @@ struct AddSourceScreen: View {
                         ForEach(Currency.allCases) { Text($0.rawValue).tag($0) }
                     }
                     LabeledContent("Opening balance") {
-                        TextField("Amount", text: $openingText)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .accessibilityIdentifier(A11y.Source.openingBalance)
-                            .onChange(of: openingText) { _, newValue in
-                                // Re-group in onChange (not the binding setter), else SwiftUI drops the
-                                // mid-keystroke reformat. Keyed to the currency's fraction digits.
-                                let formatted = openingFormatter.format(newValue)
-                                if formatted != newValue { openingText = formatted }
-                                openingMajor = openingFormatter.value(formatted)
-                            }
-                    }
-                    .onChange(of: currency) { _, _ in
-                        // A new currency changes the allowed fraction digits — re-group the display.
-                        openingText = openingFormatter.display(for: openingMajor)
+                        // Live grouping keyed to the selected currency's fraction digits (0 VND / 2 USD,SGD);
+                        // a currency switch re-renders the display, keeping `openingMajor` exact.
+                        AmountField("Amount", value: $openingMajor, fractionDigits: currency.fractionDigits, accessibilityID: A11y.Source.openingBalance)
                     }
                 }
                 if kind == .account {
@@ -79,13 +66,6 @@ struct AddSourceScreen: View {
         }
     }
 
-    /// Live grouping for the opening balance, keyed to the selected currency's fraction digits
-    /// (0 for VND, 2 for USD/SGD). Shows "1.000.000" / "1,000,000" as the user types while keeping
-    /// `openingMajor` exact.
-    private var openingFormatter: AmountInputFormatter {
-        AmountInputFormatter(maximumFractionDigits: currency.fractionDigits)
-    }
-
     /// Populate the form once from the edited source (no-op when adding).
     private func loadIfNeeded() {
         guard !loaded else { return }
@@ -95,7 +75,6 @@ struct AddSourceScreen: View {
         kind = source.kind == .holding ? .account : source.kind
         currency = source.currency
         openingMajor = source.openingBalance.amount
-        openingText = openingFormatter.display(for: openingMajor)
         iconName = source.iconName
         logo = source.logoAsset ?? Self.noLogo
     }

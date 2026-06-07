@@ -39,7 +39,7 @@ One type per file. Filename = type name. Flag any file with multiple `struct`/`c
 - Shared state: `@MainActor @Observable final class` + `@State` (ownership) + `@Bindable`/`@Environment` (passing). **No** `ObservableObject`/`@Published`/`@StateObject`/`@ObservedObject`/`@EnvironmentObject`.
 - `@State` is `private`, owned by the creating view.
 - No `Binding(get:set:)` in `body` — use `@State`/`@Binding` + `.onChange`.
-- Numeric input: `TextField("Amount", value: $amount, format: .number)` + `.keyboardType(.decimalPad)`. Never bind money to a `String`.
+- **Numeric input — always `AmountField`** (`DesignSystem/AmountField.swift`), never a raw `TextField(value:format:)`/`format: .number`. Every field that takes a number — amount, balance, price, **rate**, quantity, cap — binds a `Decimal` to `AmountField`, which owns all decoration (decimal keyboard, trailing alignment, **live locale grouping** e.g. "1,000,000"). Pass `fractionDigits:` (currency's `fractionDigits`, `0` for VND-only, `6` for rates) and, when the screen drives focus, `focusState:`/`focusTag:`. Wrap it in a `LabeledContent` for the leading label. Never reach for `AmountInputFormatter` directly in a view, and never bind money to a `String`. (`.number` only groups on commit, so raw fields never group mid-edit.)
 - Never `@AppStorage` inside `@Observable`. Never store secrets/PII in `@AppStorage` (use Keychain — not needed here since fully local, no secrets).
 - Domain structs conform to `Identifiable`; don't pass `id: \.x` into SwiftUI.
 
