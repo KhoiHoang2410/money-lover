@@ -4,7 +4,7 @@ import Foundation
 ///
 /// `amount` is a positive magnitude for expense/income/transfer; for adjustment it may be signed.
 /// `affectsBalance` is false for Backfill (informational) entries (slice 12).
-struct Transaction: Identifiable, Hashable, Sendable {
+struct Transaction: Identifiable, Hashable, Sendable, Codable {
     let id: UUID
     var date: Date
     var kind: TransactionKind

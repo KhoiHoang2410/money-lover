@@ -19,7 +19,8 @@ struct OnboardingScreen: View {
                             guard store == nil else { return }
                             let newStore = SourcesStore(
                                 sources: SourceRepository(context: context),
-                                transactions: TransactionRepository(context: context)
+                                transactions: TransactionRepository(context: context),
+                                rates: RatesRepository(context: context)
                             )
                             newStore.load()
                             store = newStore

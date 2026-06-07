@@ -62,25 +62,27 @@ struct TransactionForm: View {
 
     var body: some View {
         Form {
-            Picker("Type", selection: $kind) {
-                Text("Expense").tag(TransactionKind.expense)
-                Text("Income").tag(TransactionKind.income)
-                Text("Transfer").tag(TransactionKind.transfer)
-                Text("Invest").tag(TransactionKind.invest)
-            }
-            .pickerStyle(.segmented)
-            .listRowBackground(Color.clear)
-            .accessibilityIdentifier(A11y.Txn.typePicker)
+            if isAdjustment {
+                adjustmentSummary
+            } else {
+                Picker("Type", selection: $kind) {
+                    Text("Expense").tag(TransactionKind.expense)
+                    Text("Income").tag(TransactionKind.income)
+                    Text("Transfer").tag(TransactionKind.transfer)
+                    Text("Invest").tag(TransactionKind.invest)
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.clear)
+                .accessibilityIdentifier(A11y.Txn.typePicker)
 
-            switch kind {
-            case .expense: expenseFields
-            case .income: incomeFields
-            case .transfer: transferFields
-            case .invest: investFields
-            case .adjustment: EmptyView() // Adjustments are created by Reconcile, not offered here.
-            }
+                switch kind {
+                case .expense: expenseFields
+                case .income: incomeFields
+                case .transfer: transferFields
+                case .invest: investFields
+                case .adjustment: EmptyView() // Adjustments are created by Reconcile, not offered here.
+                }
 
-            if kind != .adjustment {
                 Section {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                         .accessibilityIdentifier(A11y.Txn.date)
@@ -97,12 +99,14 @@ struct TransactionForm: View {
                 }
             }
         }
-        .navigationTitle(editing == nil ? "Add transaction" : "Edit transaction")
+        .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Save", action: save).disabled(!canSave)
-                    .accessibilityIdentifier(A11y.Txn.save)
+            if !isAdjustment {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save", action: save).disabled(!canSave)
+                        .accessibilityIdentifier(A11y.Txn.save)
+                }
             }
         }
         .keyboardDoneButton()
@@ -128,7 +132,37 @@ struct TransactionForm: View {
         dismiss()
     }
 
+    /// Editing a Reconcile Adjustment: it's shown read-only (the everyday form can't represent a
+    /// signed balance-fix), but it can still be deleted from here (feat).
+    private var isAdjustment: Bool { editing?.kind == .adjustment }
+
+    private var navigationTitle: String {
+        if isAdjustment { return "Adjustment" }
+        return editing == nil ? "Add transaction" : "Edit transaction"
+    }
+
     // MARK: - Field groups
+
+    /// Read-only summary of a balance Adjustment, plus context that it came from Update balances.
+    @ViewBuilder
+    private var adjustmentSummary: some View {
+        if let adjustment = editing {
+            Section {
+                LabeledContent("Amount") {
+                    Text(adjustment.amount.amount, format: .currency(code: adjustment.amount.currency.rawValue))
+                        .foregroundStyle(adjustment.amount.isNegative ? Theme.Palette.bad : Theme.Palette.ok)
+                }
+                if !adjustment.note.isEmpty {
+                    LabeledContent("Note") { Text(adjustment.note) }
+                }
+                LabeledContent("Date") {
+                    Text(adjustment.date, format: .dateTime.day().month().year())
+                }
+            } footer: {
+                Text("A balance Adjustment recorded by Update balances. It can't be edited here — delete it to remove its effect on the balance.")
+            }
+        }
+    }
 
     @ViewBuilder
     private var expenseFields: some View {

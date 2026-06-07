@@ -4,6 +4,20 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.7.0] — Editable balances & caps, adjustment delete, data backup
+
+### Added
+- **Edit sources & holdings (feat):** tap a row in Config → Sources or Config → Holdings to edit it in place — including updating an account/card's **opening balance** or a holding's **opening quantity**. The forms reuse the add screen, pre-filled.
+- **Auto-seed rates for new currencies/holdings (feat):** adding a non-VND Account, or a gold/stock Holding, now inserts a placeholder rate (`fx.<CUR>`, `gold`, or `stock.<TICKER>`) so it appears on Config → Rates immediately for the owner to fill in or refresh. Pure `RateKeys` maps a `Source` to its required keys.
+- **Envelope caps (feat):** tap an envelope to edit it — adjust its allocation plus optional **cap per week** and **cap per month**. Rows show this week's / this month's spend against the cap, turning red with a warning glyph when reached (`EnvelopeCapEngine`, accessibility-safe).
+- **Backup & restore (feat):** Config → Backup exports all data to an iOS-friendly `.json` file (Files/iCloud Drive) and re-imports one to replace the current data, via `DataBackup` + `BackupRepository`.
+
+### Changed
+- **Delete reconcile Adjustments from the calendar (feat):** a day-detail Adjustment row now opens a read-only view with a Delete action, so a balance fix posted by Update balances can be removed (previously non-interactive).
+
+### Fixed
+- **Clear all data now refreshes immediately (feat):** the DEBUG "Clear all data" deleted records via a batch delete whose `save()` posted no `didSave`, so screens kept stale rows until relaunch. It now deletes per-record, firing the change notification that reloads every store.
+
 ## [0.6.0] — Transaction form improvements
 
 ### Added

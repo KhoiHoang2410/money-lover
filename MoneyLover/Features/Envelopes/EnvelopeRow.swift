@@ -1,10 +1,13 @@
 import SwiftUI
 
-/// One envelope: icon, name (+ Reserve badge), spent-of-allocation, remaining, and a progress bar.
+/// One envelope: icon, name (+ Reserve badge), spent-of-allocation, remaining, a progress bar, and —
+/// when caps are set — this week's / this month's spend against the cap (red + warning glyph if over).
 struct EnvelopeRow: View {
     let envelope: Envelope
     let spent: Money
     let remaining: Money
+    var weekSpent: Money = .zero(.vnd)
+    var monthSpent: Money = .zero(.vnd)
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
@@ -35,6 +38,13 @@ struct EnvelopeRow: View {
             }
             ProgressView(value: progress)
                 .tint(remaining.isNegative ? Theme.Palette.bad : Theme.Palette.pink)
+
+            if let weeklyCap = envelope.weeklyCap {
+                EnvelopeCapLine(label: "Week", spent: weekSpent, cap: weeklyCap)
+            }
+            if let monthlyCap = envelope.monthlyCap {
+                EnvelopeCapLine(label: "Month", spent: monthSpent, cap: monthlyCap)
+            }
         }
         .padding(.vertical, 4)
     }
