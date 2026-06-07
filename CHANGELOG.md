@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.11.0] — App icon
+
+### Added
+- **App icon (feat):** the home-screen / App Switcher icon is now the "Gradient Rings" mark — concentric pink→coral→yellow progress rings on a soft backdrop, matching the app's visual language (ADR-0005). Previously the AppIcon slot was empty (default placeholder).
+
 ## [0.10.0] — Calendar: pick any day
 
 ### Changed
