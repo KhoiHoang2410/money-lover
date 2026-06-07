@@ -38,7 +38,6 @@ struct TransactionForm: View {
 
     // Shared
     @State private var amountMajor: Decimal = 0
-    @State private var amountText = ""
     @State private var note = ""
 
     // Expense / Income
@@ -53,7 +52,6 @@ struct TransactionForm: View {
     @State private var fromID: UUID?
     @State private var toID: UUID?
     @State private var amountInMajor: Decimal = 0
-    @State private var amountInText = ""
     @State private var rate: Decimal = 0
 
     // Invest (Buy/Sell of a Holding) — ADR-0010
@@ -61,9 +59,7 @@ struct TransactionForm: View {
     @State private var accountID: UUID?
     @State private var holdingID: UUID?
     @State private var quantity: Decimal = 0
-    @State private var quantityText = ""
     @State private var unitPriceMajor: Decimal = 0
-    @State private var unitPriceText = ""
 
     var body: some View {
         Form {
@@ -207,7 +203,7 @@ struct TransactionForm: View {
 
     @ViewBuilder
     private var expenseFields: some View {
-        Section { amountField("Amount", text: $amountText, value: $amountMajor, focus: .amount, id: A11y.Txn.amount) }
+        Section { amountRow("Amount", value: $amountMajor, focus: .amount, id: A11y.Txn.amount) }
         Section {
             Picker("From", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
@@ -233,7 +229,7 @@ struct TransactionForm: View {
 
     @ViewBuilder
     private var incomeFields: some View {
-        Section { amountField("Amount", text: $amountText, value: $amountMajor, focus: .amount, id: A11y.Txn.amount) }
+        Section { amountRow("Amount", value: $amountMajor, focus: .amount, id: A11y.Txn.amount) }
         Section {
             Picker("Into", selection: $sourceID) {
                 Text("Select…").tag(UUID?.none)
@@ -291,10 +287,10 @@ struct TransactionForm: View {
             }
         }
         Section {
-            amountField(method == .crossCurrency ? "Amount out" : "Amount", text: $amountText, value: $amountMajor, focus: .amount, id: A11y.Txn.amount)
+            amountRow(method == .crossCurrency ? "Amount out" : "Amount", value: $amountMajor, focus: .amount, id: A11y.Txn.amount)
             if method == .crossCurrency {
-                amountField("Amount in", text: $amountInText, value: $amountInMajor, focus: .amountIn, id: A11y.Txn.amountIn)
-                decimalField("Rate", $rate, focus: .rate, id: A11y.Txn.rate)
+                amountRow("Amount in", value: $amountInMajor, focus: .amountIn, id: A11y.Txn.amountIn)
+                amountRow("Rate", value: $rate, fractionDigits: 6, focus: .rate, id: A11y.Txn.rate)
                 if let fee = computedFee {
                     LabeledContent("Fee") {
                         Text(fee.amount, format: .currency(code: fee.currency.rawValue))
@@ -328,17 +324,11 @@ struct TransactionForm: View {
         }
         Section {
             LabeledContent("Quantity") {
-                // Text-bound (not value:format:) so the parsed quantity updates live as typed —
-                // the Save/oversell guard reacts before the field loses focus.
-                TextField("Qty", text: $quantityText)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .accessibilityIdentifier(A11y.Txn.quantity)
-                    .onChange(of: quantityText) { _, newValue in
-                        quantity = Decimal(string: newValue.replacingOccurrences(of: ",", with: ".")) ?? 0
-                    }
+                // Grouped + parsed live (the Save/oversell guard reacts before the field loses focus);
+                // up to 4 fraction digits for fractional gold weights (chỉ/lượng).
+                AmountField("Qty", value: $quantity, fractionDigits: 4, accessibilityID: A11y.Txn.quantity)
             }
-            amountField("Unit price (₫)", text: $unitPriceText, value: $unitPriceMajor, focus: .unitPrice, id: A11y.Txn.unitPrice)
+            amountRow("Unit price (₫)", value: $unitPriceMajor, focus: .unitPrice, id: A11y.Txn.unitPrice)
             LabeledContent(direction == .buy ? "Total cost" : "Total proceeds") {
                 Text(investTotal.amount, format: .currency(code: Currency.vnd.rawValue))
                     .foregroundStyle(Theme.Palette.ink)
@@ -363,37 +353,12 @@ struct TransactionForm: View {
         }
     }
 
-    private func decimalField(_ title: String, _ value: Binding<Decimal>, focus field: Field, id: String) -> some View {
+    /// A labelled numeric row backed by the shared `AmountField` (live grouping, exact `Decimal`).
+    /// The source currency isn't known until a source is picked, so amounts allow up to 2 fraction
+    /// digits (the max across currencies); `Money(major:)` rounds to the currency's grid at save.
+    private func amountRow(_ title: LocalizedStringKey, value: Binding<Decimal>, fractionDigits: Int = 2, focus field: Field, id: String) -> some View {
         LabeledContent(title) {
-            TextField(title, value: value, format: .number)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .focused($focus, equals: field)
-                .accessibilityIdentifier(id)
-        }
-    }
-
-    /// A money field that shows locale grouping separators live as the user types (e.g. "1,000,000"),
-    /// keeping the bound `Decimal` exact. The source currency isn't known until a source is picked, so
-    /// it allows up to 2 fraction digits (the max across currencies); `Money(major:)` rounds to the
-    /// currency's grid at save.
-    ///
-    /// Re-grouping happens in `.onChange` (not inside the binding's setter): reformatting mid-keystroke
-    /// from within the setter is dropped by SwiftUI's editing buffer, whereas onChange runs in the next
-    /// update cycle so the regrouped string is reflected back into the field.
-    private func amountField(_ title: String, text: Binding<String>, value: Binding<Decimal>, focus field: Field, id: String) -> some View {
-        let formatter = AmountInputFormatter(maximumFractionDigits: 2)
-        return LabeledContent(title) {
-            TextField(title, text: text)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .focused($focus, equals: field)
-                .accessibilityIdentifier(id)
-                .onChange(of: text.wrappedValue) { _, newValue in
-                    let formatted = formatter.format(newValue)
-                    if formatted != newValue { text.wrappedValue = formatted }
-                    value.wrappedValue = formatter.value(formatted)
-                }
+            AmountField(title, value: value, fractionDigits: fractionDigits, accessibilityID: id, focusState: $focus, focusTag: field)
         }
     }
 
@@ -644,20 +609,20 @@ struct TransactionForm: View {
         kind = t.kind
         date = t.date
         note = t.note
-        let amountFormatter = AmountInputFormatter(maximumFractionDigits: 2)
+        // The numeric fields seed their own display from these `Decimal`s (AmountField.onChange(of:)).
         switch t.kind {
         case .expense:
-            amountMajor = t.amount.amount; amountText = amountFormatter.display(for: amountMajor)
+            amountMajor = t.amount.amount
             sourceID = t.sourceID; envelopeID = t.envelopeID
         case .income:
-            amountMajor = t.amount.amount; amountText = amountFormatter.display(for: amountMajor)
+            amountMajor = t.amount.amount
             sourceID = t.sourceID
         case .transfer:
-            amountMajor = t.amount.amount; amountText = amountFormatter.display(for: amountMajor)
+            amountMajor = t.amount.amount
             fromID = t.sourceID; toID = t.destinationID
             if let received = t.destinationAmount {
                 method = .crossCurrency
-                amountInMajor = received.amount; amountInText = amountFormatter.display(for: amountInMajor)
+                amountInMajor = received.amount
                 // Rate isn't stored; recover it from amounts + fee: fee = out×rate − in ⇒ rate = (in+fee)/out.
                 let feeAmount = t.fee?.amount ?? 0
                 rate = amountMajor == 0 ? 0 : (received.amount + feeAmount) / amountMajor
@@ -670,9 +635,7 @@ struct TransactionForm: View {
             direction = t.tradeDirection ?? .buy
             accountID = t.sourceID; holdingID = t.destinationID
             quantity = t.tradeQuantity ?? 0
-            quantityText = quantity == 0 ? "" : "\(quantity)"
             unitPriceMajor = (t.tradeQuantity ?? 0) == 0 ? 0 : t.amount.amount / (t.tradeQuantity ?? 1)
-            unitPriceText = amountFormatter.display(for: unitPriceMajor)
         case .adjustment:
             break
         }

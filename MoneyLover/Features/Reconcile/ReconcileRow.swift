@@ -18,13 +18,16 @@ struct ReconcileRow: View {
                 Label(source.name, systemImage: source.iconName)
                     .labelStyle(.titleAndIcon)
                 Spacer()
-                TextField("Real balance", value: $realBalance, format: .number)
-                    // Liabilities (credit cards) reconcile to negative balances, which need a minus
-                    // key; everything else uses the cleaner number pad (BUG-006).
-                    .keyboardType(source.kind.isLiability ? .numbersAndPunctuation : .decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(maxWidth: 160)
-                    .accessibilityIdentifier(A11y.Reconcile.field(source.name))
+                // Liabilities (credit cards) reconcile to negative balances, which need a minus key;
+                // everything else uses the cleaner number pad (BUG-006). Grouped to the currency's grid.
+                AmountField(
+                    "Real balance",
+                    value: $realBalance,
+                    fractionDigits: source.currency.fractionDigits,
+                    keyboard: source.kind.isLiability ? .numbersAndPunctuation : .decimalPad,
+                    accessibilityID: A11y.Reconcile.field(source.name)
+                )
+                .frame(maxWidth: 160)
             }
             HStack {
                 Text("Computed")

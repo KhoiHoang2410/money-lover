@@ -15,10 +15,7 @@ struct ContributionSheet: View {
         NavigationStack {
             Form {
                 LabeledContent("Amount (₫)") {
-                    TextField("Amount", value: $amountMajor, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .accessibilityIdentifier(A11y.Goals.contributionAmount)
+                    AmountField("Amount", value: $amountMajor, fractionDigits: 0, keyboard: .numberPad, accessibilityID: A11y.Goals.contributionAmount)
                 }
                 Picker("From", selection: $fromAccountID) {
                     Text("Select…").tag(UUID?.none)

@@ -13,9 +13,7 @@ struct RateOverrideSheet: View {
         NavigationStack {
             Form {
                 LabeledContent(RateRow.title(for: key)) {
-                    TextField("Value", value: $value, format: .number)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
+                    AmountField("Value", value: $value, fractionDigits: 6)
                 }
             }
             .navigationTitle("Override rate")

@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.17.0] — Consistent number formatting on every input
+
+### Changed
+- **One shared `AmountField` for all numeric input (feat):** every field that takes a number — transaction amount, opening balance, exchange **rate**, unit price, trade quantity, goal target, fund contribution, reconcile balance, and envelope allocation/caps — now groups with locale thousands separators *live as you type* (e.g. "1,000,000"). Previously only the add-transaction amount and opening balance were grouped; rate, price, quantity, goal, contribution, reconcile, and envelope fields showed raw digits. Each field keeps an exact `Decimal`; grouping is keyed to the currency's fraction digits (rates allow up to 6). New rule in `engineering.md` §4: numeric input must use `AmountField`.
+
 ## [0.16.0] — VND equivalent on the Overview
 
 ### Added

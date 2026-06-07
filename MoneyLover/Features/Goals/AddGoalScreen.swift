@@ -33,8 +33,7 @@ struct AddGoalScreen: View {
                 Section {
                     TextField("Name", text: $name)
                     LabeledContent("Target (₫)") {
-                        TextField("Amount", value: $targetMajor, format: .number)
-                            .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                        AmountField("Amount", value: $targetMajor, fractionDigits: 0, keyboard: .numberPad)
                     }
                     MonthYearPicker(title: "Start month", selection: $startMonth, years: years)
                     MonthYearPicker(title: "End month", selection: $endMonth, years: years)

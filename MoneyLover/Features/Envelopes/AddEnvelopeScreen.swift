@@ -49,11 +49,10 @@ struct AddEnvelopeScreen: View {
         }
     }
 
-    private func amountRow(_ title: String, value: Binding<Decimal>) -> some View {
+    private func amountRow(_ title: LocalizedStringKey, value: Binding<Decimal>) -> some View {
+        // VND-only envelope amounts — whole units, grouped live as the user types.
         LabeledContent(title) {
-            TextField("Amount", value: value, format: .number)
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.trailing)
+            AmountField("Amount", value: value, fractionDigits: 0, keyboard: .numberPad)
         }
     }
 
