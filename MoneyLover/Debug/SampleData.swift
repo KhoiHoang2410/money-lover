@@ -170,12 +170,7 @@ enum SampleData {
 
     @MainActor
     static func clear(into context: ModelContext) {
-        try? context.delete(model: TransactionRecord.self)
-        try? context.delete(model: SourceRecord.self)
-        try? context.delete(model: EnvelopeRecord.self)
-        try? context.delete(model: RateRecord.self)
-        try? context.delete(model: GoalRecord.self)
-        try? context.save()
+        try? DataReset.eraseAll(into: context)
     }
 }
 #endif

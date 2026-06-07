@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.6.0] — Delete all data
+
+### Added
+- **Delete all data (Config → App):** a destructive action that permanently erases every account, transaction, envelope, goal, and saved rate. It opens a confirmation sheet whose **Confirm** button is disabled for a 3-second think-time — the label counts down ("Confirm (3s)") and only becomes tappable once the cooldown elapses, so an irreversible wipe can't be triggered by reflex. Backed by a new release-safe `DataReset.eraseAll`, which the DEBUG `SampleData.clear` now reuses.
+
 ## [0.5.0] — Holdings & investing, calendar editing, starter envelopes, voice removal
 
 This version covers a feature batch delivered across several PRs; per request it carries the batch's single version bump.
