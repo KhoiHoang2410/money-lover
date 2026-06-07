@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.16.0] — VND equivalent on the Overview
+
+### Added
+- **VND equivalent for foreign accounts (feat):** on the Overview, an account or credit card held in **SGD** or **USD** now shows its **VND equivalent** as a secondary line beneath the native balance (e.g. `$1,100` → `≈ ₫28,050,000`), converted at the current FX rate. VND sources and holdings are unchanged. The line is hidden while amounts are censored, and also when no FX rate is available yet (so it never shows a misleading `₫0`).
+
 ## [0.15.0] — Charts tab replaces the Add tab
 
 ### Changed

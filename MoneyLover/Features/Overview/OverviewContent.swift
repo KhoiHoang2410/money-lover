@@ -35,7 +35,7 @@ struct OverviewContent: View {
                 // `.contentShape` makes the whole row (including the Spacer gap) hit-testable; with
                 // `.buttonStyle(.plain)` only the drawn content is tappable, so taps landing on the
                 // empty middle of a row would otherwise do nothing (BUG-001).
-                let row = SourceRow(source: source, balance: store.displayValue(for: source), censored: censored)
+                let row = SourceRow(source: source, balance: store.displayValue(for: source), vndEquivalent: store.vndEquivalent(for: source), censored: censored)
                     .contentShape(.rect)
                 if tappable {
                     NavigationLink(value: OverviewRoute.account(source.id)) { row }

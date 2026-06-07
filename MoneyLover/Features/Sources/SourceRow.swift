@@ -4,6 +4,8 @@ import SwiftUI
 struct SourceRow: View {
     let source: Source
     let balance: Money
+    /// VND value of a foreign-currency balance, shown beneath the native amount. `nil` hides it.
+    var vndEquivalent: Money? = nil
     var censored: Bool = false
 
     var body: some View {
@@ -16,9 +18,16 @@ struct SourceRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            AmountText(money: balance, censored: censored)
-                .bold()
-                .foregroundStyle(source.kind.isLiability ? Theme.Palette.bad : Theme.Palette.ink)
+            VStack(alignment: .trailing, spacing: 2) {
+                AmountText(money: balance, censored: censored)
+                    .bold()
+                    .foregroundStyle(source.kind.isLiability ? Theme.Palette.bad : Theme.Palette.ink)
+                if let vndEquivalent, !censored {
+                    Text(verbatim: "≈ \(vndEquivalent.formatted)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .padding(.vertical, 4)
     }

@@ -51,6 +51,18 @@ final class OverviewStore {
         }
     }
 
+    /// VND equivalent of a foreign-currency account/card balance, for a secondary line on its row.
+    /// `nil` for VND sources, holdings, or when the FX rate is unavailable (avoids a misleading ₫0).
+    func vndEquivalent(for source: Source) -> Money? {
+        switch source.kind {
+        case .account, .creditCard:
+            guard source.currency != .vnd, rates.fxRate(source.currency) > 0 else { return nil }
+            return Valuator.valueInVND(source: source, balance: balance(for: source), rates: rates)
+        case .holding:
+            return nil
+        }
+    }
+
     /// A Goal's balance in VND — the money funded into it (ADR-0007).
     func balance(for goal: Goal) -> Money {
         GoalTracker.contributed(goalID: goal.id, transactions: transactions)
