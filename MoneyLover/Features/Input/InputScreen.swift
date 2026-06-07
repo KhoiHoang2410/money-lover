@@ -28,7 +28,8 @@ struct InputScreen: View {
                 let newStore = InputStore(
                     sources: SourceRepository(context: context),
                     transactions: TransactionRepository(context: context),
-                    envelopes: EnvelopeRepository(context: context)
+                    envelopes: EnvelopeRepository(context: context),
+                    goals: GoalRepository(context: context)
                 )
                 newStore.load()
                 store = newStore

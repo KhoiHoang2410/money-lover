@@ -14,7 +14,8 @@ import Foundation
 
     // House: Jan/Feb/Mar 100M, May 150M, Jul/Aug/Sep 100M (note the April + post-Sep gaps).
     private var house: Goal {
-        Goal(name: "House", iconName: "house", target: vnd(3_000_000_000), targetDate: date(2026, 12, 31),
+        Goal(name: "House", iconName: "house", target: vnd(3_000_000_000),
+             startMonth: YearMonth(year: 2026, month: 1), endMonth: YearMonth(year: 2026, month: 9),
              schedule: [sched(2026,1,100), sched(2026,2,100), sched(2026,3,100),
                         sched(2026,5,150), sched(2026,7,100), sched(2026,8,100), sched(2026,9,100)])
     }

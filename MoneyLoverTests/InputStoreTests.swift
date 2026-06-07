@@ -20,7 +20,8 @@ import SwiftData
         InputStore(
             sources: SourceRepository(context: context),
             transactions: TransactionRepository(context: context),
-            envelopes: EnvelopeRepository(context: context)
+            envelopes: EnvelopeRepository(context: context),
+            goals: GoalRepository(context: context)
         )
     }
 

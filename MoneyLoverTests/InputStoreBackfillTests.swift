@@ -25,7 +25,8 @@ import SwiftData
         let store = InputStore(
             sources: sources,
             transactions: transactions,
-            envelopes: EnvelopeRepository(context: context)
+            envelopes: EnvelopeRepository(context: context),
+            goals: GoalRepository(context: context)
         )
         return (store, sources, transactions)
     }

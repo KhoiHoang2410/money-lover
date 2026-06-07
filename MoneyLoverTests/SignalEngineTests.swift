@@ -112,7 +112,8 @@ import Foundation
 
     private func goal(actual: Int) -> GoalState {
         let schedule = (1...6).map { ScheduledContribution(year: 2026, month: $0, amount: vnd(1_000_000)) }
-        let g = Goal(name: "House", iconName: "house", target: vnd(100_000_000), targetDate: date(28), schedule: schedule)
+        let g = Goal(name: "House", iconName: "house", target: vnd(100_000_000),
+                     startMonth: YearMonth(year: 2026, month: 1), endMonth: YearMonth(year: 2026, month: 6), schedule: schedule)
         return GoalState(goal: g, actual: vnd(actual))
     }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Form to add a goal. A flat monthly plan is generated from now to the target date
+/// Form to add a goal. The owner picks a **target amount** and a **start/end month**; a flat
+/// monthly plan that sums exactly to the target is generated across that window
 /// (the schedule model supports arbitrary per-month amounts; a richer editor can come later).
 struct AddGoalScreen: View {
     let onSave: (Goal) -> Void
@@ -9,8 +10,22 @@ struct AddGoalScreen: View {
     @State private var name = ""
     @State private var iconName = "target"
     @State private var targetMajor: Decimal = 0
-    @State private var targetDate = Date.now
-    @State private var monthlyMajor: Decimal = 0
+    @State private var startMonth = YearMonth.containing(.now)
+    @State private var endMonth = YearMonth.containing(.now).adding(11)
+
+    /// Year span offered in the pickers: this year through ten years out.
+    private var years: ClosedRange<Int> {
+        let thisYear = YearMonth.containing(.now).year
+        return thisYear...(thisYear + 10)
+    }
+
+    private var target: Money { Money(major: targetMajor, currency: .vnd) }
+    private var monthCount: Int { startMonth.monthsThrough(endMonth) }
+    private var windowIsValid: Bool { endMonth >= startMonth }
+    private var monthlyAmount: Money {
+        guard monthCount > 0 else { return .zero(.vnd) }
+        return Money(minorUnits: target.minorUnits / monthCount, currency: .vnd)
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,11 +36,10 @@ struct AddGoalScreen: View {
                         TextField("Amount", value: $targetMajor, format: .number)
                             .keyboardType(.numberPad).multilineTextAlignment(.trailing)
                     }
-                    DatePicker("Target date", selection: $targetDate, displayedComponents: .date)
-                    LabeledContent("Monthly plan (₫)") {
-                        TextField("Amount", value: $monthlyMajor, format: .number)
-                            .keyboardType(.numberPad).multilineTextAlignment(.trailing)
-                    }
+                    MonthYearPicker(title: "Start month", selection: $startMonth, years: years)
+                    MonthYearPicker(title: "End month", selection: $endMonth, years: years)
+                } footer: {
+                    planFooter
                 }
                 Section("Icon") {
                     IconPicker(selection: $iconName)
@@ -35,7 +49,8 @@ struct AddGoalScreen: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", action: save).disabled(name.isEmpty || targetMajor <= 0)
+                    Button("Save", action: save)
+                        .disabled(name.isEmpty || targetMajor <= 0 || !windowIsValid)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: dismiss.callAsFunction)
@@ -44,33 +59,25 @@ struct AddGoalScreen: View {
         }
     }
 
+    @ViewBuilder private var planFooter: some View {
+        if !windowIsValid {
+            Text("End month must be on or after the start month.")
+                .foregroundStyle(Theme.Palette.bad)
+        } else if targetMajor > 0 {
+            Text("≈ \(monthlyAmount.formatted) / month over \(monthCount) month\(monthCount == 1 ? "" : "s").")
+        }
+    }
+
     private func save() {
         let goal = Goal(
             name: name,
             iconName: iconName,
-            target: Money(major: targetMajor, currency: .vnd),
-            targetDate: targetDate,
-            schedule: makeSchedule()
+            target: target,
+            startMonth: startMonth,
+            endMonth: endMonth,
+            schedule: GoalScheduleBuilder.flatSchedule(target: target, start: startMonth, end: endMonth)
         )
         onSave(goal)
         dismiss()
-    }
-
-    private func makeSchedule() -> [ScheduledContribution] {
-        guard monthlyMajor > 0 else { return [] }
-        let calendar = Calendar.current
-        let amount = Money(major: monthlyMajor, currency: .vnd)
-        let start = calendar.dateComponents([.year, .month], from: .now)
-        let end = calendar.dateComponents([.year, .month], from: targetDate)
-        var year = start.year ?? 0
-        var month = start.month ?? 1
-        let endIndex = (end.year ?? 0) * 12 + ((end.month ?? 1) - 1)
-        var result: [ScheduledContribution] = []
-        while year * 12 + (month - 1) <= endIndex && result.count < 600 {
-            result.append(ScheduledContribution(year: year, month: month, amount: amount))
-            month += 1
-            if month > 12 { month = 1; year += 1 }
-        }
-        return result
     }
 }
