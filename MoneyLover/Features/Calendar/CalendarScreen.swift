@@ -32,7 +32,8 @@ struct CalendarScreen: View {
                             let input = InputStore(
                                 sources: SourceRepository(context: context),
                                 transactions: TransactionRepository(context: context),
-                                envelopes: EnvelopeRepository(context: context)
+                                envelopes: EnvelopeRepository(context: context),
+                                goals: GoalRepository(context: context)
                             )
                             input.load()
                             inputStore = input

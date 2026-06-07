@@ -17,9 +17,11 @@ final class SourceFreshnessUITests: XCTestCase {
         XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
                       "Input hub did not appear")
 
-        // 2. Create sources in another tab, after the Input store already loaded.
+        // 2. Create sources in another tab, after the Input store already loaded. Use the waiting
+        //    tap: a raw `element(_:).tap()` right after a tab switch races the Config list's first
+        //    render and fails as "No matches found for config.seedSample" (see `tapElement`).
         app.selectTab("Config")
-        app.element(A11y.Config.seedSample).tap()
+        app.tapElement(A11y.Config.seedSample)
 
         // 3. Back on Add, the freshly-created sources must be selectable in the expense picker.
         app.selectTab("Add")
