@@ -18,12 +18,77 @@ env:
   DESTINATION: "platform=iOS Simulator,name=iPhone 17,OS=latest"
 
 jobs:
+  # 0. Detect whether this push/PR touches anything that ships in (or builds)
+  #    the app. If only docs / .claude skills / repo config changed, the binary
+  #    is byte-for-byte identical, so build + tests are skipped below.
+  #
+  #    IMPORTANT — why skip at the *job* level (if:) and not via `on: paths`:
+  #    build/unit-tests/ui-smoke are *required* status checks (main ruleset).
+  #    A `paths-ignore` filter would make the whole workflow not run, leaving
+  #    those required checks "Expected — waiting" forever and wedging the PR.
+  #    A job skipped by an `if:` condition instead reports a "skipped"
+  #    conclusion, which GitHub counts as a *pass* for required checks. So the
+  #    workflow always triggers; this cheap Ubuntu job decides the rest.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect app / test code changes
+        id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          # Pick the diff base. PR: the base branch tip. Push: the previous tip.
+          # Manual dispatch / first push (all-zero before): no base → run everything.
+          if [ "$EVENT" = "pull_request" ]; then
+            base="$BASE_SHA"
+          elif [ "$EVENT" = "push" ] && [ "${BEFORE_SHA:-}" != "0000000000000000000000000000000000000000" ]; then
+            base="${BEFORE_SHA:-}"
+          else
+            base=""
+          fi
+
+          if [ -z "$base" ]; then
+            echo "No diff base (manual/initial run) — running full CI."
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed="$(git diff --name-only "$base" HEAD)"
+          echo "Changed files:"
+          echo "$changed"
+
+          # Paths that affect the shipped/built app: the three source+test
+          # folders, plus project.yml (XcodeGen build definition — changing it
+          # can alter the build without touching a source file) and this CI
+          # file itself (so workflow edits are validated by a real run).
+          if echo "$changed" | grep -Eq '^(MoneyLover/|MoneyLoverTests/|MoneyLoverUITests/|project\.yml$|\.github/workflows/ci\.yml$)'; then
+            echo "Build/test-affecting changes detected → running CI."
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No build/test-affecting changes → skipping build + tests."
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # 1. Type-check + build. In Swift, compilation IS the type check, so this one
   #    job covers both. build-for-testing also compiles the unit + UI test
   #    targets, then we tar the products (preserving the +x bit, which
   #    upload-artifact's zip would drop) for the test jobs to reuse.
   build:
     name: build
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: macos-26
     timeout-minutes: 30
     steps:
@@ -95,7 +160,8 @@ jobs:
   # 2. Unit tests (Swift Testing) — reuse the compiled products, no rebuild.
   unit-tests:
     name: unit-tests
-    needs: build
+    needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: macos-26
     timeout-minutes: 20
     steps:
@@ -143,7 +209,8 @@ jobs:
   #    suite creeping past the 5-min budget (sim boot + exec).
   ui-smoke:
     name: ui-smoke
-    needs: build
+    needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: macos-26
     timeout-minutes: 12
     steps:

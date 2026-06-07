@@ -34,3 +34,11 @@ New UI tests are **Full-only by default**. A test is promoted to Smoke only if i
 - A regression only the Full suite catches can merge during the day and surfaces as the nightly sticky issue the next morning — an accepted trade for fast PRs. Promote such a test (or its cheaper proxy) into Smoke if it must gate PRs.
 - The smoke budget is a maintained constraint: adding to `Smoke.xctestplan` means checking the 5-min budget and the `timeout-minutes` backstop, and considering dropping an older smoke test to Full-only.
 - Branch protection must be applied once via the script (and re-applied after editing the ruleset JSON); it is not automatic on clone.
+
+## Amendment (2026-06-07): skip build + tests when no app/test code changed
+
+`ci.yml` now opens with a cheap `changes` job (Ubuntu, ~git diff) that decides whether the push/PR touches anything that ships in or builds the app: the `MoneyLover/`, `MoneyLoverTests/`, `MoneyLoverUITests/` folders, `project.yml` (the XcodeGen build definition), or `ci.yml` itself. If none changed — a docs-only, `.claude/skills/`, or repo-config PR — `build`, `unit-tests`, and `ui-smoke` are gated off with `if: needs.changes.outputs.code == 'true'` and don't burn macOS runner minutes. This is the CI analogue of ADR-0008's "no app logic → no version bump": an identical binary needn't be rebuilt or retested.
+
+This is **not** the per-PR risk-based *test selection* rejected above (a path→test map that drifts). It's a coarse, binary "did any buildable code change at all" gate — all-or-nothing, no mapping to maintain.
+
+The gate is expressed at the **job** level, not via `on: paths-ignore`, on purpose: `build`/`unit-tests`/`ui-smoke` are *required* checks, and a path-filtered workflow that never runs would leave them perpetually "Expected" and wedge the PR. A job skipped by an `if:` condition instead reports a `skipped` conclusion, which GitHub counts as a pass for required checks — so the merge gate stays satisfied while the work is skipped. The ruleset in `.github/rulesets/main.json` is unchanged. `nightly.yml` is schedule-driven and unaffected.
