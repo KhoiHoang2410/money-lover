@@ -15,7 +15,7 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Add tab → Transfer (same currency) | From = MBBank, To = Savings, amount 1,000,000 | Form accepts |
+| 1 | Calendar + → Transfer (same currency) | From = MBBank, To = Savings, amount 1,000,000 | Form accepts |
 | 2 | Tap Save | — | MBBank = **M − 1,000,000₫**; Savings = **S + 1,000,000₫** |
 | 3 | Read net worth | — | **N unchanged** (money moved, not spent) |
 | 4 | Read Envelopes | — | No Envelope remaining changed |
@@ -33,7 +33,7 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Add tab → Transfer | From = VPBank, To = VPBank Credit, amount = 2,000,000 | Form accepts a Liability as a transfer target |
+| 1 | Calendar + → Transfer | From = VPBank, To = VPBank Credit, amount = 2,000,000 | Form accepts a Liability as a transfer target |
 | 2 | Tap Save | — | VPBank Account = **A − 2,000,000₫**; VPBank Credit debt = **D − 2,000,000₫** |
 | 3 | Read net worth | — | **N unchanged** (Asset down and Debt down by the same amount) |
 

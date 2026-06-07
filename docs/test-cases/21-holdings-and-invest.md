@@ -45,7 +45,7 @@
 - **Priority:** High
 - **Type:** Positive
 - **Automation:** `InvestTradeUITests.testBuyDebitsAccountAndPersists`
-- **Preconditions:** Add → Add transaction.
+- **Preconditions:** Calendar → floating +.
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|

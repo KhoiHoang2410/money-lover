@@ -15,7 +15,7 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Add tab → "Update balances" | — | Reconcile screen lists sources with computed balances |
+| 1 | Config → Update balances | — | Reconcile screen lists sources with computed balances |
 | 2 | Enter real Cash balance | C + 80,000 | Record enabled (a real balance now differs) |
 | 3 | Tap Record | — | An **Adjustment** of **+80,000₫** is created carrying a description + Envelope; Cash now equals C + 80,000; screen dismisses |
 

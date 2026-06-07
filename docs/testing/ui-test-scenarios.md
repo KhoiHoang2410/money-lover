@@ -64,7 +64,7 @@ reveals a real VND figure; toggling again re-hides it.
 ## S4 — Log a quick cash expense
 **Goal:** As the owner, log a 45,000₫ coffee against Food from Cash (PRD #10).
 **Steps:**
-1. Add tab → "Add transaction".
+1. Calendar → floating +.
 2. Type 45000 into Amount.
 3. From = Cash; Envelope = Food.
 4. Tap Save.
@@ -75,7 +75,7 @@ and the expense reduces Cash / Food remaining.
 ## S5 — Move money across currencies (Wise SGD → VPBank VND)
 **Goal:** As the owner, transfer SGD to VND and let the app compute the Fee (PRD #16).
 **Steps:**
-1. Add tab → "Add transaction".
+1. Calendar → floating +.
 2. Type = Transfer; Method = Cross-currency.
 3. From = Wise SGD; To = VPBank.
 4. Amount out 100; Amount in 1,800,000; Rate 18,500.
@@ -87,7 +87,7 @@ numbers are present; saving returns to the Add hub.
 ## S6 — Reconcile a drifted balance
 **Goal:** As the owner, correct Cash after forgotten small spends (PRD #40/41).
 **Steps:**
-1. Add tab → "Update balances".
+1. Config → Update balances.
 2. Enter a real Cash balance different from the computed one.
 3. Tap Record.
 **Expected:** Record is disabled until a real balance differs; once it does, an Adjustment is created

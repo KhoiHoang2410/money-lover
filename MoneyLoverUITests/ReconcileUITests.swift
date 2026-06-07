@@ -1,15 +1,14 @@
 import XCTest
 
 /// Scenario 5 — Reconcile (PRD #40/41). The owner re-enters a source's real balance; any drift
-/// must enable Record so it can be logged as an Adjustment.
+/// must enable Record so it can be logged as an Adjustment. Update balances now lives under
+/// Config → Update balances (the Add tab was replaced by the Charts tab).
 final class ReconcileUITests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
     func testEnteringRealBalanceEnablesRecord() {
         let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
-        app.element(A11y.Input.reconcile).tap()
-        XCTAssertTrue(app.navigationBars["Update balances"].waitForExistence(timeout: 5))
+        app.openReconcile()
 
         let record = app.buttons[A11y.Reconcile.record]
         XCTAssertTrue(record.waitForExistence(timeout: 5))
@@ -21,8 +20,8 @@ final class ReconcileUITests: XCTestCase {
         XCTAssertTrue(record.isEnabled, "Record should enable once a real balance differs from computed")
         record.tap()
 
-        XCTAssertTrue(app.element(A11y.Input.reconcile).waitForExistence(timeout: 5),
-                      "Did not return to Input hub after recording the adjustment")
+        XCTAssertTrue(app.element(A11y.Config.reconcile).waitForExistence(timeout: 5),
+                      "Did not return to Config after recording the adjustment")
     }
 
     /// Effect Contract: recording a real balance posts an Adjustment, so the source row equals the
@@ -33,13 +32,11 @@ final class ReconcileUITests: XCTestCase {
         let nwBefore = app.revealedNetWorth()
         let cashBefore = app.revealedSourceRow("Cash")
 
-        app.selectTab("Add")
-        app.element(A11y.Input.reconcile).tap()
-        XCTAssertTrue(app.navigationBars["Update balances"].waitForExistence(timeout: 5))
+        app.openReconcile()
         // Cash seeds to 1,500,000 — re-enter 1,400,000 to create a −100,000 drift.
         app.typeInField(A11y.Reconcile.field("Cash"), "1400000")
         app.buttons[A11y.Reconcile.record].tap()
-        XCTAssertTrue(app.element(A11y.Input.reconcile).waitForExistence(timeout: 5))
+        XCTAssertTrue(app.element(A11y.Config.reconcile).waitForExistence(timeout: 5))
 
         // The Adjustment moved both the Cash row and net worth.
         let cashAfter = app.revealedSourceRow("Cash")

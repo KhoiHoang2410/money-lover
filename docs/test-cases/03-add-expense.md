@@ -15,7 +15,7 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Add tab → "Add transaction" | — | Expense entry shown |
+| 1 | Calendar → floating + | — | Expense entry shown |
 | 2 | Type amount | 45000 | Field accepts 45,000₫ |
 | 3 | Set From, Envelope | From = Cash, Envelope = Food | Selections reflected |
 | 4 | Tap Save | — | Dismisses to Add hub; **Cash − 45,000₫**; **Food remaining − 45,000₫** |

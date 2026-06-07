@@ -13,16 +13,13 @@ final class IncomeUITests: XCTestCase {
         let vpBefore = app.revealedSourceRow("VPBank")
 
         // Income of 5,000,000₫ into VPBank, with a unique note to find downstream.
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Income")
         app.selectPickerOption(A11y.Txn.source, "VPBank")
         app.typeInField(A11y.Txn.amount, "5000000")
         app.typeInField(A11y.Txn.note, "inc-5m")
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after saving income")
+        app.assertReturnedToCalendar("Did not return to the Calendar after saving income")
 
         // FRESHNESS — net worth and the account both rise; income shows on today's calendar.
         XCTAssertNotEqual(nwBefore, app.revealedNetWorth(),

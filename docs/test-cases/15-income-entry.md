@@ -15,7 +15,7 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Add tab → Income | amount 10,000,000, To = MBBank | Form accepts |
+| 1 | Calendar + → Income | amount 10,000,000, To = MBBank | Form accepts |
 | 2 | Tap Save | — | MBBank = **M + 10,000,000₫**; net worth = **N + 10,000,000₫** |
 
 - **Postconditions:** One Income persisted.

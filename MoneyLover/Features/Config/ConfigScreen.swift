@@ -15,6 +15,10 @@ struct ConfigScreen: View {
                         Label("Sources & balances", systemImage: "building.columns.fill")
                     }
                     .accessibilityIdentifier(A11y.Config.sources)
+                    NavigationLink(value: ConfigRoute.reconcile) {
+                        Label("Update balances", systemImage: "checkmark.circle.badge.questionmark")
+                    }
+                    .accessibilityIdentifier(A11y.Config.reconcile)
                     NavigationLink(value: ConfigRoute.holdings) {
                         Label("Holdings (gold & stock)", systemImage: "chart.pie.fill")
                     }
@@ -99,6 +103,7 @@ struct ConfigScreen: View {
                 case .sources: SourcesScreen()
                 case .holdings: HoldingsScreen()
                 case .envelopes: EnvelopesScreen()
+                case .reconcile: ReconcileScreen()
                 case .monthEnd: MonthEndScreen()
                 case .rates: RatesScreen()
                 case .advice: AdviceScreen()
