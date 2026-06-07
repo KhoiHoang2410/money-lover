@@ -4,6 +4,12 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.14.0] — Calendar: weekend columns & circular days
+
+### Changed
+- **Weekend columns read red (feat):** the Saturday and Sunday weekday headers and their day numbers in the calendar grid now render in red, matching the common at-a-glance weekend cue.
+- **Day cells are now full circles (feat):** each calendar day's background, today tint, and selected ring are circular rather than rounded rectangles.
+
 ## [0.13.0] — Goals: start & end month
 
 ### Changed

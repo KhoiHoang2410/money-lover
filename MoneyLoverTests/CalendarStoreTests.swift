@@ -50,6 +50,22 @@ import SwiftData
         #expect(store.selectedDay == 31)
     }
 
+    @Test func isWeekendTrueForSaturdayAndSunday() {
+        // May 2026: 2nd/9th = Saturday, 3rd/10th = Sunday.
+        let store = makeStore(year: 2026, month: 5, today: date(2026, 5, 31))
+        #expect(store.isWeekend(2))
+        #expect(store.isWeekend(3))
+        #expect(store.isWeekend(9))
+        #expect(store.isWeekend(10))
+    }
+
+    @Test func isWeekendFalseForWeekdays() {
+        // May 2026: 1st = Friday, 4th = Monday.
+        let store = makeStore(year: 2026, month: 5, today: date(2026, 5, 31))
+        #expect(!store.isWeekend(1))
+        #expect(!store.isWeekend(4))
+    }
+
     // MARK: - Feat 1 & 5: add-date prefill and delete
 
     @Test func prefillDateUsesSelectedDay() {
