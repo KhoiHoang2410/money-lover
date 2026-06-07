@@ -15,8 +15,8 @@
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
-| 1 | Calendar + → Transfer → Cross-currency | — | Cross-currency form shown |
-| 2 | Set From = Wise SGD, To = VPBank | — | Selections reflected |
+| 1 | Calendar + → Transfer | — | Transfer form shown with a single Amount |
+| 2 | Set From = Wise SGD, To = VPBank | — | Sources differ in currency ⇒ form reveals Amount out / Amount in / Rate |
 | 3 | Enter amount out / in / rate | out 100, in 1,800,000, rate 18,500 | A Fee row appears = **out × rate − in = 50,000₫** |
 | 4 | Tap Save | — | Wise SGD − 100 SGD; VPBank + 1,800,000₫; saved transfer carries the Fee; returns to Add hub |
 
@@ -29,7 +29,7 @@
 - **Priority:** High
 - **Type:** Negative
 - **Automation:** CrossCurrencyTransferUITests.testCrossCurrencyTransferComputesFeeAndSaves
-- **Preconditions:** Cross-currency form open, From/To set.
+- **Preconditions:** Transfer form open with From/To of differing currencies (Amount out / in / Rate shown).
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|
@@ -77,7 +77,7 @@
 - **Priority:** Low
 - **Type:** Edge
 - **Automation:** none (candidate)
-- **Preconditions:** Cross-currency form, From = Wise SGD, To = VPBank.
+- **Preconditions:** Transfer form, From = Wise SGD, To = VPBank (differing currencies ⇒ cross-currency fields shown).
 
 | # | Step | Test Data | Expected Result |
 |---|------|-----------|-----------------|

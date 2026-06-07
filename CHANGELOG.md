@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.18.0] — One Transfer mode that adapts to currency
+
+### Changed
+- **Same-currency and cross-currency Transfer are now one mode (feat):** the Transfer **Method** switch no longer asks you to pick "Same currency" vs "Cross-currency" up front. A single **Transfer** mode now decides from the Sources you pick — when From and To share a currency it shows a single **Amount**; when they differ it reveals **Amount out / Amount in / Rate** and the computed **Fee**. The form shifts layout as you change Sources. Pay-card and Goal modes are unchanged. No change to how transfers are stored or to balances.
+
 ## [0.17.0] — Consistent number formatting on every input
 
 ### Changed
