@@ -4,7 +4,7 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
-## [0.6.0] — Editable balances & caps, adjustment delete, data backup
+## [0.7.0] — Editable balances & caps, adjustment delete, data backup
 
 ### Added
 - **Edit sources & holdings (feat):** tap a row in Config → Sources or Config → Holdings to edit it in place — including updating an account/card's **opening balance** or a holding's **opening quantity**. The forms reuse the add screen, pre-filled.
@@ -17,6 +17,16 @@ pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped versi
 
 ### Fixed
 - **Clear all data now refreshes immediately (feat):** the DEBUG "Clear all data" deleted records via a batch delete whose `save()` posted no `didSave`, so screens kept stale rows until relaunch. It now deletes per-record, firing the change notification that reloads every store.
+
+## [0.6.0] — Transaction form improvements
+
+### Added
+- **Icons in the From/Into/Envelope/Holding pickers:** the Add-transaction and Backfill forms now show each source's bundled bank/brand logo (or its SF Symbol) and each envelope's icon inline in the menu pickers, so options are recognizable at a glance, not just by name.
+- **Remembered picker defaults:** the form prefills the last-committed From/Into account, transfer From/To, invest account, and envelope for the next *new* transaction (per kind), and updates that default whenever you save with a different pick. Editing an existing transaction never changes the remembered defaults.
+- **"OK" keyboard accessory:** every amount/number/note field in the Add-transaction and Backfill forms now shows an **OK** button above the keyboard to accept the value and dismiss the keyboard (the decimal pad has no return key).
+
+### Fixed
+- **Backfill amount grouping:** the Backfill amount field now groups thousands live as you type (e.g. `1,000,000`), matching the Add-transaction field, instead of showing the raw digits until commit.
 
 ## [0.5.0] — Holdings & investing, calendar editing, starter envelopes, voice removal
 

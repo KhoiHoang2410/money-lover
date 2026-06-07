@@ -49,6 +49,8 @@ enum A11y {
         static let unitPrice = "txn.unitPrice"
         static let date = "txn.date"
         static let delete = "txn.delete"
+        /// The keyboard accessory button that accepts the value and dismisses the keyboard.
+        static let keyboardDone = "txn.keyboardDone"
     }
 
     enum Reconcile {
