@@ -63,8 +63,8 @@ _Avoid_: Savings, default, surplus
 ### Goals
 
 **Goal**:
-A long-term savings target (house, car, travel) with a name, target amount, target date, and a funding Schedule. A Goal holds a real balance — the accumulated Contributions — and is counted as an Asset in net worth. Money put toward a Goal accumulates and does not reset. (Investing is not a Goal — it is a Holding.)
-_Avoid_: Plan, target
+A long-term savings target (house, car, travel) with a name, target amount, a **funding window** (start month → end month), and a funding Schedule. Contributions happen monthly, so the window is month-based — a start and end *month*, not an exact day. A Goal holds a real balance — the accumulated Contributions — and is counted as an Asset in net worth. Money put toward a Goal accumulates and does not reset. (Investing is not a Goal — it is a Holding.)
+_Avoid_: Plan, target, target date
 
 **Contribution**:
 A dated movement of money from a VND Account into a Goal, recorded as a Transfer (the Account's balance decreases and the Goal's balance increases by the same amount, so net worth is unchanged — one Asset becomes another). VND-only for now — foreign-currency Accounts cannot fund a Goal. A Goal's balance is the sum of its Contributions. See `docs/adr/0007-goals-are-funded-assets.md`.

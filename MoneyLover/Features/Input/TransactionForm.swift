@@ -69,6 +69,8 @@ struct TransactionForm: View {
         Form {
             if isAdjustment {
                 adjustmentSummary
+            } else if isGoalContribution {
+                goalContributionSummary
             } else {
                 Picker("Type", selection: $kind) {
                     Text("Expense").tag(TransactionKind.expense)
@@ -94,7 +96,7 @@ struct TransactionForm: View {
                 }
             }
 
-            if editing != nil, onDelete != nil {
+            if editing != nil, onDelete != nil, !isGoalContribution {
                 Section {
                     Button("Delete transaction", role: .destructive) {
                         if confirmBeforeDelete { confirmingDelete = true } else { performDelete() }
@@ -107,7 +109,7 @@ struct TransactionForm: View {
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if !isAdjustment {
+            if !isAdjustment, !isGoalContribution {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save).disabled(!canSave)
                         .accessibilityIdentifier(A11y.Txn.save)
@@ -141,8 +143,14 @@ struct TransactionForm: View {
     /// signed balance-fix), but it can still be deleted from here (feat).
     private var isAdjustment: Bool { editing?.kind == .adjustment }
 
+    /// Editing a Goal contribution: a `.transfer` carrying a `goalID` (ADR-0007). Shown read-only —
+    /// the everyday form can't represent it, and contributions have no undo here (it would also
+    /// silently drop the `goalID` on save, since the Calendar lists it by date like any entry).
+    private var isGoalContribution: Bool { editing?.kind == .transfer && editing?.goalID != nil }
+
     private var navigationTitle: String {
         if isAdjustment { return "Adjustment" }
+        if isGoalContribution { return "Goal contribution" }
         return editing == nil ? "Add transaction" : "Edit transaction"
     }
 
@@ -165,6 +173,34 @@ struct TransactionForm: View {
                 }
             } footer: {
                 Text("A balance Adjustment recorded by Update balances. It can't be edited here — delete it to remove its effect on the balance.")
+            }
+        }
+    }
+
+    /// Read-only summary of a Goal contribution (a `.transfer` to a Goal). It can be viewed but not
+    /// edited or undone from here (ADR-0007).
+    @ViewBuilder
+    private var goalContributionSummary: some View {
+        if let contribution = editing {
+            Section {
+                LabeledContent("Amount") {
+                    Text(contribution.amount.amount, format: .currency(code: contribution.amount.currency.rawValue))
+                        .foregroundStyle(Theme.Palette.ink)
+                }
+                if let goalName = store.goals.first(where: { $0.id == contribution.goalID })?.name {
+                    LabeledContent("Goal") { Text(goalName) }
+                }
+                if let fromName = store.sources.first(where: { $0.id == contribution.sourceID })?.name {
+                    LabeledContent("From") { Text(fromName) }
+                }
+                if !contribution.note.isEmpty {
+                    LabeledContent("Note") { Text(contribution.note) }
+                }
+                LabeledContent("Date") {
+                    Text(contribution.date, format: .dateTime.day().month().year())
+                }
+            } footer: {
+                Text("A contribution to a goal. It can't be edited or undone here.")
             }
         }
     }
@@ -237,11 +273,22 @@ struct TransactionForm: View {
                 ForEach(fromOptions) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
             }
             .accessibilityIdentifier(A11y.Txn.source)
-            Picker("To", selection: $toID) {
-                Text("Select…").tag(UUID?.none)
-                ForEach(toOptions) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
+            if method == .goal {
+                // "To" is a Goal, not a Source — a contribution funds the Goal directly (ADR-0007).
+                Picker("To", selection: $toID) {
+                    Text("Select…").tag(UUID?.none)
+                    ForEach(store.goals) { goal in
+                        Label(goal.name, systemImage: goal.iconName).tag(Optional(goal.id))
+                    }
+                }
+                .accessibilityIdentifier(A11y.Txn.destination)
+            } else {
+                Picker("To", selection: $toID) {
+                    Text("Select…").tag(UUID?.none)
+                    ForEach(toOptions) { SourcePickerLabel(source: $0).tag(Optional($0.id)) }
+                }
+                .accessibilityIdentifier(A11y.Txn.destination)
             }
-            .accessibilityIdentifier(A11y.Txn.destination)
         }
         Section {
             amountField(method == .crossCurrency ? "Amount out" : "Amount", text: $amountText, value: $amountMajor, focus: .amount, id: A11y.Txn.amount)
@@ -375,7 +422,12 @@ struct TransactionForm: View {
     }
 
     private var fromOptions: [Source] {
-        method == .payCard ? store.sources.filter { $0.kind == .account } : spendableSources
+        switch method {
+        case .payCard: store.sources.filter { $0.kind == .account }
+        // Only VND Accounts can fund a Goal (ADR-0007 — foreign-currency Accounts are excluded).
+        case .goal: vndAccounts
+        default: spendableSources
+        }
     }
 
     private var toOptions: [Source] {
@@ -427,6 +479,10 @@ struct TransactionForm: View {
         case .expense, .income:
             return selectedSource != nil && amountMajor > 0
         case .transfer:
+            if method == .goal {
+                // "To" holds the chosen Goal's id (not a Source); needs a funding Account + amount.
+                return fromSource != nil && toID != nil && amountMajor > 0
+            }
             guard let from = fromSource, let to = toSource, from.id != to.id, amountMajor > 0 else { return false }
             return method != .crossCurrency || (amountInMajor > 0 && rate > 0)
         case .invest:
@@ -459,7 +515,22 @@ struct TransactionForm: View {
                 sourceID: source.id, note: note
             ), backfillSource: backfillSource(source))
         case .transfer:
-            guard let from = fromSource, let to = toSource else { return }
+            guard let from = fromSource else { return }
+            if method == .goal {
+                // A Goal contribution: a one-way `.transfer` from a VND Account to the Goal, with no
+                // destination Source (ADR-0007). There's no undo for this in the form.
+                guard let goalID = toID else { return }
+                let goalName = store.goals.first { $0.id == goalID }?.name ?? "goal"
+                persist(Transaction(
+                    id: id, date: date, kind: .transfer,
+                    amount: Money(major: amountMajor, currency: from.currency),
+                    sourceID: from.id,
+                    note: note.isEmpty ? "→ \(goalName)" : note,
+                    goalID: goalID
+                ))
+                return
+            }
+            guard let to = toSource else { return }
             let out = Money(major: amountMajor, currency: from.currency)
             if method == .crossCurrency {
                 let received = Money(major: amountInMajor, currency: to.currency)
@@ -542,7 +613,8 @@ struct TransactionForm: View {
             if let sourceID { defaultIncomeSource = sourceID.uuidString }
         case .transfer:
             if let fromID { defaultTransferFrom = fromID.uuidString }
-            if let toID { defaultTransferTo = toID.uuidString }
+            // In Goal mode `toID` is a Goal id, not a Source — don't store it as a transfer default.
+            if method != .goal, let toID { defaultTransferTo = toID.uuidString }
         case .invest:
             if let accountID { defaultInvestAccount = accountID.uuidString }
         case .adjustment:
@@ -567,6 +639,8 @@ struct TransactionForm: View {
             applyDefaults(for: kind)
             return
         }
+        // A Goal contribution renders read-only (goalContributionSummary) — no fields to populate.
+        if t.kind == .transfer, t.goalID != nil { return }
         kind = t.kind
         date = t.date
         note = t.note

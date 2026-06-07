@@ -13,6 +13,12 @@ on:
     - cron: "0 18 * * *"
   workflow_dispatch:
 
+# Least-privilege default GITHUB_TOKEN scope. The build/test jobs only check
+# out code and handle artifacts; the `report` job overrides this with its own
+# block to add `issues: write` for the sticky-issue upsert.
+permissions:
+  contents: read
+
 concurrency:
   group: nightly-full
   cancel-in-progress: false

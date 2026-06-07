@@ -9,7 +9,8 @@ extension GoalRecord {
             name: g.name,
             iconName: g.iconName,
             targetMinorUnits: g.target.minorUnits,
-            targetDate: g.targetDate,
+            startMonthIndex: g.startMonth.index,
+            endMonthIndex: g.endMonth.index,
             scheduleData: data
         )
     }
@@ -21,7 +22,8 @@ extension GoalRecord {
             name: name,
             iconName: iconName,
             target: Money(minorUnits: targetMinorUnits, currency: .vnd),
-            targetDate: targetDate,
+            startMonth: YearMonth(index: startMonthIndex),
+            endMonth: YearMonth(index: endMonthIndex),
             schedule: schedule
         )
     }
@@ -30,7 +32,8 @@ extension GoalRecord {
         name = g.name
         iconName = g.iconName
         targetMinorUnits = g.target.minorUnits
-        targetDate = g.targetDate
+        startMonthIndex = g.startMonth.index
+        endMonthIndex = g.endMonth.index
         scheduleData = (try? JSONEncoder().encode(g.schedule)) ?? Data()
     }
 }

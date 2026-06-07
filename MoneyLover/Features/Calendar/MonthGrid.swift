@@ -32,7 +32,11 @@ struct MonthGrid: View {
 
             LazyVGrid(columns: columns, spacing: 5) {
                 ForEach(weekdays.indices, id: \.self) { index in
-                    Text(weekdays[index]).font(.caption2).foregroundStyle(.secondary)
+                    // Index 0 = Sunday, 6 = Saturday — weekend columns read red.
+                    let isWeekend = index == 0 || index == 6
+                    Text(weekdays[index])
+                        .font(.caption2)
+                        .foregroundStyle(isWeekend ? AnyShapeStyle(Theme.Palette.bad) : AnyShapeStyle(.secondary))
                 }
                 ForEach(0..<(store.firstWeekday - 1), id: \.self) { _ in
                     Color.clear.frame(height: 52)
@@ -59,7 +63,13 @@ struct MonthGrid: View {
         Button {
             store.selectedDay = (store.selectedDay == day) ? nil : day
         } label: {
-            DayCell(day: day, net: net, isSelected: store.selectedDay == day, isToday: store.isToday(day))
+            DayCell(
+                day: day,
+                net: net,
+                isSelected: store.selectedDay == day,
+                isToday: store.isToday(day),
+                isWeekend: store.isWeekend(day)
+            )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(A11y.Calendar.day(day))

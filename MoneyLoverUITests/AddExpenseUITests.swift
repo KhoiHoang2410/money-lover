@@ -1,16 +1,14 @@
 import XCTest
 
 /// Scenario 3 — manual Expense entry (PRD #10). The owner logs a coffee against the Food envelope
-/// from Cash. Save must commit and return to the Input hub.
+/// from Cash. Save must commit and dismiss back to the Calendar. Since the Add tab was replaced by
+/// the Charts tab, the only add-transaction entry point is the Calendar's floating +.
 final class AddExpenseUITests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
     func testAddExpenseSavesAndReturns() {
         let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
-
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
 
         app.typeInField(A11y.Txn.amount, "45000")
         app.selectPickerOption(A11y.Txn.source, "Cash")
@@ -20,12 +18,11 @@ final class AddExpenseUITests: XCTestCase {
         XCTAssertTrue(save.isEnabled, "Save should be enabled once amount + source are set")
         save.tap()
 
-        // Dismissed back to the Input hub.
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after saving")
+        // Dismissed back to the Calendar.
+        app.assertReturnedToCalendar("Did not return to the Calendar after saving")
     }
 
-    /// The regression that created `docs/test-cases/`: a write in the Add tab must reflect on every
+    /// The regression that created `docs/test-cases/`: a write in the entry form must reflect on every
     /// OTHER surface in the same session (freshness), then survive a cold start (persistence).
     /// `testAddExpenseSavesAndReturns` above stops at "form dismissed" — the gap that let the
     /// "added an expense, nothing updated" bug ship. This is the grumpy version.
@@ -37,16 +34,13 @@ final class AddExpenseUITests: XCTestCase {
         let before = app.revealedNetWorth()
 
         // Add a 1,234₫ cash expense against Food, with a unique note to find it downstream.
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.typeInField(A11y.Txn.amount, "1234")
         app.selectPickerOption(A11y.Txn.source, "Cash")
         app.selectPickerOption(A11y.Txn.envelope, "Food")
         app.typeInField(A11y.Txn.note, "e2e-1234")
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after saving")
+        app.assertReturnedToCalendar("Did not return to the Calendar after saving")
 
         // FRESHNESS — the silo bug. The write must reflect in OTHER tabs with no relaunch.
         app.selectTab("Overview")
@@ -72,8 +66,7 @@ final class AddExpenseUITests: XCTestCase {
 
     func testSaveDisabledWithoutAmount() {
         let app = XCUIApplication.launchSeeded()
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
+        app.openNewTransaction()
 
         let save = app.buttons[A11y.Txn.save]
         XCTAssertTrue(save.waitForExistence(timeout: 5))

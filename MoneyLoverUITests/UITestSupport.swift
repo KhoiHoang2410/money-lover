@@ -121,7 +121,33 @@ extension XCUIApplication {
         return cell.label
     }
 
-    /// Tap a root tab by its visible title ("Overview", "Goals", "Calendar", "Add", "Config").
+    /// Open a fresh transaction form via the Calendar's floating **+** — the only add-transaction
+    /// entry point since the Add tab was replaced by the Charts tab. The Calendar selects today on
+    /// load, so the new transaction is prefilled with today's date. Leaves the form on screen.
+    func openNewTransaction(file: StaticString = #filePath, line: UInt = #line) {
+        selectTab("Calendar")
+        tapElement(A11y.Calendar.addTransaction, file: file, line: line)
+        XCTAssertTrue(navigationBars["Add transaction"].waitForExistence(timeout: 5),
+                      "Transaction form did not open from the Calendar +", file: file, line: line)
+    }
+
+    /// Assert the transaction form dismissed back to the Calendar (its floating + is showing again).
+    /// Replaces the old "returned to the Input hub" check now that the form is a Calendar sheet.
+    func assertReturnedToCalendar(_ message: String = "Transaction form did not dismiss back to the Calendar",
+                                  file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertTrue(element(A11y.Calendar.addTransaction).waitForExistence(timeout: 5),
+                      message, file: file, line: line)
+    }
+
+    /// Open Config → Update balances (the Reconcile screen moved here from the removed Add tab).
+    func openReconcile(file: StaticString = #filePath, line: UInt = #line) {
+        selectTab("Config")
+        tapElement(A11y.Config.reconcile, file: file, line: line)
+        XCTAssertTrue(navigationBars["Update balances"].waitForExistence(timeout: 5),
+                      "Update balances did not open from Config", file: file, line: line)
+    }
+
+    /// Tap a root tab by its visible title ("Overview", "Goals", "Calendar", "Charts", "Config").
     /// Tabs use SwiftUI's `Tab(_:systemImage:value:)`, which does not surface a custom identifier,
     /// so the title is the stable handle here.
     @discardableResult

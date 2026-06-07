@@ -15,17 +15,14 @@ final class TransferUITests: XCTestCase {
         let cashBefore = app.revealedSourceRow("Cash")
 
         // VPBank → Cash, same currency (both VND).
-        app.selectTab("Add")
-        app.element(A11y.Input.addTransaction).tap()
-        XCTAssertTrue(app.navigationBars["Add transaction"].waitForExistence(timeout: 5))
+        app.openNewTransaction()
         app.selectPickerOption(A11y.Txn.typePicker, "Transfer")
         app.selectPickerOption(A11y.Txn.method, "Same currency")
         app.selectPickerOption(A11y.Txn.source, "VPBank")
         app.selectPickerOption(A11y.Txn.destination, "Cash")
         app.typeInField(A11y.Txn.amount, "500000")
         app.buttons[A11y.Txn.save].tap()
-        XCTAssertTrue(app.element(A11y.Input.addTransaction).waitForExistence(timeout: 5),
-                      "Did not return to the Input hub after the transfer")
+        app.assertReturnedToCalendar("Did not return to the Calendar after the transfer")
 
         // FRESHNESS — both rows moved, net worth unchanged (Account→Account).
         let nwAfter = app.revealedNetWorth()

@@ -5,6 +5,7 @@ enum ConfigRoute: Hashable {
     case sources
     case holdings
     case envelopes
+    case reconcile
     case monthEnd
     case rates
     case advice
