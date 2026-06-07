@@ -1,4 +1,7 @@
-# SemVer versioning, bumped on every PR (pre-1.0 simplified)
+# SemVer versioning, bumped when application logic changes (pre-1.0 simplified)
+
+> **Current rule (2026-06-07):** a PR bumps the version **iff it changes application logic** — code that ships in the app bundle (`MoneyLover/` source, or `project.yml` settings that alter the build). PRs that change only tests, test refactors, CI, repo config, or docs ship an identical binary and do **not** bump. This generalises the "every PR" framing the body below was originally written against; see the 2026-06-07 amendment for the consolidation.
+
 
 The app carries two version numbers: **`MARKETING_VERSION`** — a `MAJOR.MINOR.PATCH` SemVer string (`https://semver.org/`) shown to the owner in the Config footer — and **`CURRENT_PROJECT_VERSION`** — a monotonic build integer for TestFlight/build uniqueness. Every PR bumps both as part of its own diff: the build integer always `+1`, and the SemVer string by the highest-priority change in the branch.
 
@@ -34,3 +37,11 @@ The complementary half of this decision: the **security-scan workflow never open
 The version is an **owner-facing** fact — it shows in the Config footer via `AppInfo` and distinguishes the builds the owner installs. A PR that changes **only** CI workflows, repository config, test plans/tests, or documentation ships **no** code logic into the app bundle: the binary the owner runs is byte-for-byte unchanged. Minting a new version for it would move the owner-facing number without an owner-facing change, making the version a less reliable signal of "what's actually different in my app."
 
 So an **infrastructure-only PR** — one whose diff touches only `.github/`, `scripts/`, `*.xctestplan`, `MoneyLover*Tests/`, `docs/`, `*.md`, and similar non-shipping paths — is **exempt** from the `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` / `CHANGELOG.md` bump. The version moves on the next PR that changes shipping code. This mirrors the bot-PR exemption above: no app change, no version. Any PR that touches `MoneyLover/` source (or `project.yml` settings that alter the build) is **not** exempt and bumps as normal. When in doubt, bump.
+
+## Amendment (2026-06-07): "bump on every PR" → "bump when application logic changes"
+
+The two 2026-06-06 amendments (bot PRs, infrastructure-only PRs) were both carving exceptions out of an "every PR bumps" default. With those carve-outs, the default no longer described reality. This amendment **restates the rule positively as the single principle**, superseding the "every PR" framing throughout the body above and in `CLAUDE.md` / `engineering.md §13`:
+
+> **A PR bumps `MARKETING_VERSION` (+ `CURRENT_PROJECT_VERSION` +1, + `CHANGELOG.md`) iff its diff changes application logic** — code that ships in the app bundle: `MoneyLover/` source, or `project.yml` settings that alter the build. Everything else is exempt: **test changes (new tests *and* test refactors)**, `*.xctestplan`, CI (`.github/`), `scripts/`, repo config, `docs/`, `*.md`, and bot-authored dependency PRs. The version moves on the next PR that changes shipping code.
+
+Rationale is unchanged from the two prior amendments — the version is an owner-facing signal of "what's different in *my app*", so the binary, not the PR count, is what it should track. Bump type when it *does* apply is still keyed off Conventional-Commits prefixes (`feat:`/breaking → MINOR; `fix:`/`refactor:` of app code → PATCH). **When in doubt, bump.**

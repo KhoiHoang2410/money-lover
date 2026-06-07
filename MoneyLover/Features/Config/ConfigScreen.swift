@@ -52,6 +52,10 @@ struct ConfigScreen: View {
                     } label: {
                         Label("Set up balances", systemImage: "wallet.bifold.fill")
                     }
+                    NavigationLink(value: ConfigRoute.backup) {
+                        Label("Backup & restore", systemImage: "arrow.up.arrow.down.circle.fill")
+                    }
+                    .accessibilityIdentifier(A11y.Config.backup)
                 }
 
                 Section {
@@ -97,6 +101,7 @@ struct ConfigScreen: View {
                 case .rates: RatesScreen()
                 case .advice: AdviceScreen()
                 case .appearance: AppearanceScreen()
+                case .backup: BackupScreen()
                 }
             }
             .navigationDestination(for: ChartsDestination.self) { _ in

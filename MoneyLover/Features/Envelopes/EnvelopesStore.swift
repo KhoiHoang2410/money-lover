@@ -39,6 +39,21 @@ final class EnvelopesStore {
         run { try envelopesRepo.add(envelope) }
     }
 
+    /// Saves an in-place edit of an existing envelope (same id): allocation and weekly/monthly caps.
+    func update(_ envelope: Envelope) {
+        run { try envelopesRepo.update(envelope) }
+    }
+
+    /// VND spent against the envelope in the current calendar week (for weekly-cap display).
+    func weekSpent(for envelope: Envelope) -> Money {
+        EnvelopeCapEngine.spentThisWeek(envelopeID: envelope.id, transactions: transactions)
+    }
+
+    /// VND spent against the envelope in the current calendar month (for monthly-cap display).
+    func monthSpent(for envelope: Envelope) -> Money {
+        EnvelopeCapEngine.spentThisMonth(envelopeID: envelope.id, transactions: transactions)
+    }
+
     func delete(at offsets: IndexSet) {
         let ids = offsets.map { envelopes[$0].id }
         run { for id in ids { try envelopesRepo.delete(id: id) } }

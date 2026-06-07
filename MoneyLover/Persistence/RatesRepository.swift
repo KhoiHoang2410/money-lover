@@ -33,6 +33,20 @@ final class RatesRepository {
         return Rates(fx: fx, goldPerChi: gold, stock: stock)
     }
 
+    /// Ensures a placeholder rate row exists for each key, so a newly-added foreign Account or
+    /// Holding immediately shows up on the Rates screen for the owner to fill in or refresh. Existing
+    /// keys (manual or fetched) are left untouched; missing ones are inserted at ₫0. Idempotent.
+    func ensure(keys: [String], at date: Date = .now) throws {
+        guard !keys.isEmpty else { return }
+        let existing = Set(try records().map(\.key))
+        let missing = keys.filter { !existing.contains($0) }
+        guard !missing.isEmpty else { return }
+        for key in missing {
+            context.insert(RateRecord(key: key, value: 0, isManual: false, fetchedAt: date))
+        }
+        try context.save()
+    }
+
     /// Upserts a single rate. Manual overrides are preserved unless `isManual` is set again.
     func upsert(key: String, value: Decimal, isManual: Bool, fetchedAt: Date) throws {
         let descriptor = FetchDescriptor<RateRecord>(predicate: #Predicate { $0.key == key })

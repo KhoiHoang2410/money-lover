@@ -170,6 +170,9 @@ enum SampleData {
 
     @MainActor
     static func clear(into context: ModelContext) {
+        // Reuse the release-safe wipe so there's one source of truth. It deletes per-record (not via
+        // `delete(model:)`), so `save()` fires `didSave` and every observing screen refreshes
+        // immediately instead of keeping stale rows until relaunch.
         try? DataReset.eraseAll(into: context)
     }
 }

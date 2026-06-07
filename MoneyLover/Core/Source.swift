@@ -2,7 +2,7 @@ import Foundation
 
 /// A place money lives: an Account, a Credit card (Liability), or a Holding.
 /// Pure domain value type — persistence maps to/from `SourceRecord`.
-struct Source: Identifiable, Hashable, Sendable {
+struct Source: Identifiable, Hashable, Sendable, Codable {
     let id: UUID
     var name: String
     var kind: SourceKind
