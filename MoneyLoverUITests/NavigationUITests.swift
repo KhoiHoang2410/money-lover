@@ -7,7 +7,7 @@ final class NavigationUITests: XCTestCase {
     func testAllTabsReachable() {
         let app = XCUIApplication.launchSeeded()
 
-        for tab in ["Overview", "Goals", "Calendar", "Add", "Config"] {
+        for tab in ["Overview", "Goals", "Calendar", "Charts", "Config"] {
             app.selectTab(tab)
         }
 
