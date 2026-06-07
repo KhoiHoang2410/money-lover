@@ -4,6 +4,11 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.8.0] — Delete all data
+
+### Added
+- **Delete all data (Config → App):** a destructive action that permanently erases every account, transaction, envelope, goal, and saved rate. It opens a confirmation sheet whose **Confirm** button is disabled for a 3-second think-time — the label counts down ("Confirm (3s)") and only becomes tappable once the cooldown elapses, so an irreversible wipe can't be triggered by reflex. Backed by a new release-safe `DataReset.eraseAll` (per-record deletes, so live screens refresh immediately), which the DEBUG `SampleData.clear` now reuses.
+
 ## [0.7.0] — Editable balances & caps, adjustment delete, data backup
 
 ### Added
