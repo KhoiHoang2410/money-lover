@@ -235,6 +235,12 @@ jobs:
           mkdir -p DerivedData/Build
           tar -xzf build-products.tar.gz -C DerivedData/Build
 
+      # Parallel testing clones the simulator into N workers and shards the test
+      # cases across them, cutting wall-clock ~Nx. Safe here because every UI
+      # test launches its own app backed by an in-memory SwiftData store
+      # (RootView.swift: inMemory: true) — no shared on-disk state to race on.
+      # Worker count is capped to the runner's core count; 3 fits the macOS
+      # runner comfortably and divides the 10-case smoke set well.
       - name: Run UI smoke tests
         run: |
           set -o pipefail
@@ -244,6 +250,8 @@ jobs:
             -xctestrun "$XCTESTRUN" \
             -destination "$DESTINATION" \
             -only-testing:MoneyLoverUITests \
+            -parallel-testing-enabled YES \
+            -parallel-testing-worker-count 3 \
             -resultBundlePath UISmokeResults.xcresult \
             CODE_SIGNING_ALLOWED=NO
 
