@@ -13,6 +13,7 @@ extension XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST"] = "1"
         app.launch()
+        app.waitUntilReady(seeded: true)
         return app
     }
 
@@ -23,6 +24,7 @@ extension XCUIApplication {
         app.launchEnvironment["UITEST"] = "1"
         app.launchEnvironment["UITEST_EMPTY"] = "1"
         app.launch()
+        app.waitUntilReady(seeded: false)
         return app
     }
 
@@ -34,6 +36,23 @@ extension XCUIApplication {
         launchEnvironment["UITEST_PRESERVE"] = "1"
         terminate()
         launch()
+        // Preserve relaunches re-open the on-disk store with no clear/seed, so there's no seed-commit
+        // race — gating on the shell is enough; the per-test post-relaunch reads wait on their own rows.
+        waitUntilReady(seeded: false)
+    }
+
+    /// Block until the app is ready to drive after a launch.
+    ///
+    /// The `TabView` (and its tab bar) renders immediately, but a `UITEST` launch clears + seeds the
+    /// store (~100 transactions) asynchronously *afterwards*. Handing control back at first render lets
+    /// the next step — opening the form and picking a seeded "Cash"/"Food", reading a balance — race
+    /// that seed and flake as "option did not appear". So for a seeded launch we additionally wait for
+    /// a seed marker (the always-seeded Cash source row on the initial Overview) to confirm the seed
+    /// committed. An empty/preserve launch has nothing to seed, so the shell wait is enough.
+    func waitUntilReady(seeded: Bool) {
+        _ = tabBars.firstMatch.waitForExistence(timeout: 20)
+        guard seeded else { return }
+        _ = element(A11y.Overview.sourceRow("Cash")).waitForExistence(timeout: 20)
     }
 
     // MARK: - Cross-surface assertion helpers (the Effect Contract — see docs/test-cases/)
@@ -203,10 +222,29 @@ extension XCUIApplication {
     /// Wait for an element (matched across all XCUI types by `identifier`) to exist, then tap it.
     /// `element(_:).tap()` on its own does NOT wait, so tapping right after a tab switch races the
     /// hub's first render — seen on CI as "No matches found for input.backfill" (`BackfillUITests`).
+    /// Also scrolls a below-the-fold row into view first (see `scrollToHittable`), so a row a lazy
+    /// list hasn't materialised — the Config Debug section's `config.seedSample` once the Config list
+    /// grew past one screen — is found and tapped instead of timing out as "not found".
     func tapElement(_ identifier: String, file: StaticString = #filePath, line: UInt = #line) {
         let target = element(identifier)
-        XCTAssertTrue(target.waitForExistence(timeout: 5), "Element '\(identifier)' not found", file: file, line: line)
+        XCTAssertTrue(scrollToHittable(target), "Element '\(identifier)' not found", file: file, line: line)
         target.tap()
+    }
+
+    /// Make `element` hittable, scrolling the screen up to a few times to pull a below-the-fold row
+    /// into a lazy List/Form's rendered — and therefore *accessible* — window. A plain existence wait
+    /// never sees a row the lazy list hasn't materialised yet, so a tap target near the bottom of a
+    /// long list (e.g. the Config Debug section) reads as "not found" without this. Returns whether
+    /// the element exists at the end; the caller still taps (XCUI auto-scrolls on tap), so this only
+    /// ever *adds* a chance to reveal the element — it never blocks a tap that would have worked.
+    @discardableResult
+    func scrollToHittable(_ element: XCUIElement, timeout: TimeInterval = 5, scrolls: Int = 6) -> Bool {
+        if element.waitForExistence(timeout: timeout) && element.isHittable { return true }
+        for _ in 0..<scrolls {
+            if element.exists && element.isHittable { return true }
+            swipeUp()
+        }
+        return element.exists
     }
 
     /// Drive a SwiftUI `Toggle` (surfaces as a switch) identified by `identifier` to `on`. Reads its

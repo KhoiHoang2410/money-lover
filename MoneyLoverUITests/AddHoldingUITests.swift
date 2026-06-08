@@ -9,7 +9,7 @@ final class AddHoldingUITests: XCTestCase {
         let app = XCUIApplication.launchSeeded()
 
         openHoldings(app)
-        app.element(A11y.Holding.add).tap()
+        app.tapElement(A11y.Holding.add)
         XCTAssertTrue(app.navigationBars["Add holding"].waitForExistence(timeout: 5))
         // Asset type defaults to Gold; enter quantity only — there is no VND/opening-balance field.
         app.typeInField(A11y.Holding.quantity, "2")
@@ -27,7 +27,7 @@ final class AddHoldingUITests: XCTestCase {
 
     private func openHoldings(_ app: XCUIApplication) {
         app.selectTab("Config")
-        app.element(A11y.Config.holdings).tap()
+        app.tapElement(A11y.Config.holdings)
         XCTAssertTrue(app.navigationBars["Holdings"].waitForExistence(timeout: 5))
     }
 }

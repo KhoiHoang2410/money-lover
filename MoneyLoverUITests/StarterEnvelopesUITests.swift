@@ -9,13 +9,15 @@ final class StarterEnvelopesUITests: XCTestCase {
         let app = XCUIApplication.launchEmpty() // no seeded envelopes
 
         app.selectTab("Config")
-        app.element(A11y.Config.envelopes).tap()
+        app.tapElement(A11y.Config.envelopes)
         XCTAssertTrue(app.navigationBars["Envelopes"].waitForExistence(timeout: 5))
 
-        app.element(A11y.Starter.browse).tap()
+        app.tapElement(A11y.Starter.browse)
         XCTAssertTrue(app.navigationBars["Starter envelopes"].waitForExistence(timeout: 5))
-        app.buttons[A11y.Starter.selectAll].tap()
-        app.buttons[A11y.Starter.add].tap()
+        // Wait for each button to be present before tapping — a bare `.tap()` here raced the picker's
+        // render, so "Select all" sometimes never registered and nothing was added.
+        app.tapElement(A11y.Starter.selectAll)
+        app.tapElement(A11y.Starter.add)
 
         // The chosen starter envelopes now populate the list (assert top-of-list rows, which the
         // lazy List actually renders; later rows like "Savings" may be below the fold).
