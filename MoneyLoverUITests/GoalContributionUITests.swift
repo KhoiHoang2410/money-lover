@@ -106,7 +106,7 @@ final class GoalContributionUITests: XCTestCase {
 
         XCTAssertTrue(app.calendarTodayContains(note: "→ Travel"),
                       "The goal contribution is not listed under today in the Calendar.")
-        app.staticTexts["→ Travel"].tap()
+        app.staticTexts["→ Travel"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Goal contribution"].waitForExistence(timeout: 5),
                       "Tapping a goal contribution did not open the read-only summary.")

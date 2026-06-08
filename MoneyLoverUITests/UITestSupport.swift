@@ -198,7 +198,7 @@ extension XCUIApplication {
     func typeInField(_ identifier: String, _ text: String) {
         let field = textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "Field '\(identifier)' not found")
-        field.tap()
+        focusField(field, identifier: identifier)
         let wantDigits = text.filter(\.isNumber)
 
         for attempt in 0..<3 {
@@ -211,6 +211,26 @@ extension XCUIApplication {
             let gotDigits = (field.value as? String ?? "").filter(\.isNumber)
             if wantDigits.isEmpty || gotDigits == wantDigits { return }
         }
+    }
+
+    /// Tap a text field and wait until it actually holds keyboard focus before any `typeText`.
+    /// A bare `field.tap()` returns before the field becomes first responder on a cold/slow CI
+    /// simulator, so the subsequent `typeText` throws "Neither element nor any descendant has
+    /// keyboard focus" (seen on `txn.amountIn`, `txn.unitPrice`). We re-tap and poll the field's
+    /// `hasKeyboardFocus` until it's true, scrolling it into view if the first tap missed.
+    private func focusField(_ field: XCUIElement, identifier: String) {
+        func isFocused() -> Bool { (field.value(forKey: "hasKeyboardFocus") as? Bool) == true }
+        for attempt in 0..<3 {
+            if isFocused() { return }
+            if attempt == 1 && !field.isHittable { swipeUp() }
+            field.tap()
+            let deadline = Date().addingTimeInterval(2)
+            while Date() < deadline {
+                if isFocused() { return }
+                usleep(100_000)
+            }
+        }
+        XCTAssertTrue(isFocused(), "Field '\(identifier)' never gained keyboard focus")
     }
 
     /// Clears a focused text field by sending deletes (numeric Forms have no "Clear text" affordance).
