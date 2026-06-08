@@ -160,3 +160,9 @@ For the full picture before contributing, read `CLAUDE.md`, then `docs/guideline
 ## Status
 
 14 of 16 planned features implemented and tested (simulator-verified). The two remaining features — **Voice entry** (on-device speech + Foundation Models) and the **Accessibility/rotation pass** — require a physical device and are tracked in `.scratch/money-lover/issues/`.
+
+---
+
+## License
+
+This project is licensed under the **BSD 3-Clause License** — see the [LICENSE](LICENSE) file for details.
