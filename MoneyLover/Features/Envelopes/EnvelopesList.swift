@@ -8,8 +8,14 @@ struct EnvelopesList: View {
     var body: some View {
         List {
             ForEach(store.envelopes) { envelope in
-                // Tap-to-edit via onTapGesture (not Button) so the row's inner "remaining" element
-                // stays individually addressable; the .isButton trait keeps VoiceOver correct.
+                // Tap-to-edit via onTapGesture (not Button) so we keep the List swipe action.
+                // `.accessibilityElement(children: .combine)` collapses the row's icon / name /
+                // spent / remaining / progress into ONE element (label = their text joined) carrying
+                // the row identifier — the same single-element shape Overview's NavigationLink rows
+                // get for free. Without it, putting `.accessibilityIdentifier` on the multi-child row
+                // propagates that id onto every leaf, so each piece becomes a separate button sharing
+                // `envelope.row.<name>` and the inner remaining id is clobbered (a UI test then can't
+                // read the remaining, and the name surfaces as a button rather than static text).
                 EnvelopeRow(
                     envelope: envelope,
                     spent: store.spent(for: envelope),
@@ -19,6 +25,7 @@ struct EnvelopesList: View {
                 )
                 .contentShape(Rectangle())
                 .onTapGesture { sheet = .edit(envelope) }
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier(A11y.Envelope.row(envelope.name))
                 .accessibilityAddTraits(.isButton)
                 .swipeActions(edge: .leading) {
