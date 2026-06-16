@@ -20,10 +20,11 @@ final class StarterEnvelopesUITests: XCTestCase {
         app.tapElement(A11y.Starter.add)
 
         // The chosen starter envelopes now populate the list (assert top-of-list rows, which the
-        // lazy List actually renders; later rows like "Savings" may be below the fold).
-        XCTAssertTrue(app.staticTexts["Coffee"].waitForExistence(timeout: 5),
+        // lazy List actually renders; later rows like "Savings" may be below the fold). Each row is
+        // one combined a11y element keyed by name (`envelope.row.<name>`).
+        XCTAssertTrue(app.element(A11y.Envelope.row("Coffee")).waitForExistence(timeout: 5),
                       "Starter envelopes were not added.")
-        XCTAssertTrue(app.staticTexts["Food & Dining"].exists)
+        XCTAssertTrue(app.element(A11y.Envelope.row("Food & Dining")).exists)
     }
 
     func testExistingEnvelopeIsDisabledInPicker() {

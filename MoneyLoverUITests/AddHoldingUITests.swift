@@ -15,13 +15,15 @@ final class AddHoldingUITests: XCTestCase {
         app.typeInField(A11y.Holding.quantity, "2")
         app.buttons[A11y.Holding.save].tap()
 
-        XCTAssertTrue(app.staticTexts["Gold"].waitForExistence(timeout: 5),
+        // The Holdings list row is one combined a11y element keyed by name; the new gold holding
+        // defaults to the name "Gold" (its asset type), so its row id is `holding.row.Gold`.
+        XCTAssertTrue(app.element(A11y.Holding.row("Gold")).waitForExistence(timeout: 5),
                       "New gold holding did not appear on the Holdings screen.")
 
         // PERSISTENCE — survives relaunch.
         app.relaunchPreservingData()
         openHoldings(app)
-        XCTAssertTrue(app.staticTexts["Gold"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.element(A11y.Holding.row("Gold")).waitForExistence(timeout: 5),
                       "Gold holding did not survive a cold start.")
     }
 

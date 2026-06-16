@@ -4,6 +4,17 @@ All notable changes to Money Lover are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/),
 pre-1.0 simplified (see ADR-0008). Every PR adds an entry under its bumped version.
 
+## [0.18.1] — Envelope & Holding rows read as one element
+
+### Fixed
+- **Each Envelope and Holding row is now a single accessibility element (fix):** the Config →
+  Envelopes and Config → Holdings rows are tap-to-edit, but applying the row identifier to the
+  multi-part row propagated it onto every inner piece — so VoiceOver announced each row as five
+  separate buttons (icon, name, spent, remaining, progress) all sharing one identifier, and the
+  inner "remaining" value lost its own identifier. The rows now combine their content into one
+  element (the same shape Overview's rows already had), so VoiceOver reads "Food, ₫… of ₫…, ₫…
+  remaining" as a single button. No visual change, and tapping a row still opens its editor.
+
 ## [0.18.0] — One Transfer mode that adapts to currency
 
 ### Changed

@@ -128,16 +128,19 @@ extension XCUIApplication {
         return target.exists
     }
 
-    /// An envelope's remaining amount as shown on Config → Envelopes (never censored). Navigates
-    /// there if not already, so it's safe to call repeatedly to compare before/after a spend.
+    /// An envelope's state as shown on Config → Envelopes (never censored). Navigates there if not
+    /// already, so it's safe to call repeatedly to compare before/after a spend. The row is one
+    /// combined a11y element whose label joins the name, "spent of allocation", and remaining — all
+    /// of which move when an expense hits the envelope — so comparing this string before/after a
+    /// spend (and across a relaunch) proves the remaining changed and then persisted.
     func envelopeRemaining(_ name: String) -> String {
         selectTab("Config")
         if !navigationBars["Envelopes"].exists {
             element(A11y.Config.envelopes).tap()
         }
-        let cell = element(A11y.Envelope.remaining(name))
-        XCTAssertTrue(cell.waitForExistence(timeout: 5), "Envelope '\(name)' remaining not found")
-        return cell.label
+        let row = element(A11y.Envelope.row(name))
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "Envelope '\(name)' row not found")
+        return row.label
     }
 
     /// Open a fresh transaction form via the Calendar's floating **+** — the only add-transaction
@@ -198,6 +201,9 @@ extension XCUIApplication {
     func typeInField(_ identifier: String, _ text: String) {
         let field = textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "Field '\(identifier)' not found")
+        // Lower any keyboard a previously-focused field raised, so this field isn't occluded by it
+        // (see dismissKeyboardIfPresent) before we tap to focus it.
+        dismissKeyboardIfPresent()
         focusField(field, identifier: identifier)
         let wantDigits = text.filter(\.isNumber)
 
@@ -231,6 +237,20 @@ extension XCUIApplication {
             }
         }
         XCTAssertTrue(isFocused(), "Field '\(identifier)' never gained keyboard focus")
+    }
+
+    /// Lower the keyboard if the transaction form's "OK" accessory is showing, so a field or control
+    /// that sits below the previously-focused field isn't occluded when we tap it next. The trailing-
+    /// aligned amount TextFields (Amount in, Unit price) sit under the keyboard's floating OK button,
+    /// and the Backfilled toggle sits fully behind the keyboard, once a prior field was focused — a
+    /// synthesized tap then lands on the keyboard instead of the target (seen on CI as "never gained
+    /// keyboard focus" for txn.amountIn/txn.unitPrice, and the Backfilled toggle never flipping while
+    /// stray taps leaked into the focused note field).
+    func dismissKeyboardIfPresent() {
+        let done = buttons[A11y.Txn.keyboardDone]
+        guard done.exists, done.isHittable else { return }
+        done.tap()
+        _ = keyboards.firstMatch.waitForNonExistence(timeout: 2)
     }
 
     /// Clears a focused text field by sending deletes (numeric Forms have no "Clear text" affordance).
@@ -271,13 +291,27 @@ extension XCUIApplication {
     /// current value first so it only taps when a change is needed — idempotent across runs — and
     /// verifies the resulting state (a tap on the row label doesn't always flip the binding).
     func setToggle(_ identifier: String, on: Bool, file: StaticString = #filePath, line: UInt = #line) {
+        // A prior text field's keyboard can fully cover the toggle; lower it first, then scroll the
+        // switch into view, so the coordinate tap below lands on the knob and not on the keyboard
+        // (where stray taps would otherwise leak into the still-focused field).
+        dismissKeyboardIfPresent()
         let toggle = switches[identifier]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5), "Toggle '\(identifier)' not found", file: file, line: line)
-        for _ in 0..<3 {
-            if ((toggle.value as? String) == "1") == on { return }
+        scrollToHittable(toggle)
+        func isOn() -> Bool { (toggle.value as? String) == "1" }
+        for _ in 0..<5 {
+            if isOn() == on { return }
             // A plain `.tap()` on a SwiftUI Toggle in a Form often lands on the row label and doesn't
             // flip it; tapping the switch's own coordinate (where the knob sits) does.
             toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            // Poll for the flip before the next tap — a second rapid tap on a slow runner can land
+            // before the binding settles and toggle it straight back (the value would then read "0"
+            // even though the tap registered), so wait for the value to settle rather than re-tapping.
+            let deadline = Date().addingTimeInterval(1.5)
+            while Date() < deadline {
+                if isOn() == on { return }
+                usleep(100_000)
+            }
         }
         XCTAssertEqual(toggle.value as? String, on ? "1" : "0",
                        "Toggle '\(identifier)' would not move to \(on)", file: file, line: line)

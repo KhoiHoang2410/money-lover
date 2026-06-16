@@ -9,8 +9,13 @@ struct HoldingsList: View {
     var body: some View {
         List {
             ForEach(store.holdings) { holding in
-                // Tap-to-edit via onTapGesture (not Button) so the row's inner value element stays
-                // individually addressable; the .isButton trait keeps VoiceOver correct.
+                // Tap-to-edit via onTapGesture. `.accessibilityElement(children: .combine)` collapses
+                // the row's icon / name / quantity / value into ONE element (label = their text
+                // joined) carrying the row identifier — the same single-element shape Overview's
+                // NavigationLink rows get. Without it, `.accessibilityIdentifier` on the multi-child
+                // row propagates that id onto every leaf, so each piece becomes a separate button
+                // sharing `holding.row.<name>` and the name surfaces as a button rather than static
+                // text (a UI test asserting the holding appeared can't then find it).
                 HoldingRow(
                     holding: holding,
                     quantity: store.liveQuantity(for: holding),
@@ -18,6 +23,7 @@ struct HoldingsList: View {
                 )
                 .contentShape(Rectangle())
                 .onTapGesture { sheet = .edit(holding) }
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier(A11y.Holding.row(holding.name))
                 .accessibilityAddTraits(.isButton)
             }
