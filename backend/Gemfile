@@ -1,0 +1,26 @@
+source "https://rubygems.org"
+
+gem "rails", "~> 8.0.5"
+gem "pg", "~> 1.1"
+gem "puma", ">= 5.0"
+
+gem "sidekiq", "~> 7.3"
+gem "redis", "~> 5.3"
+
+# responders must load before roar-rails: roar-rails references
+# ActionController::Responder at load time, which responders reintroduces
+# (Rails dropped it from core after 4.2). Bundler.require honours Gemfile order.
+gem "responders", "~> 3.1"
+gem "roar-rails", "~> 1.2"
+gem "multi_json", "~> 1.15"
+gem "dry-validation", "~> 1.10"
+
+gem "tzinfo-data", platforms: %i[ windows jruby ]
+gem "bootsnap", require: false
+
+group :development, :test do
+  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+  gem "brakeman", require: false
+  gem "rubocop-rails-omakase", require: false
+  gem "rspec-rails", "~> 7.1"
+end
