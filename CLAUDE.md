@@ -9,15 +9,21 @@
 
 Target iOS 26 / Swift 6.2 / SwiftUI only. No third-party frameworks without asking.
 
+## Monorepo layout (ADR-0016)
+
+Three codebases live in this repo: `ios/` (the existing SwiftUI app), `backend/` (the canonical Rails API, ADR-0013), and `webapp/` (future). The shared glossary `CONTEXT.md` and cross-cutting `docs/adr/` stay at the repo root. CI uses path filters so each app's pipeline runs only on its own changes. The iOS sources now live under `ios/MoneyLover/`; its `project.yml` is `ios/project.yml` and `xcodegen generate` runs from `ios/`. Backend setup: `backend/README.md`.
+
 ## Versioning — bump when application logic changes (ADR-0008)
 
-**Bump the app version only when the PR changes application logic** — code that ships in the app bundle (`MoneyLover/` source, or `project.yml` settings that alter the build). A PR that changes **only** tests, test refactors, CI, repo config, or docs ships a byte-for-byte identical binary → **no bump** (e.g. `test:`-only, `ci:`, `chore:` config, `docs:`). When in doubt, bump.
+The versioning rule below is scoped to **iOS** (ADR-0016); `backend/` and `webapp/` version independently.
+
+**Bump the app version only when the PR changes application logic** — code that ships in the app bundle (`ios/MoneyLover/` source, or `ios/project.yml` settings that alter the build). A PR that changes **only** tests, test refactors, CI, repo config, or docs ships a byte-for-byte identical binary → **no bump** (e.g. `test:`-only, `ci:`, `chore:` config, `docs:`). When in doubt, bump.
 
 When a bump *is* required, SemVer, pre-1.0 simplified (`https://semver.org/`, spec §4):
 
 1. **MARKETING_VERSION** — any `feat:` commit in the branch → MINOR (`0.2.0`→`0.3.0`); only `fix:`/`refactor:` (of app code) → PATCH (`0.2.0`→`0.2.1`). Breaking change → MINOR too (no MAJOR until the 1.0 release). One bump per PR, by its highest-priority change.
 2. **CURRENT_PROJECT_VERSION** — `+1` on every bumping PR.
-3. Edit the values in **`project.yml`** — the only committed source of truth (`MoneyLover.xcodeproj` is gitignored, regenerated via `xcodegen generate`). Don't hand-edit the pbxproj.
+3. Edit the values in **`ios/project.yml`** — the only committed source of truth (`ios/MoneyLover.xcodeproj` is gitignored, regenerated via `xcodegen generate` from `ios/`). Don't hand-edit the pbxproj.
 4. Add a `CHANGELOG.md` entry under the new version (Keep a Changelog format).
 
 Full procedure: `docs/guidelines/engineering.md` § Versioning & PRs.

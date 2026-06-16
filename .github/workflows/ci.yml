@@ -40,6 +40,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      backend: ${{ steps.filter.outputs.backend }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -67,6 +68,7 @@ jobs:
           if [ -z "$base" ]; then
             echo "No diff base (manual/initial run) — running full CI."
             echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "backend=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -74,16 +76,24 @@ jobs:
           echo "Changed files:"
           echo "$changed"
 
-          # Paths that affect the shipped/built app: the three source+test
-          # folders, plus project.yml (XcodeGen build definition — changing it
-          # can alter the build without touching a source file). Editing this CI
-          # file itself does NOT trigger a run.
-          if echo "$changed" | grep -Eq '^(MoneyLover/|MoneyLoverTests/|MoneyLoverUITests/|project\.yml$)'; then
-            echo "Build/test-affecting changes detected → running CI."
+          # Path filters (ADR-0016 monorepo): the iOS pipeline runs only on
+          # ios/** changes, the backend pipeline only on backend/** changes.
+          # Everything iOS (sources, tests, project.yml, test plans) lives under
+          # ios/. Editing this CI file itself does NOT trigger either pipeline.
+          if echo "$changed" | grep -Eq '^ios/'; then
+            echo "iOS changes detected → running iOS build + tests."
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
-            echo "No build/test-affecting changes → skipping build + tests."
+            echo "No iOS changes → skipping iOS build + tests."
             echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -Eq '^backend/'; then
+            echo "backend changes detected → running backend pipeline."
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No backend changes → skipping backend pipeline."
+            echo "backend=false" >> "$GITHUB_OUTPUT"
           fi
 
   # 1. Type-check + build. In Swift, compilation IS the type check, so this one
@@ -96,6 +106,11 @@ jobs:
     if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: macos-26
     timeout-minutes: 30
+    # iOS app and its project.yml live under ios/ (ADR-0016 monorepo); run all
+    # build steps from there so `xcodegen generate` writes ios/MoneyLover.xcodeproj.
+    defaults:
+      run:
+        working-directory: ios
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -153,7 +168,7 @@ jobs:
       # __TESTROOT__-relative paths, so the absolute workspace path is irrelevant
       # when the test jobs run test-without-building.
       - name: Package build products
-        run: tar -czf build-products.tar.gz -C DerivedData/Build Products
+        run: tar -czf "$GITHUB_WORKSPACE/build-products.tar.gz" -C DerivedData/Build Products
 
       - name: Upload build products
         uses: actions/upload-artifact@v7
@@ -263,3 +278,57 @@ jobs:
           path: UISmokeResults.xcresult
           if-no-files-found: ignore
           retention-days: 7
+
+  # 4. Backend (Rails API) — runs only on backend/** changes (ADR-0016 path
+  #    filter). Spins up Postgres + Redis service containers and runs RSpec.
+  #    Skipped (→ counts as pass) when a PR touches no backend files.
+  backend:
+    name: backend
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          working-directory: backend
+          bundler-cache: true
+
+      - name: Prepare test database
+        run: bin/rails db:prepare
+
+      - name: Run RSpec
+        run: bundle exec rspec
