@@ -1,8 +1,20 @@
 # Money Lover
 
-Personal finance app for a single owner. Tracks money across multiple accounts and currencies, divides income into buckets, and measures progress toward savings goals. On-device only (see `docs/adr/0001-on-device-only-no-backend.md`).
+Personal finance app. Tracks money across multiple accounts and currencies, divides income into buckets, and measures progress toward savings goals. Delivered as a canonical Rails backend (the source of truth) with two clients — an iOS app and a web app. The original on-device-only design (`docs/adr/0001-on-device-only-no-backend.md`) is superseded by the canonical-backend direction.
+
+This is the single shared glossary for all three codebases (`backend/`, `ios/`, `webapp/`). The ubiquitous language is one domain; the apps are different deliveries of it.
 
 ## Language
+
+### Identity and access
+
+**User**:
+A login identity that owns its own money data. Every Account, Holding, Envelope, Goal, Transaction, and per-user override belongs to exactly one User; a User never sees another's data. Carries a **timezone**, which defines that User's month boundaries and "today" for resets and Signals.
+_Avoid_: Account (reserved for a money source), Owner, Profile
+
+**Identity**:
+One way a User can log in — a (provider, external id) pair, e.g. `password` (with a password digest) or, later, `google`. A User has one or more Identities; adding a login method adds an Identity, not a new User.
+_Avoid_: Credential, Login, Auth
 
 ### Money sources
 
@@ -35,7 +47,7 @@ _Avoid_: Debt (reserved for the computed total)
 The single currency every total is expressed in: VND. Accounts in other currencies and all Holdings are converted to it.
 
 **Rate**:
-The price used to convert a foreign-currency Account or a Holding into the base currency — an FX rate (SGD/USD→VND), the SJC gold price, or a HOSE stock price. Auto-fetched, cached, with a manual override. See `docs/adr/0003-external-price-fetch-for-valuation.md`.
+The price used to convert a foreign-currency Account or a Holding into the base currency — an FX rate (SGD/USD→VND), the SJC gold price, or a HOSE stock price. The fetched value is **global** (shared by all Users), auto-fetched and cached by the backend. A **manual override** is per-User: it wins for that User's valuations only and never affects another User. See `docs/adr/0003-external-price-fetch-for-valuation.md`.
 _Avoid_: Exchange rate (too narrow — also covers gold/stock prices)
 
 ### Budgeting
@@ -98,7 +110,7 @@ _Avoid_: Sync, refresh
 ### Advice
 
 **Signal**:
-A computed observation about spending or goals — envelope pace (spent vs fraction of month elapsed), projected overspend, a Goal's delay, a shrinking Reserve, an unusually large Expense. Calculated deterministically in Swift, never by a model.
+A computed observation about spending or goals — envelope pace (spent vs fraction of month elapsed), projected overspend, a Goal's delay, a shrinking Reserve, an unusually large Expense. Calculated deterministically on the backend (Ruby), never by a model, and returned as plain text to both clients. (LLM phrasing and voice entry are deferred — out of scope for now.)
 
 **Recommendation**:
 User-facing advice derived from Signals, shown both as an input-time nudge and as a periodic summary. The on-device model only phrases it; the analysis is the Signal. See `docs/adr/0004-rule-based-recommendations.md`.
