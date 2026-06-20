@@ -1,0 +1,151 @@
+{
+  "engine": "budgets",
+  "description": "BudgetEngine: spent = sum of expenses assigned to an envelope; remaining = allocation + carried - spent. Month-end sweep: each non-reserve envelope's leftover (allocation - spent) sweeps into the Reserve; positive leftovers add, overspend (negative leftover) deducts. reserve_delta is the net sum of those leftovers.",
+  "source_swift_tests": [
+    "ios/MoneyLoverTests/BudgetEngineTests.swift",
+    "ios/MoneyLoverTests/BudgetEngineMonthEndTests.swift"
+  ],
+  "cases": [
+    {
+      "name": "remaining_is_allocation_minus_spent",
+      "method": "remaining",
+      "inputs": {
+        "envelope": { "id": "food", "name": "Food", "allocation": { "minor_units": 5000000, "currency": "VND" }, "carried": { "minor_units": 0, "currency": "VND" }, "is_reserve": false },
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 40000, "currency": "VND" }, "source_id": "acc", "envelope_id": "food" },
+          { "kind": "expense", "amount": { "minor_units": 360000, "currency": "VND" }, "source_id": "acc", "envelope_id": "food" }
+        ]
+      },
+      "expected_outputs": { "remaining": { "minor_units": 4600000, "currency": "VND" } }
+    },
+    {
+      "name": "overspending_gives_negative_remaining",
+      "method": "remaining",
+      "inputs": {
+        "envelope": { "id": "food", "name": "Food", "allocation": { "minor_units": 5000000, "currency": "VND" }, "carried": { "minor_units": 0, "currency": "VND" }, "is_reserve": false },
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 5300000, "currency": "VND" }, "source_id": "acc", "envelope_id": "food" }
+        ]
+      },
+      "expected_outputs": { "remaining": { "minor_units": -300000, "currency": "VND" } }
+    },
+    {
+      "name": "carried_raises_remaining",
+      "method": "remaining",
+      "inputs": {
+        "envelope": { "id": "reserve", "name": "Reserve", "allocation": { "minor_units": 0, "currency": "VND" }, "carried": { "minor_units": 23000000, "currency": "VND" }, "is_reserve": true },
+        "transactions": []
+      },
+      "expected_outputs": { "remaining": { "minor_units": 23000000, "currency": "VND" } }
+    },
+    {
+      "name": "only_counts_expenses_assigned_to_this_envelope",
+      "method": "spent",
+      "inputs": {
+        "envelope_id": "food",
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 100000, "currency": "VND" }, "source_id": "acc", "envelope_id": "food" },
+          { "kind": "expense", "amount": { "minor_units": 999000, "currency": "VND" }, "source_id": "acc", "envelope_id": "other" },
+          { "kind": "income", "amount": { "minor_units": 500000, "currency": "VND" }, "source_id": "acc", "envelope_id": "food" }
+        ]
+      },
+      "expected_outputs": { "spent": { "minor_units": 100000, "currency": "VND" } }
+    },
+    {
+      "name": "no_matching_expenses_is_zero_spent",
+      "method": "spent",
+      "inputs": {
+        "envelope_id": "food",
+        "transactions": []
+      },
+      "expected_outputs": { "spent": { "minor_units": 0, "currency": "VND" } }
+    },
+    {
+      "name": "sums_leftovers_excluding_reserve",
+      "method": "month_end",
+      "inputs": {
+        "envelopes": [
+          { "id": "food", "name": "Food", "allocation": { "minor_units": 5000000, "currency": "VND" }, "is_reserve": false },
+          { "id": "fun", "name": "Fun", "allocation": { "minor_units": 7000000, "currency": "VND" }, "is_reserve": false },
+          { "id": "reserve", "name": "Reserve", "allocation": { "minor_units": 0, "currency": "VND" }, "is_reserve": true }
+        ],
+        "spent_by_envelope": [
+          { "envelope_id": "food", "spent": { "minor_units": 4600000, "currency": "VND" } },
+          { "envelope_id": "fun", "spent": { "minor_units": 3100000, "currency": "VND" } },
+          { "envelope_id": "reserve", "spent": { "minor_units": 0, "currency": "VND" } }
+        ]
+      },
+      "expected_outputs": {
+        "reserve_delta": { "minor_units": 4300000, "currency": "VND" },
+        "line_count": 2,
+        "lines": [
+          { "envelope_id": "food", "leftover": { "minor_units": 400000, "currency": "VND" } },
+          { "envelope_id": "fun", "leftover": { "minor_units": 3900000, "currency": "VND" } }
+        ]
+      }
+    },
+    {
+      "name": "overspend_reduces_reserve_delta",
+      "method": "month_end",
+      "inputs": {
+        "envelopes": [
+          { "id": "transport", "name": "Transport", "allocation": { "minor_units": 2000000, "currency": "VND" }, "is_reserve": false }
+        ],
+        "spent_by_envelope": [
+          { "envelope_id": "transport", "spent": { "minor_units": 2300000, "currency": "VND" } }
+        ]
+      },
+      "expected_outputs": {
+        "reserve_delta": { "minor_units": -300000, "currency": "VND" },
+        "line_count": 1,
+        "lines": [
+          { "envelope_id": "transport", "leftover": { "minor_units": -300000, "currency": "VND" } }
+        ]
+      }
+    },
+    {
+      "name": "unspent_envelope_contributes_full_allocation",
+      "method": "month_end",
+      "inputs": {
+        "envelopes": [
+          { "id": "rent", "name": "Rent", "allocation": { "minor_units": 8000000, "currency": "VND" }, "is_reserve": false }
+        ],
+        "spent_by_envelope": []
+      },
+      "expected_outputs": {
+        "reserve_delta": { "minor_units": 8000000, "currency": "VND" },
+        "line_count": 1,
+        "lines": [
+          { "envelope_id": "rent", "leftover": { "minor_units": 8000000, "currency": "VND" } }
+        ]
+      }
+    },
+    {
+      "name": "month_end_mixed_leftovers_and_overspend",
+      "method": "month_end",
+      "inputs": {
+        "envelopes": [
+          { "id": "food", "name": "Food", "allocation": { "minor_units": 5000000, "currency": "VND" }, "is_reserve": false },
+          { "id": "transport", "name": "Transport", "allocation": { "minor_units": 2000000, "currency": "VND" }, "is_reserve": false },
+          { "id": "fun", "name": "Fun", "allocation": { "minor_units": 7000000, "currency": "VND" }, "is_reserve": false },
+          { "id": "reserve", "name": "Reserve", "allocation": { "minor_units": 0, "currency": "VND" }, "is_reserve": true }
+        ],
+        "spent_by_envelope": [
+          { "envelope_id": "food", "spent": { "minor_units": 4880000, "currency": "VND" } },
+          { "envelope_id": "transport", "spent": { "minor_units": 2040000, "currency": "VND" } },
+          { "envelope_id": "fun", "spent": { "minor_units": 6990000, "currency": "VND" } },
+          { "envelope_id": "reserve", "spent": { "minor_units": 0, "currency": "VND" } }
+        ]
+      },
+      "expected_outputs": {
+        "reserve_delta": { "minor_units": 90000, "currency": "VND" },
+        "line_count": 3,
+        "lines": [
+          { "envelope_id": "food", "leftover": { "minor_units": 120000, "currency": "VND" } },
+          { "envelope_id": "transport", "leftover": { "minor_units": -40000, "currency": "VND" } },
+          { "envelope_id": "fun", "leftover": { "minor_units": 10000, "currency": "VND" } }
+        ]
+      }
+    }
+  ]
+}

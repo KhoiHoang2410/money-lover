@@ -1,0 +1,126 @@
+{
+  "engine": "reconcile",
+  "description": "ReconcileService: given a source, its ledger, and the real balance the owner re-enters, produce an Adjustment transaction for the drift. The adjustment amount is signed (real_balance - computed) so applying it brings the computed Current balance to reality. Equal balances produce no adjustment (null). A real balance in a different currency than the source is rejected (currency_mismatch). Money is integer minor units.",
+  "source_swift_tests": [
+    "ios/MoneyLoverTests/ReconcileServiceTests.swift"
+  ],
+  "cases": [
+    {
+      "name": "equal_balance_produces_no_adjustment",
+      "method": "adjustment",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 10000000, "currency": "VND" } },
+        "transactions": [],
+        "real_balance": { "minor_units": 10000000, "currency": "VND" }
+      },
+      "expected_outputs": { "adjustment": null }
+    },
+    {
+      "name": "real_higher_than_computed_adds_positive_adjustment",
+      "method": "adjustment",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 10000000, "currency": "VND" } },
+        "transactions": [],
+        "real_balance": { "minor_units": 10050000, "currency": "VND" }
+      },
+      "expected_outputs": {
+        "adjustment": {
+          "kind": "adjustment",
+          "source_id": "acc",
+          "amount": { "minor_units": 50000, "currency": "VND" }
+        }
+      }
+    },
+    {
+      "name": "real_lower_than_computed_adds_negative_adjustment",
+      "method": "adjustment",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 10000000, "currency": "VND" } },
+        "transactions": [],
+        "real_balance": { "minor_units": 9880000, "currency": "VND" }
+      },
+      "expected_outputs": {
+        "adjustment": {
+          "kind": "adjustment",
+          "source_id": "acc",
+          "amount": { "minor_units": -120000, "currency": "VND" }
+        }
+      }
+    },
+    {
+      "name": "adjustment_brings_computed_balance_to_reality",
+      "method": "adjustment",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 10000000, "currency": "VND" } },
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 200000, "currency": "VND" }, "source_id": "acc" }
+        ],
+        "real_balance": { "minor_units": 9750000, "currency": "VND" }
+      },
+      "expected_outputs": {
+        "adjustment": {
+          "kind": "adjustment",
+          "source_id": "acc",
+          "amount": { "minor_units": -50000, "currency": "VND" }
+        },
+        "reconciled_balance": { "minor_units": 9750000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "carries_note_and_envelope",
+      "method": "adjustment",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 10000000, "currency": "VND" } },
+        "transactions": [],
+        "real_balance": { "minor_units": 9900000, "currency": "VND" },
+        "envelope_id": "env",
+        "note": "ATM fees"
+      },
+      "expected_outputs": {
+        "adjustment": {
+          "kind": "adjustment",
+          "source_id": "acc",
+          "amount": { "minor_units": -100000, "currency": "VND" },
+          "envelope_id": "env",
+          "note": "ATM fees"
+        }
+      }
+    },
+    {
+      "name": "multi_source_reconcile_yields_one_adjustment_per_changed_source",
+      "method": "multi_adjustment",
+      "inputs": {
+        "sources": [
+          { "id": "a", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 10000000, "currency": "VND" } },
+          { "id": "b", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 5000000, "currency": "VND" } },
+          { "id": "c", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 2000000, "currency": "VND" } }
+        ],
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 300000, "currency": "VND" }, "source_id": "b" }
+        ],
+        "real_balances": [
+          { "source_id": "a", "balance": { "minor_units": 10000000, "currency": "VND" } },
+          { "source_id": "b", "balance": { "minor_units": 4650000, "currency": "VND" } },
+          { "source_id": "c", "balance": { "minor_units": 2075000, "currency": "VND" } }
+        ]
+      },
+      "expected_outputs": {
+        "adjustments": [
+          { "source_id": "b", "kind": "adjustment", "amount": { "minor_units": -50000, "currency": "VND" } },
+          { "source_id": "c", "kind": "adjustment", "amount": { "minor_units": 75000, "currency": "VND" } }
+        ],
+        "unchanged_sources": ["a"]
+      }
+    },
+    {
+      "name": "mismatched_currency_throws",
+      "method": "adjustment",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 10000000, "currency": "VND" } },
+        "transactions": [],
+        "real_balance": { "minor_units": 400, "currency": "USD" }
+      },
+      "expected_outputs": { "error": "currency_mismatch" }
+    }
+  ]
+}

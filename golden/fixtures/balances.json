@@ -1,0 +1,138 @@
+{
+  "engine": "balances",
+  "description": "Ledger / BalanceEngine: current balance = opening + sum of signed transaction deltas, per source. Money is integer minor units; currency carried alongside.",
+  "source_swift_tests": [
+    "ios/MoneyLoverTests/BalanceEngineTests.swift",
+    "ios/MoneyLoverTests/BalanceFromTransactionsTests.swift"
+  ],
+  "cases": [
+    {
+      "name": "no_deltas_returns_opening",
+      "method": "current",
+      "inputs": {
+        "opening": { "minor_units": 80000000, "currency": "VND" },
+        "deltas": []
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": 80000000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "sums_signed_deltas",
+      "method": "current",
+      "inputs": {
+        "opening": { "minor_units": 80000000, "currency": "VND" },
+        "deltas": [
+          { "minor_units": -40000, "currency": "VND" },
+          { "minor_units": 10000000, "currency": "VND" }
+        ]
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": 89960000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "mismatched_currency_delta_throws",
+      "method": "current",
+      "inputs": {
+        "opening": { "minor_units": 0, "currency": "VND" },
+        "deltas": [ { "minor_units": 100, "currency": "USD" } ]
+      },
+      "expected_outputs": {
+        "error": "currency_mismatch"
+      }
+    },
+    {
+      "name": "expense_reduces_account",
+      "method": "balance",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 80000000, "currency": "VND" } },
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 40000, "currency": "VND" }, "source_id": "acc" }
+        ]
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": 79960000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "income_increases_account",
+      "method": "balance",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 80000000, "currency": "VND" } },
+        "transactions": [
+          { "kind": "income", "amount": { "minor_units": 80000000, "currency": "VND" }, "source_id": "acc" }
+        ]
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": 160000000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "expense_on_credit_card_increases_debt",
+      "method": "balance",
+      "inputs": {
+        "source": { "id": "card", "kind": "credit_card", "currency": "VND", "opening_balance": { "minor_units": -18300000, "currency": "VND" } },
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 700000, "currency": "VND" }, "source_id": "card" }
+        ]
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": -19000000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "unrelated_transaction_does_not_affect_source",
+      "method": "balance",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 80000000, "currency": "VND" } },
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 1, "currency": "VND" }, "source_id": "card" }
+        ]
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": 80000000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "transfer_moves_between_sources_source_side",
+      "method": "balance",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 80000000, "currency": "VND" } },
+        "transactions": [
+          { "kind": "transfer", "amount": { "minor_units": 5000000, "currency": "VND" }, "source_id": "acc", "destination_id": "card" }
+        ]
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": 75000000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "transfer_moves_between_sources_destination_side",
+      "method": "balance",
+      "inputs": {
+        "source": { "id": "card", "kind": "credit_card", "currency": "VND", "opening_balance": { "minor_units": -18300000, "currency": "VND" } },
+        "transactions": [
+          { "kind": "transfer", "amount": { "minor_units": 5000000, "currency": "VND" }, "source_id": "acc", "destination_id": "card" }
+        ]
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": -13300000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "sums_multiple_transactions",
+      "method": "balance",
+      "inputs": {
+        "source": { "id": "acc", "kind": "account", "currency": "VND", "opening_balance": { "minor_units": 80000000, "currency": "VND" } },
+        "transactions": [
+          { "kind": "expense", "amount": { "minor_units": 40000, "currency": "VND" }, "source_id": "acc" },
+          { "kind": "income", "amount": { "minor_units": 1040000, "currency": "VND" }, "source_id": "acc" }
+        ]
+      },
+      "expected_outputs": {
+        "balance": { "minor_units": 81000000, "currency": "VND" }
+      }
+    }
+  ]
+}

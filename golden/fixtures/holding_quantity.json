@@ -1,0 +1,107 @@
+{
+  "engine": "holding_quantity",
+  "description": "HoldingQuantity: live quantity = opening quantity + sum of Buys - sum of Sells (ADR-0010). Quantities are exact decimals encoded as strings (not money, not floats). The sell guard blocks a sell that would drive quantity negative: a sell is allowed iff sell_quantity <= live_quantity.",
+  "source_swift_tests": [
+    "ios/MoneyLoverTests/HoldingQuantityEngineTests.swift",
+    "ios/MoneyLoverTests/InvestTradeTests.swift",
+    "ios/MoneyLover/Features/Input/TransactionForm.swift (canSave oversell guard)"
+  ],
+  "cases": [
+    {
+      "name": "opening_quantity_with_no_trades",
+      "method": "live_quantity",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "3", "unit": "chi" } },
+        "transactions": []
+      },
+      "expected_outputs": { "live_quantity": "3" }
+    },
+    {
+      "name": "buy_adds_units",
+      "method": "live_quantity",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "3", "unit": "chi" } },
+        "transactions": [
+          { "kind": "invest", "trade_direction": "buy", "trade_quantity": "2", "unit_price": { "minor_units": 7000000, "currency": "VND" }, "source_id": "acc", "destination_id": "gold" }
+        ]
+      },
+      "expected_outputs": { "live_quantity": "5" }
+    },
+    {
+      "name": "sell_removes_units",
+      "method": "live_quantity",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "3", "unit": "chi" } },
+        "transactions": [
+          { "kind": "invest", "trade_direction": "sell", "trade_quantity": "1", "unit_price": { "minor_units": 8000000, "currency": "VND" }, "source_id": "acc", "destination_id": "gold" }
+        ]
+      },
+      "expected_outputs": { "live_quantity": "2" }
+    },
+    {
+      "name": "buys_and_sells_net",
+      "method": "live_quantity",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "0", "unit": "chi" } },
+        "transactions": [
+          { "kind": "invest", "trade_direction": "buy", "trade_quantity": "5", "unit_price": { "minor_units": 7000000, "currency": "VND" }, "source_id": "acc", "destination_id": "gold" },
+          { "kind": "invest", "trade_direction": "sell", "trade_quantity": "2", "unit_price": { "minor_units": 8000000, "currency": "VND" }, "source_id": "acc", "destination_id": "gold" },
+          { "kind": "invest", "trade_direction": "buy", "trade_quantity": "1", "unit_price": { "minor_units": 7500000, "currency": "VND" }, "source_id": "acc", "destination_id": "gold" }
+        ]
+      },
+      "expected_outputs": { "live_quantity": "4" }
+    },
+    {
+      "name": "fractional_quantities_are_exact",
+      "method": "live_quantity",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "0.5", "unit": "chi" } },
+        "transactions": [
+          { "kind": "invest", "trade_direction": "buy", "trade_quantity": "0.25", "unit_price": { "minor_units": 7000000, "currency": "VND" }, "source_id": "acc", "destination_id": "gold" }
+        ]
+      },
+      "expected_outputs": { "live_quantity": "0.75" }
+    },
+    {
+      "name": "trades_for_other_holdings_are_ignored",
+      "method": "live_quantity",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "3", "unit": "chi" } },
+        "transactions": [
+          { "kind": "invest", "trade_direction": "buy", "trade_quantity": "10", "unit_price": { "minor_units": 50000, "currency": "VND" }, "source_id": "acc", "destination_id": "other_holding" }
+        ]
+      },
+      "expected_outputs": { "live_quantity": "3" }
+    },
+    {
+      "name": "sell_within_holding_is_allowed",
+      "method": "sell_guard",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "3", "unit": "chi" } },
+        "prior_transactions": [],
+        "attempted_sell_quantity": "2"
+      },
+      "expected_outputs": { "live_quantity": "3", "sell_allowed": true, "resulting_quantity": "1" }
+    },
+    {
+      "name": "sell_exact_holding_is_allowed",
+      "method": "sell_guard",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "3", "unit": "chi" } },
+        "prior_transactions": [],
+        "attempted_sell_quantity": "3"
+      },
+      "expected_outputs": { "live_quantity": "3", "sell_allowed": true, "resulting_quantity": "0" }
+    },
+    {
+      "name": "sell_exceeding_holding_is_blocked",
+      "method": "sell_guard",
+      "inputs": {
+        "holding": { "id": "gold", "kind": "holding", "holding": { "quantity": "3", "unit": "chi" } },
+        "prior_transactions": [],
+        "attempted_sell_quantity": "5"
+      },
+      "expected_outputs": { "live_quantity": "3", "sell_allowed": false }
+    }
+  ]
+}

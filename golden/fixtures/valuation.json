@@ -1,0 +1,119 @@
+{
+  "engine": "valuation",
+  "description": "Valuator: value a source in VND. Accounts/cards convert by FX (major units x fx rate). Holdings value by quantity x resolved price (gold per chi; luong = 10 chi; stock per share by ticker). Missing rate / unknown ticker / zero price degrade to 0, never crash. fx rate is VND per 1 major unit of the currency. Quantities are decimal strings.",
+  "source_swift_tests": [
+    "ios/MoneyLoverTests/ValuatorTests.swift",
+    "ios/MoneyLoverTests/InvestTradeTests.swift"
+  ],
+  "cases": [
+    {
+      "name": "vnd_account_is_identity",
+      "inputs": {
+        "source": { "kind": "account", "currency": "VND" },
+        "balance": { "minor_units": 80000000, "currency": "VND" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 80000000, "currency": "VND" } }
+    },
+    {
+      "name": "usd_account_converts_by_fx",
+      "inputs": {
+        "source": { "kind": "account", "currency": "USD" },
+        "balance": { "minor_units": 110000, "currency": "USD" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 28050000, "currency": "VND" } }
+    },
+    {
+      "name": "sgd_account_converts_by_fx",
+      "inputs": {
+        "source": { "kind": "account", "currency": "SGD" },
+        "balance": { "minor_units": 200000, "currency": "SGD" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 37000000, "currency": "VND" } }
+    },
+    {
+      "name": "gold_in_chi_uses_price_per_chi",
+      "inputs": {
+        "source": { "kind": "holding", "currency": "VND", "holding": { "quantity": "5", "unit": "chi" } },
+        "balance": { "minor_units": 0, "currency": "VND" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 79750000, "currency": "VND" } }
+    },
+    {
+      "name": "gold_in_luong_multiplies_by_ten",
+      "inputs": {
+        "source": { "kind": "holding", "currency": "VND", "holding": { "quantity": "1", "unit": "luong" } },
+        "balance": { "minor_units": 0, "currency": "VND" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 159500000, "currency": "VND" } }
+    },
+    {
+      "name": "stock_uses_price_per_share",
+      "inputs": {
+        "source": { "kind": "holding", "currency": "VND", "holding": { "quantity": "500", "unit": "shares", "ticker": "FPT" } },
+        "balance": { "minor_units": 0, "currency": "VND" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 36000000, "currency": "VND" } }
+    },
+    {
+      "name": "credit_card_debt_stays_negative_in_vnd",
+      "inputs": {
+        "source": { "kind": "credit_card", "currency": "VND" },
+        "balance": { "minor_units": -18300000, "currency": "VND" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": -18300000, "currency": "VND" } }
+    },
+    {
+      "name": "holding_value_tracks_live_quantity_at_market",
+      "description": "Bought 3 chi, market price 8,000,000/chi -> 3 x 8,000,000 = 24,000,000 (paper gain).",
+      "inputs": {
+        "source": { "kind": "holding", "currency": "VND", "holding": { "quantity": "3", "unit": "chi" } },
+        "balance": { "minor_units": 0, "currency": "VND" },
+        "rates": { "fx": { "VND": 1 }, "gold_per_chi": 8000000, "stock": {} }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 24000000, "currency": "VND" } }
+    },
+    {
+      "name": "usd_account_with_missing_fx_values_at_zero",
+      "inputs": {
+        "source": { "kind": "account", "currency": "USD" },
+        "balance": { "minor_units": 110000, "currency": "USD" },
+        "rates": { "fx": { "VND": 1 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 0, "currency": "VND" } }
+    },
+    {
+      "name": "sgd_account_with_missing_fx_values_at_zero",
+      "inputs": {
+        "source": { "kind": "account", "currency": "SGD" },
+        "balance": { "minor_units": 200000, "currency": "SGD" },
+        "rates": { "fx": { "VND": 1 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 0, "currency": "VND" } }
+    },
+    {
+      "name": "stock_holding_with_unknown_ticker_values_at_zero",
+      "inputs": {
+        "source": { "kind": "holding", "currency": "VND", "holding": { "quantity": "500", "unit": "shares", "ticker": "UNKNOWN" } },
+        "balance": { "minor_units": 0, "currency": "VND" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 15950000, "stock": { "FPT": 72000 } }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 0, "currency": "VND" } }
+    },
+    {
+      "name": "gold_holding_with_zero_gold_price_values_at_zero",
+      "inputs": {
+        "source": { "kind": "holding", "currency": "VND", "holding": { "quantity": "5", "unit": "chi" } },
+        "balance": { "minor_units": 0, "currency": "VND" },
+        "rates": { "fx": { "VND": 1, "USD": 25500, "SGD": 18500 }, "gold_per_chi": 0, "stock": {} }
+      },
+      "expected_outputs": { "value_vnd": { "minor_units": 0, "currency": "VND" } }
+    }
+  ]
+}

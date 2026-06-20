@@ -1,0 +1,167 @@
+{
+  "engine": "goal_tracking",
+  "description": "GoalTracker. expected_by_today = sum of scheduled contributions whose month <= as_of. progress.pct sign compares actual vs expected (encoded positive/negative/zero). fraction_of_target = clamp(actual/target, 0..1) (exact decimal string). contributed = sum of transfer transactions tagged with the goal (oldest-first ordering). schedule_status fills lines cumulatively oldest-first: funded, else due (current month), missed (past), pending (future). shortfall_by_month = per-line unmet amount after allocating contributions oldest-first.",
+  "source_swift_tests": [
+    "ios/MoneyLoverTests/GoalTrackerTests.swift"
+  ],
+  "shared": {
+    "house_goal": {
+      "name": "House",
+      "target": { "minor_units": 3000000000, "currency": "VND" },
+      "start_month": { "year": 2026, "month": 1 },
+      "end_month": { "year": 2026, "month": 9 },
+      "schedule": [
+        { "year": 2026, "month": 1, "amount": { "minor_units": 100000000, "currency": "VND" } },
+        { "year": 2026, "month": 2, "amount": { "minor_units": 100000000, "currency": "VND" } },
+        { "year": 2026, "month": 3, "amount": { "minor_units": 100000000, "currency": "VND" } },
+        { "year": 2026, "month": 5, "amount": { "minor_units": 150000000, "currency": "VND" } },
+        { "year": 2026, "month": 7, "amount": { "minor_units": 100000000, "currency": "VND" } },
+        { "year": 2026, "month": 8, "amount": { "minor_units": 100000000, "currency": "VND" } },
+        { "year": 2026, "month": 9, "amount": { "minor_units": 100000000, "currency": "VND" } }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "name": "expected_by_end_of_march_is_300m",
+      "method": "expected_by_today",
+      "inputs": { "schedule_ref": "house_goal", "as_of": "2026-03-31" },
+      "expected_outputs": { "expected": { "minor_units": 300000000, "currency": "VND" } }
+    },
+    {
+      "name": "after_all_months_sums_whole_schedule",
+      "method": "expected_by_today",
+      "inputs": { "schedule_ref": "house_goal", "as_of": "2026-12-31" },
+      "expected_outputs": { "expected": { "minor_units": 750000000, "currency": "VND" } }
+    },
+    {
+      "name": "before_first_scheduled_month_expects_zero",
+      "method": "progress",
+      "inputs": { "schedule_ref": "house_goal", "actual": { "minor_units": 0, "currency": "VND" }, "as_of": "2025-12-31" },
+      "expected_outputs": { "expected": { "minor_units": 0, "currency": "VND" }, "pct_sign": "zero" }
+    },
+    {
+      "name": "ahead_when_actual_above_expected",
+      "method": "progress",
+      "inputs": { "schedule_ref": "house_goal", "actual": { "minor_units": 320000000, "currency": "VND" }, "as_of": "2026-03-31" },
+      "expected_outputs": { "expected": { "minor_units": 300000000, "currency": "VND" }, "pct_sign": "positive" }
+    },
+    {
+      "name": "behind_when_actual_below_expected",
+      "method": "progress",
+      "inputs": { "schedule_ref": "house_goal", "actual": { "minor_units": 250000000, "currency": "VND" }, "as_of": "2026-03-31" },
+      "expected_outputs": { "expected": { "minor_units": 300000000, "currency": "VND" }, "pct_sign": "negative" }
+    },
+    {
+      "name": "exactly_on_plan_is_zero_percent",
+      "method": "progress",
+      "inputs": { "schedule_ref": "house_goal", "actual": { "minor_units": 300000000, "currency": "VND" }, "as_of": "2026-03-31" },
+      "expected_outputs": { "expected": { "minor_units": 300000000, "currency": "VND" }, "pct_sign": "zero" }
+    },
+    {
+      "name": "fraction_of_target_half",
+      "method": "progress",
+      "inputs": { "schedule_ref": "house_goal", "actual": { "minor_units": 1500000000, "currency": "VND" }, "as_of": "2026-03-31" },
+      "expected_outputs": { "fraction_of_target": "0.5" }
+    },
+    {
+      "name": "fraction_of_target_clamps_to_one",
+      "method": "progress",
+      "inputs": { "schedule_ref": "house_goal", "actual": { "minor_units": 9000000000, "currency": "VND" }, "as_of": "2026-03-31" },
+      "expected_outputs": { "fraction_of_target": "1" }
+    },
+    {
+      "name": "contributed_sums_only_matching_goal_transfers",
+      "method": "contributed",
+      "inputs": {
+        "goal_id": "g",
+        "transactions": [
+          { "kind": "transfer", "amount": { "minor_units": 100000000, "currency": "VND" }, "source_id": "acc", "goal_id": "g", "date": "2026-01-01" },
+          { "kind": "transfer", "amount": { "minor_units": 50000000, "currency": "VND" }, "source_id": "acc", "goal_id": "other", "date": "2026-01-02" },
+          { "kind": "transfer", "amount": { "minor_units": 20000000, "currency": "VND" }, "source_id": "acc", "goal_id": "g", "date": "2026-01-03" },
+          { "kind": "expense", "amount": { "minor_units": 9000000, "currency": "VND" }, "source_id": "acc" }
+        ]
+      },
+      "expected_outputs": { "contributed": { "minor_units": 120000000, "currency": "VND" } }
+    },
+    {
+      "name": "contributed_is_zero_with_no_transfers",
+      "method": "contributed",
+      "inputs": { "goal_id": "g", "transactions": [] },
+      "expected_outputs": { "contributed": { "minor_units": 0, "currency": "VND" } }
+    },
+    {
+      "name": "contributions_are_oldest_first",
+      "method": "contributions",
+      "inputs": {
+        "goal_id": "g",
+        "transactions": [
+          { "kind": "transfer", "amount": { "minor_units": 30000000, "currency": "VND" }, "source_id": "acc", "goal_id": "g", "date": "2026-01-09" },
+          { "kind": "transfer", "amount": { "minor_units": 10000000, "currency": "VND" }, "source_id": "acc", "goal_id": "g", "date": "2026-01-02" }
+        ]
+      },
+      "expected_outputs": {
+        "ordered_amounts": [
+          { "minor_units": 10000000, "currency": "VND" },
+          { "minor_units": 30000000, "currency": "VND" }
+        ]
+      }
+    },
+    {
+      "name": "schedule_status_funds_lines_in_order_then_stops",
+      "method": "schedule_status",
+      "inputs": { "schedule_ref": "house_goal", "contributed": { "minor_units": 250000000, "currency": "VND" }, "as_of": "2026-02-15" },
+      "expected_outputs": { "status_by_month": { "1": "funded", "2": "funded", "3": "pending" } }
+    },
+    {
+      "name": "past_unfunded_line_is_missed",
+      "method": "schedule_status",
+      "inputs": { "schedule_ref": "house_goal", "contributed": { "minor_units": 120000000, "currency": "VND" }, "as_of": "2026-05-10" },
+      "expected_outputs": { "status_by_month": { "1": "funded", "2": "missed", "7": "pending" } }
+    },
+    {
+      "name": "current_month_underfunded_is_due_not_missed",
+      "method": "schedule_status",
+      "inputs": { "schedule_ref": "house_goal", "contributed": { "minor_units": 360000000, "currency": "VND" }, "as_of": "2026-05-10" },
+      "expected_outputs": { "status_by_month": { "3": "funded", "5": "due", "7": "pending" } }
+    },
+    {
+      "name": "fully_funded_all_lines_funded",
+      "method": "schedule_status",
+      "inputs": { "schedule_ref": "house_goal", "contributed": { "minor_units": 750000000, "currency": "VND" }, "as_of": "2026-05-10" },
+      "expected_outputs": { "status_by_month": { "1": "funded", "2": "funded", "3": "funded", "5": "funded", "7": "funded", "8": "funded", "9": "funded" } }
+    },
+    {
+      "name": "shortfall_is_per_line_allocated_oldest_first",
+      "method": "shortfalls",
+      "inputs": { "schedule_ref": "house_goal", "contributed": { "minor_units": 360000000, "currency": "VND" } },
+      "expected_outputs": {
+        "shortfall_by_month": {
+          "1": { "minor_units": 0, "currency": "VND" },
+          "2": { "minor_units": 0, "currency": "VND" },
+          "3": { "minor_units": 0, "currency": "VND" },
+          "5": { "minor_units": 90000000, "currency": "VND" },
+          "7": { "minor_units": 100000000, "currency": "VND" },
+          "8": { "minor_units": 100000000, "currency": "VND" },
+          "9": { "minor_units": 100000000, "currency": "VND" }
+        }
+      }
+    },
+    {
+      "name": "shortfall_is_zero_when_fully_funded",
+      "method": "shortfalls",
+      "inputs": { "schedule_ref": "house_goal", "contributed": { "minor_units": 750000000, "currency": "VND" } },
+      "expected_outputs": {
+        "shortfall_by_month": {
+          "1": { "minor_units": 0, "currency": "VND" },
+          "2": { "minor_units": 0, "currency": "VND" },
+          "3": { "minor_units": 0, "currency": "VND" },
+          "5": { "minor_units": 0, "currency": "VND" },
+          "7": { "minor_units": 0, "currency": "VND" },
+          "8": { "minor_units": 0, "currency": "VND" },
+          "9": { "minor_units": 0, "currency": "VND" }
+        }
+      }
+    }
+  ]
+}
