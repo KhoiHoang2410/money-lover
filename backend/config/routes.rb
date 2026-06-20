@@ -6,5 +6,12 @@ Rails.application.routes.draw do
 
     # JSON health check for clients: { "status": "ok" }.
     get "health" => "health#show", as: :health
+
+    # Authenticated, tenant-scoped API surface (ADR-0014). The representative
+    # resource here proves the authorization foundation; domain resources are
+    # added under this namespace in issues 13–20.
+    namespace :api do
+      resources :identities, only: [ :show ]
+    end
   end
 end
