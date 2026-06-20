@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_20_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_20_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -36,6 +36,23 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_20_000001) do
     t.index ["user_id"], name: "index_refresh_tokens_on_user_id"
   end
 
+  create_table "sources", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "kind", null: false
+    t.string "name", null: false
+    t.string "icon"
+    t.string "logo"
+    t.string "currency", null: false
+    t.bigint "opening_minor_units"
+    t.decimal "opening_quantity", precision: 30, scale: 10
+    t.string "holding_unit"
+    t.string "ticker"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "kind"], name: "index_sources_on_user_id_and_kind"
+    t.index ["user_id"], name: "index_sources_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "timezone", default: "Asia/Ho_Chi_Minh", null: false
     t.datetime "created_at", null: false
@@ -44,4 +61,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_20_000001) do
 
   add_foreign_key "identities", "users"
   add_foreign_key "refresh_tokens", "users"
+  add_foreign_key "sources", "users"
 end

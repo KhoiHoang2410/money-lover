@@ -84,6 +84,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller's money sources
+         * @description Returns every source owned by the authenticated user, each with its live current balance and base-currency (VND) valuation.
+         */
+        get: operations["listSources"];
+        put?: never;
+        /**
+         * Create a money source
+         * @description Create an Account, Credit card, or Holding. Account/Credit card require a currency and opening balance (integer minor units). A Holding requires an opening quantity and unit; a stock (shares) also requires a HOSE ticker, a gold Holding (chỉ/lượng) must not carry one.
+         */
+        post: operations["createSource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sources/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The money source's id. */
+                id: components["parameters"]["SourceId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one money source
+         * @description Returns a single source with its current balance and valuation.
+         */
+        get: operations["getSource"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a money source
+         * @description Delete a source. Blocked with 409 when transactions still reference it (delete integrity), so ledger rows are never orphaned.
+         */
+        delete: operations["deleteSource"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a money source
+         * @description Partially update a source's name, icon, logo, currency, opening balance, or (for a Holding) opening quantity / unit / ticker. `kind` is immutable.
+         */
+        patch: operations["updateSource"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -198,6 +253,82 @@ export interface components {
              */
             status: "ok";
         };
+        Source: {
+            /** Format: int64 */
+            id: number;
+            /**
+             * @description account | credit_card | holding (CONTEXT.md).
+             * @enum {string}
+             */
+            kind: "account" | "credit_card" | "holding";
+            name: string;
+            icon?: string | null;
+            /** @description Optional logo asset reference. */
+            logo?: string | null;
+            /**
+             * @description ISO 4217 code. VND for Holdings (the base currency).
+             * @example VND
+             */
+            currency: string;
+            /** @description The opening money balance. Present for account/credit_card; omitted for a holding (which has no opening money balance). */
+            opening_balance?: components["schemas"]["MoneyMinorUnits"];
+            /** @description Holding-specific facts; present only when kind is holding. */
+            holding?: {
+                /**
+                 * @description Exact decimal quantity (never a float — ADR-0015).
+                 * @example 3
+                 */
+                opening_quantity: string;
+                /** @enum {string} */
+                unit: "chi" | "luong" | "shares";
+                /** @description HOSE ticker for a stock holding; null for gold. */
+                ticker?: string | null;
+            };
+            current_balance: components["schemas"]["MoneyMinorUnits"];
+            /** @description Value in the base currency (VND). */
+            valuation: components["schemas"]["MoneyMinorUnits"];
+        };
+        SourceList: {
+            sources: components["schemas"]["Source"][];
+        };
+        /** @description Account/Credit card require currency + opening_minor_units. Holding requires opening_quantity + unit (and a ticker for shares). */
+        SourceCreateRequest: {
+            /** @enum {string} */
+            kind: "account" | "credit_card" | "holding";
+            /** @example VPBank */
+            name: string;
+            icon?: string | null;
+            logo?: string | null;
+            /** @example VND */
+            currency?: string;
+            /**
+             * Format: int64
+             * @description Opening balance in minor units (account/credit_card).
+             * @example 1000000
+             */
+            opening_minor_units?: number;
+            /**
+             * @description Opening quantity for a holding, as an exact decimal string.
+             * @example 3
+             */
+            opening_quantity?: string;
+            /** @enum {string} */
+            unit?: "chi" | "luong" | "shares";
+            ticker?: string | null;
+        };
+        /** @description Partial update. `kind` is immutable and not accepted. */
+        SourceUpdateRequest: {
+            name?: string;
+            icon?: string | null;
+            logo?: string | null;
+            currency?: string;
+            /** Format: int64 */
+            opening_minor_units?: number;
+            opening_quantity?: string;
+            /** @enum {string} */
+            unit?: "chi" | "luong" | "shares";
+            ticker?: string | null;
+        };
     };
     responses: {
         /** @description The `Accept` header does not allow `application/json`. */
@@ -245,8 +376,20 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description The request conflicts with the resource's current state. */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
     };
-    parameters: never;
+    parameters: {
+        /** @description The money source's id. */
+        SourceId: number;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -356,6 +499,139 @@ export interface operations {
                 };
                 content?: never;
             };
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    listSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's sources. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    createSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Source created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Source"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The money source's id. */
+                id: components["parameters"]["SourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requested source. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Source"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    deleteSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The money source's id. */
+                id: components["parameters"]["SourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Source deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    updateSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The money source's id. */
+                id: components["parameters"]["SourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Source updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Source"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             406: components["responses"]["NotAcceptable"];
             415: components["responses"]["UnsupportedMediaType"];
             422: components["responses"]["UnprocessableEntity"];

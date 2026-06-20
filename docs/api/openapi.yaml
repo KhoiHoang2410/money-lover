@@ -38,6 +38,11 @@ security:
 tags:
   - name: System
     description: Operational probes and metadata.
+  - name: Sources
+    description: >-
+      Money sources (CONTEXT.md): Accounts and Credit cards (a money balance) and
+      Holdings (valued by quantity × market price). User-scoped CRUD returning
+      each source's live current balance and base-currency valuation.
   - name: Auth
     description: >-
       Registration and the token lifecycle (ADR-0014). Clients obtain a
@@ -164,6 +169,126 @@ paths:
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
 
+  /api/sources:
+    get:
+      operationId: listSources
+      tags: [Sources]
+      summary: List the caller's money sources
+      description: >-
+        Returns every source owned by the authenticated user, each with its live
+        current balance and base-currency (VND) valuation.
+      responses:
+        "200":
+          description: The caller's sources.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+    post:
+      operationId: createSource
+      tags: [Sources]
+      summary: Create a money source
+      description: >-
+        Create an Account, Credit card, or Holding. Account/Credit card require a
+        currency and opening balance (integer minor units). A Holding requires an
+        opening quantity and unit; a stock (shares) also requires a HOSE ticker, a
+        gold Holding (chỉ/lượng) must not carry one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceCreateRequest"
+      responses:
+        "201":
+          description: Source created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /api/sources/{id}:
+    parameters:
+      - $ref: "#/components/parameters/SourceId"
+    get:
+      operationId: getSource
+      tags: [Sources]
+      summary: Read one money source
+      description: Returns a single source with its current balance and valuation.
+      responses:
+        "200":
+          description: The requested source.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+    patch:
+      operationId: updateSource
+      tags: [Sources]
+      summary: Update a money source
+      description: >-
+        Partially update a source's name, icon, logo, currency, opening balance,
+        or (for a Holding) opening quantity / unit / ticker. `kind` is immutable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceUpdateRequest"
+      responses:
+        "200":
+          description: Source updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      operationId: deleteSource
+      tags: [Sources]
+      summary: Delete a money source
+      description: >-
+        Delete a source. Blocked with 409 when transactions still reference it
+        (delete integrity), so ledger rows are never orphaned.
+      responses:
+        "204":
+          description: Source deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
   /health:
     get:
       operationId: getHealth
@@ -195,6 +320,16 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  parameters:
+    SourceId:
+      name: id
+      in: path
+      required: true
+      description: The money source's id.
+      schema:
+        type: integer
+        format: int64
 
   schemas:
     # Integer minor units only — the single money representation for the whole
@@ -342,6 +477,147 @@ components:
           enum: [ok]
           description: Literal "ok" when the service is healthy.
 
+    # ── Sources (issue 13, CONTEXT.md) ───────────────────────────────────────
+    # A money source: an Account or Credit card (a money balance) or a Holding
+    # (valued by quantity × market price). `opening_balance` is present only for
+    # money sources; `holding` only for Holdings.
+    Source:
+      type: object
+      additionalProperties: false
+      required: [id, kind, name, currency, current_balance, valuation]
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          type: string
+          enum: [account, credit_card, holding]
+          description: account | credit_card | holding (CONTEXT.md).
+        name:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        logo:
+          type: string
+          nullable: true
+          description: Optional logo asset reference.
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO 4217 code. VND for Holdings (the base currency).
+          example: VND
+        opening_balance:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: >-
+            The opening money balance. Present for account/credit_card; omitted
+            for a holding (which has no opening money balance).
+        holding:
+          type: object
+          additionalProperties: false
+          required: [opening_quantity, unit]
+          description: Holding-specific facts; present only when kind is holding.
+          properties:
+            opening_quantity:
+              type: string
+              description: Exact decimal quantity (never a float — ADR-0015).
+              example: "3"
+            unit:
+              type: string
+              enum: [chi, luong, shares]
+            ticker:
+              type: string
+              nullable: true
+              description: HOSE ticker for a stock holding; null for gold.
+        current_balance:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        valuation:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: Value in the base currency (VND).
+
+    SourceList:
+      type: object
+      additionalProperties: false
+      required: [sources]
+      properties:
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/Source"
+
+    SourceCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, name]
+      description: >-
+        Account/Credit card require currency + opening_minor_units. Holding
+        requires opening_quantity + unit (and a ticker for shares).
+      properties:
+        kind:
+          type: string
+          enum: [account, credit_card, holding]
+        name:
+          type: string
+          example: VPBank
+        icon:
+          type: string
+          nullable: true
+        logo:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: VND
+        opening_minor_units:
+          type: integer
+          format: int64
+          description: Opening balance in minor units (account/credit_card).
+          example: 1000000
+        opening_quantity:
+          type: string
+          description: Opening quantity for a holding, as an exact decimal string.
+          example: "3"
+        unit:
+          type: string
+          enum: [chi, luong, shares]
+        ticker:
+          type: string
+          nullable: true
+
+    SourceUpdateRequest:
+      type: object
+      additionalProperties: false
+      description: Partial update. `kind` is immutable and not accepted.
+      properties:
+        name:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        logo:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        opening_minor_units:
+          type: integer
+          format: int64
+        opening_quantity:
+          type: string
+        unit:
+          type: string
+          enum: [chi, luong, shares]
+        ticker:
+          type: string
+          nullable: true
+
   responses:
     NotAcceptable:
       description: The `Accept` header does not allow `application/json`.
@@ -369,6 +645,12 @@ components:
             $ref: "#/components/schemas/Error"
     UnprocessableEntity:
       description: Param validation failed (dry-validation contract).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: The request conflicts with the resource's current state.
       content:
         application/json:
           schema:
