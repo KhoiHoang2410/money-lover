@@ -41,6 +41,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
       backend: ${{ steps.filter.outputs.backend }}
+      api: ${{ steps.filter.outputs.api }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -69,6 +70,7 @@ jobs:
             echo "No diff base (manual/initial run) — running full CI."
             echo "code=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "api=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -88,12 +90,24 @@ jobs:
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if echo "$changed" | grep -Eq '^backend/'; then
+          # The backend RSpec suite includes the OpenAPI conformance gate, which
+          # reads docs/api/openapi.yaml — so a contract change must re-run it too.
+          if echo "$changed" | grep -Eq '^backend/|^docs/api/'; then
             echo "backend changes detected → running backend pipeline."
             echo "backend=true" >> "$GITHUB_OUTPUT"
           else
             echo "No backend changes → skipping backend pipeline."
             echo "backend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # The OpenAPI contract harness (lint + TS codegen drift) runs only on
+          # docs/api/** changes (ADR-0017).
+          if echo "$changed" | grep -Eq '^docs/api/'; then
+            echo "API contract changes detected → running OpenAPI harness."
+            echo "api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No API contract changes → skipping OpenAPI harness."
+            echo "api=false" >> "$GITHUB_OUTPUT"
           fi
 
   # 1. Type-check + build. In Swift, compilation IS the type check, so this one
@@ -332,3 +346,36 @@ jobs:
 
       - name: Run RSpec
         run: bundle exec rspec
+
+  # 5. OpenAPI contract harness (ADR-0017) — runs only on docs/api/** changes.
+  #    Lints the hand-maintained contract against the OpenAPI 3.x meta-schema and
+  #    fails if the committed TypeScript types have drifted from the YAML.
+  #    Skipped (→ counts as pass) when a PR touches no contract files.
+  openapi:
+    name: openapi
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: docs/api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: docs/api/package-lock.json
+
+      - name: Install contract tooling
+        run: npm ci
+
+      - name: Lint OpenAPI document
+        run: npm run lint
+
+      - name: Verify generated TS types are up to date
+        run: npm run check
