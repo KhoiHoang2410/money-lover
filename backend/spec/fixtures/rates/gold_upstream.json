@@ -1,0 +1,8 @@
+{
+  "source": "SJC",
+  "fetched_at": "2026-06-20T08:00:00Z",
+  "items": [
+    { "type": "SJC", "unit": "luong", "buy": "68000000", "sell": "69500000" },
+    { "type": "SJC", "unit": "chi", "buy": "6800000", "sell": "6950000" }
+  ]
+}

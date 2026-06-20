@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_20_000002) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_20_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,6 +23,27 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_20_000002) do
     t.datetime "updated_at", null: false
     t.index ["provider", "external_id"], name: "index_identities_on_provider_and_external_id", unique: true
     t.index ["user_id"], name: "index_identities_on_user_id"
+  end
+
+  create_table "rate_overrides", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "key", null: false
+    t.decimal "value", precision: 30, scale: 10, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "key"], name: "index_rate_overrides_on_user_id_and_key", unique: true
+    t.index ["user_id"], name: "index_rate_overrides_on_user_id"
+  end
+
+  create_table "rates", force: :cascade do |t|
+    t.string "key", null: false
+    t.decimal "value", precision: 30, scale: 10, null: false
+    t.string "source"
+    t.datetime "fetched_at"
+    t.boolean "stale", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_rates_on_key", unique: true
   end
 
   create_table "refresh_tokens", force: :cascade do |t|
@@ -60,6 +81,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_20_000002) do
   end
 
   add_foreign_key "identities", "users"
+  add_foreign_key "rate_overrides", "users"
   add_foreign_key "refresh_tokens", "users"
   add_foreign_key "sources", "users"
 end

@@ -5,6 +5,7 @@ class User < ApplicationRecord
   has_many :identities, dependent: :destroy
   has_many :refresh_tokens, dependent: :destroy
   has_many :sources, dependent: :destroy
+  has_many :rate_overrides, dependent: :destroy
 
   DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh".freeze
 

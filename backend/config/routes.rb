@@ -24,5 +24,19 @@ Rails.application.routes.draw do
       # tenant-scoped; non-CRUD actions on sources are added in later issues.
       resources :sources, only: [ :index, :show, :create, :update, :destroy ]
     end
+
+    # Rate service (issue 19): resolved rates for the current User + per-User
+    # override management. Paths are unprefixed to match the OpenAPI contract
+    # (docs/api/openapi.yaml); controllers live under Api:: to reuse the
+    # tenant-scoped BaseController. The `key` constraint allows the dots in
+    # rate keys (e.g. fx.USD, stock.VNM) that Rails would otherwise treat as a
+    # format separator.
+    scope module: :api do
+      get "rates" => "rates#index", as: :rates
+      put "rates/:key/override" => "rates#set_override",
+          as: :rate_override, constraints: { key: %r{[^/]+} }
+      delete "rates/:key/override" => "rates#clear_override",
+             constraints: { key: %r{[^/]+} }
+    end
   end
 end

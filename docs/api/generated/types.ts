@@ -159,6 +159,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List resolved rates for the current user
+         * @description Every rate resolved for the caller: a per-User override wins, otherwise the global cached value. A value flagged `stale: true` is the last good cached value after a failed upstream fetch.
+         */
+        get: operations["listRates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rates/{key}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Rate key, e.g. `fx.USD`, `gold`, or `stock.VNM`.
+                 * @example fx.USD
+                 */
+                key: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the current user's override for a rate
+         * @description Create or replace the caller's manual override for `key`. The override affects only this User's valuations. Returns the resolved rate.
+         */
+        put: operations["setRateOverride"];
+        post?: never;
+        /**
+         * Clear the current user's override for a rate
+         * @description Remove the caller's override for `key` so their valuations fall back to the global cached value. Idempotent.
+         */
+        delete: operations["clearRateOverride"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -328,6 +378,42 @@ export interface components {
             /** @enum {string} */
             unit?: "chi" | "luong" | "shares";
             ticker?: string | null;
+        };
+        RateEntry: {
+            /**
+             * @description Namespaced rate key (fx.USD, gold, stock.VNM).
+             * @example fx.USD
+             */
+            key: string;
+            /**
+             * @description Exact decimal VND amount as a string (never a float).
+             * @example 25500
+             */
+            value: string;
+            /**
+             * @description Upstream provenance of the global value (e.g. "fx", "sjc", "hose"). Null when only a User override exists for the key.
+             * @example fx
+             */
+            source?: string | null;
+            /**
+             * Format: date-time
+             * @description When the global value was last successfully fetched. Null when only a User override exists for the key.
+             */
+            fetched_at?: string | null;
+            /** @description True when the global value is the last good cache after a failed upstream fetch. */
+            stale: boolean;
+            /** @description True when this value comes from the caller's manual override. */
+            overridden: boolean;
+        };
+        RatesResponse: {
+            rates: components["schemas"]["RateEntry"][];
+        };
+        RateOverrideRequest: {
+            /**
+             * @description Exact, non-negative decimal VND amount as a string (never a float — ADR-0015). Same units as the rate key it overrides.
+             * @example 26000
+             */
+            value: string;
         };
     };
     responses: {
@@ -655,6 +741,90 @@ export interface operations {
                     "application/json": components["schemas"]["HealthStatus"];
                 };
             };
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+        };
+    };
+    listRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's resolved rates. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatesResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+        };
+    };
+    setRateOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Rate key, e.g. `fx.USD`, `gold`, or `stock.VNM`.
+                 * @example fx.USD
+                 */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RateOverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description Override stored; returns the resolved rate. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateEntry"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    clearRateOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Rate key, e.g. `fx.USD`, `gold`, or `stock.VNM`.
+                 * @example fx.USD
+                 */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Override removed (or none existed). */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
             406: components["responses"]["NotAcceptable"];
             415: components["responses"]["UnsupportedMediaType"];
         };
