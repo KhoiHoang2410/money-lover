@@ -44,6 +44,14 @@ Rails.application.routes.draw do
       # the server writes the resulting Adjustment transactions atomically and
       # returns the auditable Reconciliation (CONTEXT.md "Reconcile"/"Adjustment").
       resources :reconciliations, only: [ :create ]
+
+      # Goals — long-term savings targets (issue 16). Full CRUD, tenant-scoped.
+      # A read returns the Goal's live balance (Σ Contributions) and GoalTracker
+      # progress/status/shortfall. The nested contributions action funds a Goal
+      # from a VND Account, recorded atomically as a Transfer (ADR-0007).
+      resources :goals, only: [ :index, :show, :create, :update, :destroy ]
+      post "goals/:goal_id/contributions" => "goals#create_contribution",
+           as: :goal_contributions
     end
 
     # Rate service (issue 19): resolved rates for the current User + per-User

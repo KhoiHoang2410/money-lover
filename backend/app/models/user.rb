@@ -14,6 +14,11 @@ class User < ApplicationRecord
   has_many :envelope_allocations, dependent: :destroy
   has_many :envelopes, dependent: :destroy
 
+  # Goals (issue 16). The AR class is GoalRecord (the bare Goal is the pure domain
+  # value object); a Goal's balance is derived from tagged transfers, so there is
+  # no FK from transactions to honour on teardown.
+  has_many :goals, class_name: "GoalRecord", dependent: :destroy
+
   DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh".freeze
 
   # Timezone drives month boundaries / monthly resets / "today" in Signals.

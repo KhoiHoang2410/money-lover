@@ -306,6 +306,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller's goals
+         * @description Returns every Goal owned by the authenticated user, each with its live balance (Σ Contributions) and GoalTracker progress, Schedule status and per-line shortfall.
+         */
+        get: operations["listGoals"];
+        put?: never;
+        /**
+         * Create a goal
+         * @description Create a savings Goal with a name, a positive target (integer minor units), an optional funding window (start/end month), and a Schedule of month → planned amount. VND-only for now.
+         */
+        post: operations["createGoal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The goal's id. */
+                id: components["parameters"]["GoalId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one goal
+         * @description Returns a single Goal with its balance, progress, and per-line Schedule status + shortfall.
+         */
+        get: operations["getGoal"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a goal
+         * @description Delete a Goal. Its Contribution transfers remain in the ledger.
+         */
+        delete: operations["deleteGoal"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a goal
+         * @description Partially update a Goal's name, icon, target, funding window, or Schedule. `currency` is immutable.
+         */
+        patch: operations["updateGoal"];
+        trace?: never;
+    };
+    "/api/goals/{goal_id}/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The goal's id. */
+                goal_id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Contribute to a goal
+         * @description Fund the Goal from a VND Account. Recorded as a single Transfer (the Account is debited, the Goal credited by the same amount) committed atomically, so net worth is unchanged. The source must be a VND Account; foreign-currency funding is rejected. Returns the updated Goal.
+         */
+        post: operations["createContribution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -788,6 +866,126 @@ export interface components {
             adjustments: components["schemas"]["Transaction"][];
             unchanged_source_ids: number[];
         };
+        GoalMonth: {
+            /** @example 2026 */
+            year: number;
+            /** @example 1 */
+            month: number;
+        };
+        GoalScheduleLine: {
+            /** @example 2026 */
+            year: number;
+            /** @example 1 */
+            month: number;
+            planned: components["schemas"]["MoneyMinorUnits"];
+            /**
+             * @description Cumulative Schedule-line status (CONTEXT.md).
+             * @enum {string}
+             */
+            status: "funded" | "due" | "missed" | "pending";
+            /** @description Scheduled amount minus the Contributions allocated to this line. */
+            shortfall: components["schemas"]["MoneyMinorUnits"];
+        };
+        GoalProgress: {
+            expected: components["schemas"]["MoneyMinorUnits"];
+            /**
+             * @description Exact ahead/delay ratio as a decimal string (never a float). Null when nothing is due yet (no defined ratio).
+             * @example 0.25
+             */
+            pct?: string | null;
+            /**
+             * @description Whether the Goal is ahead of, behind, or exactly on plan.
+             * @enum {string}
+             */
+            pct_sign: "positive" | "negative" | "zero";
+        };
+        Goal: {
+            /** Format: int64 */
+            id: number;
+            /** @example House */
+            name: string;
+            icon?: string | null;
+            /**
+             * @description ISO 4217 code. VND only for now.
+             * @example VND
+             */
+            currency: string;
+            target: components["schemas"]["MoneyMinorUnits"];
+            start_month?: components["schemas"]["GoalMonth"];
+            end_month?: components["schemas"]["GoalMonth"];
+            /** @description The accumulated Contributions (CONTEXT.md "Goal" balance). */
+            balance: components["schemas"]["MoneyMinorUnits"];
+            schedule: components["schemas"]["GoalScheduleLine"][];
+            progress: components["schemas"]["GoalProgress"];
+        };
+        GoalList: {
+            goals: components["schemas"]["Goal"][];
+        };
+        GoalScheduleInput: {
+            /** @example 2026 */
+            year: number;
+            /** @example 1 */
+            month: number;
+            /**
+             * Format: int64
+             * @description Planned amount in minor units (positive).
+             * @example 100000000
+             */
+            amount_minor_units: number;
+        };
+        /** @description VND-only. A positive target and a Schedule of month → planned amount. */
+        GoalCreateRequest: {
+            /** @example House */
+            name: string;
+            icon?: string | null;
+            /**
+             * @description VND only for now; defaults to VND when omitted.
+             * @example VND
+             */
+            currency?: string;
+            /**
+             * Format: int64
+             * @example 400000000
+             */
+            target_minor_units: number;
+            start_month?: components["schemas"]["GoalMonth"];
+            end_month?: components["schemas"]["GoalMonth"];
+            schedule: components["schemas"]["GoalScheduleInput"][];
+        };
+        /** @description Partial update. `currency` is immutable and not accepted. */
+        GoalUpdateRequest: {
+            name?: string;
+            icon?: string | null;
+            /** Format: int64 */
+            target_minor_units?: number;
+            start_month?: components["schemas"]["GoalMonth"];
+            end_month?: components["schemas"]["GoalMonth"];
+            schedule?: components["schemas"]["GoalScheduleInput"][];
+        };
+        ContributionCreateRequest: {
+            /**
+             * Format: int64
+             * @description The VND Account to fund from.
+             */
+            source_id: number;
+            /**
+             * Format: int64
+             * @description Positive amount in minor units.
+             * @example 40000000
+             */
+            amount_minor_units: number;
+            /**
+             * @description VND only; defaults to VND when omitted.
+             * @example VND
+             */
+            currency?: string;
+            /**
+             * Format: date
+             * @description The date the money moved. Defaults to today when omitted.
+             */
+            occurred_on?: string;
+            note?: string | null;
+        };
     };
     responses: {
         /** @description The `Accept` header does not allow `application/json`. */
@@ -846,6 +1044,8 @@ export interface components {
         };
     };
     parameters: {
+        /** @description The goal's id. */
+        GoalId: number;
         /** @description The money source's id. */
         SourceId: number;
         /** @description The transaction's id. */
@@ -1449,6 +1649,170 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    listGoals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's goals. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    createGoal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoalCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Goal created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Goal"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getGoal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The goal's id. */
+                id: components["parameters"]["GoalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requested goal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Goal"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    deleteGoal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The goal's id. */
+                id: components["parameters"]["GoalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Goal deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    updateGoal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The goal's id. */
+                id: components["parameters"]["GoalId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoalUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Goal updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Goal"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    createContribution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The goal's id. */
+                goal_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContributionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Contribution recorded; returns the updated Goal. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Goal"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             406: components["responses"]["NotAcceptable"];
             415: components["responses"]["UnsupportedMediaType"];
             422: components["responses"]["UnprocessableEntity"];
