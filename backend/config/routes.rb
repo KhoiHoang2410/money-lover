@@ -29,6 +29,16 @@ Rails.application.routes.draw do
       # cross-currency transfer, a backfill restatement, and an invest oversell
       # guard each commit or roll back as one).
       resources :transactions, only: [ :index, :show, :create, :update, :destroy ]
+
+      # Envelopes — named virtual budget buckets (issue 15). Full CRUD,
+      # tenant-scoped; each read returns the month's spent/remaining (BudgetEngine).
+      resources :envelopes, only: [ :index, :show, :create, :update, :destroy ]
+
+      # Starter-envelope seeding (createable, idempotent on existing names) and
+      # Allocation-template apply (createable, seeds a month's allocations) —
+      # singular resources: one action each (POST), no id in the path.
+      resource :starter_envelopes, only: [ :create ]
+      resource :allocation_template, only: [ :create ], controller: "allocation_template"
     end
 
     # Rate service (issue 19): resolved rates for the current User + per-User

@@ -51,6 +51,14 @@ tags:
       cross-currency Transfer carries a manual Rate and a computed Fee; a
       Backfill restates its source's opening balance atomically; an Invest Sell
       is blocked from overselling a Holding.
+  - name: Envelopes
+    description: >-
+      Budgeting buckets (CONTEXT.md): named virtual Envelopes income is divided
+      into, user-scoped. Each read returns the current month's spent and
+      remaining (BudgetEngine). One Envelope is the Reserve (month-end leftovers
+      accumulate there). Starter envelopes seed the list idempotently from a
+      suggested set; an Allocation template seeds a month's per-Envelope
+      allocations.
   - name: Auth
     description: >-
       Registration and the token lifecycle (ADR-0014). Clients obtain a
@@ -463,6 +471,177 @@ paths:
         "406":
           $ref: "#/components/responses/NotAcceptable"
 
+  /api/envelopes:
+    get:
+      operationId: listEnvelopes
+      tags: [Envelopes]
+      summary: List the caller's envelopes
+      description: >-
+        Returns every Envelope owned by the authenticated user, each with the
+        current month's allocation, spent and remaining (BudgetEngine).
+      responses:
+        "200":
+          description: The caller's envelopes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+    post:
+      operationId: createEnvelope
+      tags: [Envelopes]
+      summary: Create an envelope
+      description: >-
+        Create a named Envelope with an optional icon, monthly Allocation,
+        optional weekly/monthly caps, and an optional Reserve flag. At most one
+        Reserve may exist per user; setting a second is rejected with 422.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnvelopeCreateRequest"
+      responses:
+        "201":
+          description: Envelope created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /api/envelopes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/EnvelopeId"
+    get:
+      operationId: getEnvelope
+      tags: [Envelopes]
+      summary: Read one envelope
+      description: Returns a single Envelope with its current-month spent and remaining.
+      responses:
+        "200":
+          description: The requested envelope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+    patch:
+      operationId: updateEnvelope
+      tags: [Envelopes]
+      summary: Update an envelope
+      description: >-
+        Partially update an Envelope's name, icon, Allocation, caps, currency, or
+        Reserve flag. Setting the Reserve flag when another Reserve exists is
+        rejected with 422.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnvelopeUpdateRequest"
+      responses:
+        "200":
+          description: Envelope updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      operationId: deleteEnvelope
+      tags: [Envelopes]
+      summary: Delete an envelope
+      responses:
+        "204":
+          description: Envelope deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
+  /api/starter_envelopes:
+    post:
+      operationId: seedStarterEnvelopes
+      tags: [Envelopes]
+      summary: Seed the starter envelopes
+      description: >-
+        Populate the caller's Envelope list from the single suggested set
+        (name + icon, Allocation ₫0). Idempotent on existing names
+        (case-insensitive, trimmed); designates the Reserve only when the caller
+        has none. Returns the resulting Envelope list.
+      responses:
+        "201":
+          description: Starter set applied; returns the caller's envelopes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /api/allocation_template:
+    post:
+      operationId: applyAllocationTemplate
+      tags: [Envelopes]
+      summary: Save and apply the allocation template to a month
+      description: >-
+        Save the template (each Envelope's default Allocation) and seed a month's
+        per-Envelope Allocation snapshots from it. With no `allocations`, seeds
+        the month from the existing defaults; with no `month`, targets the
+        caller's current month. Returns the Envelope list for the applied month.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AllocationTemplateRequest"
+      responses:
+        "201":
+          description: Template applied; returns the envelopes for the month.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
   /health:
     get:
       operationId: getHealth
@@ -586,6 +765,14 @@ components:
       in: path
       required: true
       description: The transaction's id.
+      schema:
+        type: integer
+        format: int64
+    EnvelopeId:
+      name: id
+      in: path
+      required: true
+      description: The envelope's id.
       schema:
         type: integer
         format: int64
@@ -1045,6 +1232,161 @@ components:
         occurred_on:
           type: string
           format: date
+
+    # ── Envelopes (issue 15, CONTEXT.md) ─────────────────────────────────────
+    # A budgeting Envelope. `allocation` is the effective Allocation for the
+    # reported month (the per-month snapshot, else the Envelope default);
+    # `spent`/`remaining` are computed for the month by BudgetEngine. Caps
+    # (weekly_cap/monthly_cap) appear only when set.
+    Envelope:
+      type: object
+      additionalProperties: false
+      required: [id, name, is_reserve, currency, allocation, carried, spent, remaining]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        is_reserve:
+          type: boolean
+          description: True for the single Reserve Envelope (CONTEXT.md "Reserve").
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: VND
+        allocation:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: The effective Allocation for the reported month.
+        carried:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: Accumulated carry (Reserve balance or roll-over).
+        spent:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: Σ of the month's Expenses assigned to this Envelope.
+        remaining:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: allocation + carried − spent (negative when overspent).
+        weekly_cap:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: Optional weekly spending cap; omitted when unset.
+        monthly_cap:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: Optional monthly spending cap; omitted when unset.
+
+    EnvelopeList:
+      type: object
+      additionalProperties: false
+      required: [envelopes]
+      properties:
+        envelopes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Envelope"
+
+    EnvelopeCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: Food
+        icon:
+          type: string
+          nullable: true
+        is_reserve:
+          type: boolean
+          description: Mark this Envelope as the Reserve (at most one per user).
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: Defaults to VND when omitted.
+          example: VND
+        allocation_minor_units:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Default monthly Allocation in minor units (defaults to 0).
+        weekly_cap_minor_units:
+          type: integer
+          format: int64
+          minimum: 0
+        monthly_cap_minor_units:
+          type: integer
+          format: int64
+          minimum: 0
+
+    EnvelopeUpdateRequest:
+      type: object
+      additionalProperties: false
+      description: Partial update; every field is optional.
+      properties:
+        name:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        is_reserve:
+          type: boolean
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        allocation_minor_units:
+          type: integer
+          format: int64
+          minimum: 0
+        weekly_cap_minor_units:
+          type: integer
+          format: int64
+          minimum: 0
+        monthly_cap_minor_units:
+          type: integer
+          format: int64
+          minimum: 0
+
+    AllocationTemplateRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        Save the template and apply it to a month. `month` defaults to the
+        caller's current month; `allocations` defaults to the existing
+        per-Envelope defaults.
+      properties:
+        month:
+          type: string
+          description: Target month as YYYY-MM or a full ISO date (the day is ignored).
+          example: "2026-06"
+        allocations:
+          type: array
+          description: Per-Envelope Allocation amounts to save and apply.
+          items:
+            $ref: "#/components/schemas/AllocationTemplateLine"
+
+    AllocationTemplateLine:
+      type: object
+      additionalProperties: false
+      required: [envelope_id, amount_minor_units]
+      properties:
+        envelope_id:
+          type: integer
+          format: int64
+        amount_minor_units:
+          type: integer
+          format: int64
+          minimum: 0
 
     # ── Rates (issue 19) ─────────────────────────────────────────────────────
     # One rate resolved for the current user. `value` is an exact decimal STRING

@@ -9,6 +9,10 @@ class User < ApplicationRecord
   has_many :transactions, dependent: :destroy
   has_many :sources, dependent: :destroy
   has_many :rate_overrides, dependent: :destroy
+  # Envelope allocations reference envelopes via a FK, so they are torn down
+  # before their envelopes when a User is destroyed — declared first for order.
+  has_many :envelope_allocations, dependent: :destroy
+  has_many :envelopes, dependent: :destroy
 
   DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh".freeze
 
