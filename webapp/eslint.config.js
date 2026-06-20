@@ -23,6 +23,12 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      // Allow intentionally-unused args/vars when prefixed with `_`
+      // (e.g. signature-matching fetch-mock params in tests).
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
   },
   {
