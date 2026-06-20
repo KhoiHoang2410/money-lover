@@ -63,6 +63,38 @@ test("register, survive reload, then logout", async ({ page }) => {
     return route.continue();
   });
 
+  // The authed Dashboard (issue #110) fetches net worth + signals on mount.
+  // Mock them hermetically so the landing render is deterministic; the auth
+  // assertions below stay the regression bite (only refresh-on-load survives a
+  // reload), these just keep the dashboard from hitting real network.
+  const apiJson = (origin: string, body: unknown) => ({
+    status: 200,
+    headers: { ...corsFor(origin), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  await page.route("**/api/net_worth", async (route: Route) => {
+    const origin = route.request().headers()["origin"] ?? "";
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: corsFor(origin) });
+    }
+    return route.fulfill(
+      apiJson(origin, {
+        asset: { amount_minor: 5_000_000, currency: "VND" },
+        debt: { amount_minor: 1_500_000, currency: "VND" },
+        net: { amount_minor: 3_500_000, currency: "VND" },
+      }),
+    );
+  });
+
+  await page.route("**/signals", async (route: Route) => {
+    const origin = route.request().headers()["origin"] ?? "";
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: corsFor(origin) });
+    }
+    return route.fulfill(apiJson(origin, { signals: [] }));
+  });
+
   // Unauthenticated deep-link to /register renders the register form (the
   // bootstrap refresh 401s while session is inactive).
   await page.goto("/register");
@@ -73,15 +105,15 @@ test("register, survive reload, then logout", async ({ page }) => {
   await page.getByLabel("Confirm password").fill("secret123");
   await page.getByRole("button", { name: "Create account" }).click();
 
-  // Lands authenticated inside the app shell (Dashboard).
-  await expect(page.getByText("Signed in as")).toBeVisible();
-  await expect(page.getByText("Dashboard coming soon")).toBeVisible();
+  // Lands authenticated inside the app shell (profile chip + Dashboard hero).
+  await expect(page.getByRole("button", { name: "Open settings" })).toBeVisible();
+  await expect(page.getByText("Net worth")).toBeVisible();
 
   // Reload: the access token is gone from memory; only refresh-on-load can
   // restore the session. This is the regression bite.
   await page.reload();
-  await expect(page.getByText("Signed in as")).toBeVisible();
-  await expect(page.getByText("Dashboard coming soon")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open settings" })).toBeVisible();
+  await expect(page.getByText("Net worth")).toBeVisible();
 
   // Logout from Settings → redirected back to /login.
   await page.getByRole("button", { name: "Open settings" }).click();
