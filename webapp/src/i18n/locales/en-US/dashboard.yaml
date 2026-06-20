@@ -1,5 +1,14 @@
 dashboard:
-  welcome: Signed in as
-  subtitle: Your net worth, signals, and key cards land here next.
-  comingSoonTitle: Dashboard coming soon
-  comingSoonBody: This wave ships the account and app shell. Feature screens follow.
+  netWorth:
+    title: Net worth
+    asset: Assets
+    debt: Debts
+    net: Net worth
+    loading: Loading net worth…
+    error: Couldn't load your net worth.
+  signals:
+    title: Signals
+    subtitle: What we noticed across your ledger, envelopes, and goals.
+    loading: Loading signals…
+    empty: No signals right now — you're all caught up.
+    error: Couldn't load your signals.

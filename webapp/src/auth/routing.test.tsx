@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vite
 import { render, screen, waitFor } from "@testing-library/react";
 import { fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, Navigate } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Client } from "openapi-fetch";
 import type { paths } from "@/api/types";
 import i18n from "@/i18n";
@@ -51,10 +52,14 @@ function mockRefresh(ok: boolean): void {
 }
 
 function renderApp(initialPath: string, client: Client<paths>) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <AuthProvider client={client}>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <Routes>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider client={client}>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <Routes>
           <Route element={<RedirectIfAuthed />}>
             <Route path="/login" element={<LoginScreen />} />
             <Route path="/register" element={<RegisterScreen />} />
@@ -68,14 +73,31 @@ function renderApp(initialPath: string, client: Client<paths>) {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MemoryRouter>
-    </AuthProvider>,
+      </AuthProvider>
+    </QueryClientProvider>,
   );
 }
 
 function fakeClient(): Client<paths> {
   return {
     POST: vi.fn().mockResolvedValue({ data: {} }),
-    GET: vi.fn().mockResolvedValue({ data: {} }),
+    // The Dashboard landing reads net worth + signals; answer both with valid
+    // (empty) shapes so the redirect tests reach a stable rendered Dashboard.
+    GET: vi.fn((path: string) => {
+      if (path === "/api/net_worth") {
+        return Promise.resolve({
+          data: {
+            asset: { amount_minor: 0, currency: "VND" },
+            debt: { amount_minor: 0, currency: "VND" },
+            net: { amount_minor: 0, currency: "VND" },
+          },
+        });
+      }
+      if (path === "/signals") {
+        return Promise.resolve({ data: { signals: [] } });
+      }
+      return Promise.resolve({ data: {} });
+    }),
   } as unknown as Client<paths>;
 }
 
@@ -109,7 +131,7 @@ describe("protected routing", () => {
     renderApp("/login", fakeClient());
 
     await waitFor(() =>
-      expect(screen.getByText("Dashboard coming soon")).toBeInTheDocument(),
+      expect(screen.getByText("Signals")).toBeInTheDocument(),
     );
     expect(screen.queryByText("Welcome back")).not.toBeInTheDocument();
   });
@@ -120,7 +142,7 @@ describe("protected routing", () => {
     renderApp("/register", fakeClient());
 
     await waitFor(() =>
-      expect(screen.getByText("Dashboard coming soon")).toBeInTheDocument(),
+      expect(screen.getByText("Signals")).toBeInTheDocument(),
     );
   });
 
