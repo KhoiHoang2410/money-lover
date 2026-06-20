@@ -8,6 +8,7 @@ module ErrorHandling
     rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
     rescue_from ApiError::Unauthorized, with: :render_unauthorized
     rescue_from ApiError::Validation, with: :render_validation
+    rescue_from ApiError::Conflict, with: :render_conflict
   end
 
   private
@@ -49,5 +50,9 @@ module ErrorHandling
   def render_validation(exception)
     render_error(status: :unprocessable_entity, code: "validation_failed",
                  message: exception.message, details: exception.details)
+  end
+
+  def render_conflict(exception)
+    render_error(status: :conflict, code: "conflict", message: exception.message)
   end
 end

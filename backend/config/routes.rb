@@ -19,6 +19,10 @@ Rails.application.routes.draw do
     # added under this namespace in issues 13–20.
     namespace :api do
       resources :identities, only: [ :show ]
+
+      # Money sources — Accounts, Credit cards, Holdings (issue 13). Full CRUD,
+      # tenant-scoped; non-CRUD actions on sources are added in later issues.
+      resources :sources, only: [ :index, :show, :create, :update, :destroy ]
     end
   end
 end
