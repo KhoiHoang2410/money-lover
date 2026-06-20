@@ -5,11 +5,12 @@ require "rails_helper"
 # Identity is the representative tenant-scoped resource; issues 13–20 reuse the
 # same `load_owned!` helper for every domain resource.
 RSpec.describe "Api::Identities", type: :request do
+  # Authenticate as a real bearer access token (issue 06 replaced the X-User-Id
+  # shim with JWT decoding in the Tenancy concern).
   def json_headers(user)
-    {
-      "Accept" => "application/json",
-      "X-User-Id" => user&.id&.to_s
-    }.compact
+    headers = { "Accept" => "application/json" }
+    headers["Authorization"] = "Bearer #{Auth::TokenService.issue_access_token(user)}" if user
+    headers
   end
 
   let(:alice) { Auth::PasswordProvider.register(username: "alice", password: "secret123") }
@@ -39,6 +40,18 @@ RSpec.describe "Api::Identities", type: :request do
 
   it "rejects an unauthenticated request" do
     get "/api/identities/#{alice_identity.id}", headers: { "Accept" => "application/json" }
+
+    expect(response).to have_http_status(:unauthorized)
+    expect(response.parsed_body.dig("error", "code")).to eq("unauthorized")
+  end
+
+  it "rejects an expired access token" do
+    expired = Auth::TokenService.issue_access_token(
+      alice, now: Auth::TokenService::ACCESS_TOKEN_TTL.ago - 1.minute
+    )
+
+    get "/api/identities/#{alice_identity.id}",
+        headers: { "Accept" => "application/json", "Authorization" => "Bearer #{expired}" }
 
     expect(response).to have_http_status(:unauthorized)
     expect(response.parsed_body.dig("error", "code")).to eq("unauthorized")

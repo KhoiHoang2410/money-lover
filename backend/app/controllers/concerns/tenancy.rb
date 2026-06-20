@@ -10,14 +10,15 @@
 # access is structurally impossible: there is no code path that fetches a row
 # by bare id.
 #
-# SEAM FOR ISSUE 06: `current_user` is resolved here from the `X-User-Id`
-# request header — a deliberate shim so this issue can test scoping without the
-# JWT stack. Issue 06 replaces only `resolve_current_user` with bearer-token
-# decoding; nothing else in this concern (or its callers) changes.
+# Authentication is by bearer access token (ADR-0014): `resolve_current_user`
+# verifies the JWT from the `Authorization: Bearer …` header and loads the User
+# named by its `sub` claim. Tokens are issued by Auth::TokenService; the rest of
+# this concern (tenant scoping / row-ownership) is independent of how the user
+# is resolved.
 module Tenancy
   extend ActiveSupport::Concern
 
-  CURRENT_USER_HEADER = "X-User-Id".freeze
+  BEARER_SCHEME = "Bearer".freeze
 
   included do
     before_action :authenticate_user!
@@ -32,13 +33,21 @@ module Tenancy
     raise ApiError::Unauthorized unless @current_user
   end
 
-  # ISSUE-06 SEAM: swap this body for JWT bearer decoding. Everything else that
-  # depends on `current_user` keeps working unchanged.
+  # Verify the bearer access token and load its subject. Any failure
+  # (no/garbled/expired token, or an unknown subject) yields nil → 401.
   def resolve_current_user
-    user_id = request.headers[CURRENT_USER_HEADER]
-    return if user_id.blank?
+    claims = Auth::TokenService.verify_access_token(bearer_token)
+    return if claims.nil?
 
-    User.find_by(id: user_id)
+    User.find_by(id: claims["sub"])
+  end
+
+  def bearer_token
+    header = request.headers["Authorization"].to_s
+    scheme, token = header.split(" ", 2)
+    return unless scheme == BEARER_SCHEME
+
+    token
   end
 
   # A relation rooted at the current tenant, e.g. tenant_scope(:identities).

@@ -4,6 +4,7 @@ module ErrorHandling
   included do
     rescue_from StandardError, with: :render_internal_error
     rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+    rescue_from ActiveRecord::RecordInvalid, with: :render_record_invalid
     rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
     rescue_from ApiError::Unauthorized, with: :render_unauthorized
     rescue_from ApiError::Validation, with: :render_validation
@@ -27,6 +28,12 @@ module ErrorHandling
   def render_not_found(_exception)
     render_error(status: :not_found, code: "not_found",
                  message: "Resource not found.")
+  end
+
+  def render_record_invalid(exception)
+    render_error(status: :unprocessable_entity, code: "validation_failed",
+                 message: exception.record.errors.full_messages.to_sentence,
+                 details: exception.record.errors.to_hash)
   end
 
   def render_parameter_missing(exception)

@@ -89,6 +89,15 @@ backend RSpec gate runs on `backend/**` *and* `docs/api/**` changes.
 
 - `GET /up` — liveness probe (Rails default).
 - `GET /health` — JSON `{ "status": "ok" }`. First contract-tested endpoint.
+- `POST /auth/register` — create a User + password Identity, returns a token pair.
+- `POST /auth/login` — exchange credentials for an access + refresh token pair.
+- `POST /auth/refresh` — rotate the refresh token, returns a new pair.
+- `POST /auth/logout` — revoke a refresh token.
+
+Auth uses a short-lived JWT access token (`Authorization: Bearer …`, verified by
+the Tenancy concern) plus a long-lived rotating refresh token persisted
+digest-only (`Auth::TokenService`, ADR-0014). Store the refresh token in an
+httpOnly cookie (web) or the Keychain (iOS); keep the access token in memory.
 
 ## Background jobs
 
