@@ -10,9 +10,39 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_20_000005) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_20_000011) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "envelope_allocations", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "envelope_id", null: false
+    t.date "month", null: false
+    t.bigint "allocation_minor_units", default: 0, null: false
+    t.string "currency", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["envelope_id", "month"], name: "index_envelope_allocations_on_envelope_id_and_month", unique: true
+    t.index ["envelope_id"], name: "index_envelope_allocations_on_envelope_id"
+    t.index ["user_id", "month"], name: "index_envelope_allocations_on_user_id_and_month"
+    t.index ["user_id"], name: "index_envelope_allocations_on_user_id"
+  end
+
+  create_table "envelopes", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.string "icon"
+    t.boolean "is_reserve", default: false, null: false
+    t.string "currency", null: false
+    t.bigint "allocation_minor_units", default: 0, null: false
+    t.bigint "weekly_cap_minor_units"
+    t.bigint "monthly_cap_minor_units"
+    t.bigint "carried_minor_units", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_envelopes_on_user_id"
+    t.index ["user_id"], name: "index_envelopes_one_reserve_per_user", unique: true, where: "is_reserve"
+  end
 
   create_table "identities", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -108,6 +138,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_20_000005) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "envelope_allocations", "envelopes"
+  add_foreign_key "envelope_allocations", "users"
+  add_foreign_key "envelopes", "users"
   add_foreign_key "identities", "users"
   add_foreign_key "rate_overrides", "users"
   add_foreign_key "refresh_tokens", "users"

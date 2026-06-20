@@ -194,6 +194,98 @@ export interface paths {
         patch: operations["updateTransaction"];
         trace?: never;
     };
+    "/api/envelopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller's envelopes
+         * @description Returns every Envelope owned by the authenticated user, each with the current month's allocation, spent and remaining (BudgetEngine).
+         */
+        get: operations["listEnvelopes"];
+        put?: never;
+        /**
+         * Create an envelope
+         * @description Create a named Envelope with an optional icon, monthly Allocation, optional weekly/monthly caps, and an optional Reserve flag. At most one Reserve may exist per user; setting a second is rejected with 422.
+         */
+        post: operations["createEnvelope"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/envelopes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The envelope's id. */
+                id: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one envelope
+         * @description Returns a single Envelope with its current-month spent and remaining.
+         */
+        get: operations["getEnvelope"];
+        put?: never;
+        post?: never;
+        /** Delete an envelope */
+        delete: operations["deleteEnvelope"];
+        options?: never;
+        head?: never;
+        /**
+         * Update an envelope
+         * @description Partially update an Envelope's name, icon, Allocation, caps, currency, or Reserve flag. Setting the Reserve flag when another Reserve exists is rejected with 422.
+         */
+        patch: operations["updateEnvelope"];
+        trace?: never;
+    };
+    "/api/starter_envelopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed the starter envelopes
+         * @description Populate the caller's Envelope list from the single suggested set (name + icon, Allocation ₫0). Idempotent on existing names (case-insensitive, trimmed); designates the Reserve only when the caller has none. Returns the resulting Envelope list.
+         */
+        post: operations["seedStarterEnvelopes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/allocation_template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save and apply the allocation template to a month
+         * @description Save the template (each Envelope's default Allocation) and seed a month's per-Envelope Allocation snapshots from it. With no `allocations`, seeds the month from the existing defaults; with no `month`, targets the caller's current month. Returns the Envelope list for the applied month.
+         */
+        post: operations["applyAllocationTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -537,6 +629,81 @@ export interface components {
             /** Format: date */
             occurred_on?: string;
         };
+        Envelope: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            icon?: string | null;
+            /** @description True for the single Reserve Envelope (CONTEXT.md "Reserve"). */
+            is_reserve: boolean;
+            /** @example VND */
+            currency: string;
+            /** @description The effective Allocation for the reported month. */
+            allocation: components["schemas"]["MoneyMinorUnits"];
+            /** @description Accumulated carry (Reserve balance or roll-over). */
+            carried: components["schemas"]["MoneyMinorUnits"];
+            /** @description Σ of the month's Expenses assigned to this Envelope. */
+            spent: components["schemas"]["MoneyMinorUnits"];
+            /** @description allocation + carried − spent (negative when overspent). */
+            remaining: components["schemas"]["MoneyMinorUnits"];
+            /** @description Optional weekly spending cap; omitted when unset. */
+            weekly_cap?: components["schemas"]["MoneyMinorUnits"];
+            /** @description Optional monthly spending cap; omitted when unset. */
+            monthly_cap?: components["schemas"]["MoneyMinorUnits"];
+        };
+        EnvelopeList: {
+            envelopes: components["schemas"]["Envelope"][];
+        };
+        EnvelopeCreateRequest: {
+            /** @example Food */
+            name: string;
+            icon?: string | null;
+            /** @description Mark this Envelope as the Reserve (at most one per user). */
+            is_reserve?: boolean;
+            /**
+             * @description Defaults to VND when omitted.
+             * @example VND
+             */
+            currency?: string;
+            /**
+             * Format: int64
+             * @description Default monthly Allocation in minor units (defaults to 0).
+             */
+            allocation_minor_units?: number;
+            /** Format: int64 */
+            weekly_cap_minor_units?: number;
+            /** Format: int64 */
+            monthly_cap_minor_units?: number;
+        };
+        /** @description Partial update; every field is optional. */
+        EnvelopeUpdateRequest: {
+            name?: string;
+            icon?: string | null;
+            is_reserve?: boolean;
+            currency?: string;
+            /** Format: int64 */
+            allocation_minor_units?: number;
+            /** Format: int64 */
+            weekly_cap_minor_units?: number;
+            /** Format: int64 */
+            monthly_cap_minor_units?: number;
+        };
+        /** @description Save the template and apply it to a month. `month` defaults to the caller's current month; `allocations` defaults to the existing per-Envelope defaults. */
+        AllocationTemplateRequest: {
+            /**
+             * @description Target month as YYYY-MM or a full ISO date (the day is ignored).
+             * @example 2026-06
+             */
+            month?: string;
+            /** @description Per-Envelope Allocation amounts to save and apply. */
+            allocations?: components["schemas"]["AllocationTemplateLine"][];
+        };
+        AllocationTemplateLine: {
+            /** Format: int64 */
+            envelope_id: number;
+            /** Format: int64 */
+            amount_minor_units: number;
+        };
         RateEntry: {
             /**
              * @description Namespaced rate key (fx.USD, gold, stock.VNM).
@@ -635,6 +802,8 @@ export interface components {
         SourceId: number;
         /** @description The transaction's id. */
         TransactionId: number;
+        /** @description The envelope's id. */
+        EnvelopeId: number;
     };
     requestBodies: never;
     headers: never;
@@ -1021,6 +1190,189 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    listEnvelopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's envelopes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    createEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvelopeCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Envelope created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The envelope's id. */
+                id: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requested envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    deleteEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The envelope's id. */
+                id: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Envelope deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    updateEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The envelope's id. */
+                id: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvelopeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Envelope updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    seedStarterEnvelopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Starter set applied; returns the caller's envelopes. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+        };
+    };
+    applyAllocationTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocationTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Template applied; returns the envelopes for the month. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             406: components["responses"]["NotAcceptable"];
             415: components["responses"]["UnsupportedMediaType"];
             422: components["responses"]["UnprocessableEntity"];
