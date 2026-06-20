@@ -7,6 +7,8 @@ import { LoginScreen } from "@/pages/LoginScreen";
 import { RegisterScreen } from "@/pages/RegisterScreen";
 import { DashboardScreen } from "@/pages/DashboardScreen";
 import { SettingsScreen } from "@/pages/SettingsScreen";
+import { SourcesScreen } from "@/pages/SourcesScreen";
+import { SourceDetailScreen } from "@/pages/SourceDetailScreen";
 import { PlaceholderScreen } from "@/pages/PlaceholderScreen";
 
 const queryClient = new QueryClient({
@@ -35,10 +37,8 @@ export default function App() {
             <Route element={<RequireAuth />}>
               <Route element={<AppShell />}>
                 <Route path="/" element={<DashboardScreen />} />
-                <Route
-                  path="/sources"
-                  element={<PlaceholderScreen sectionKey="sources" />}
-                />
+                <Route path="/sources" element={<SourcesScreen />} />
+                <Route path="/sources/:id" element={<SourceDetailScreen />} />
                 <Route
                   path="/transactions"
                   element={<PlaceholderScreen sectionKey="transactions" />}
