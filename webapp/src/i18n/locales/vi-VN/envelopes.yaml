@@ -1,0 +1,50 @@
+envelopes:
+  title: Hũ chi tiêu
+  subtitle: Lập kế hoạch mỗi tháng cho từng hũ ngân sách.
+  newEnvelope: Hũ mới
+  starterButton: Hũ gợi ý
+  templateButton: Mẫu phân bổ
+  loading: Đang tải hũ chi tiêu…
+  errorTitle: Không tải được hũ chi tiêu
+  errorBody: Đã xảy ra lỗi khi kết nối máy chủ. Vui lòng thử lại.
+  retry: Thử lại
+  emptyTitle: Chưa có hũ nào
+  emptyBody: Tạo một hũ hoặc dùng bộ gợi ý để bắt đầu lập ngân sách.
+  reserveBadge: Hũ dự trữ
+  allocationLabel: Phân bổ
+  spentLabel: Đã chi
+  remainingLabel: Còn lại
+  editAria: Sửa {{name}}
+  deleteAria: Xóa {{name}}
+  createTitle: Hũ mới
+  editTitle: Sửa hũ
+  formSubtitle: Nhập phân bổ và hạn mức bằng ₫.
+  nameLabel: Tên
+  namePlaceholder: ví dụ Ăn uống
+  iconLabel: Biểu tượng
+  iconPlaceholder: ví dụ 🍜
+  allocationFieldLabel: Phân bổ hàng tháng (₫)
+  weeklyCapLabel: Hạn mức tuần (₫)
+  monthlyCapLabel: Hạn mức tháng (₫)
+  optional: Tùy chọn
+  reserveCheckbox: Đặt làm hũ dự trữ
+  reserveHint: Chỉ một hũ có thể là hũ dự trữ.
+  invalidAmount: Nhập số tiền hợp lệ.
+  genericError: Đã xảy ra lỗi. Vui lòng thử lại.
+  cancel: Hủy
+  save: Lưu
+  saving: Đang lưu…
+  deleteTitle: Xóa hũ
+  deleteConfirm: Xóa “{{name}}”? Không thể hoàn tác.
+  confirmDelete: Xóa
+  deleting: Đang xóa…
+  starterTitle: Hũ gợi ý
+  starterSubtitle: Thêm bộ hũ gợi ý. Những tên đã có sẽ được bỏ qua.
+  starterExisting: Đã thêm
+  seed: Thêm hũ gợi ý
+  seeding: Đang thêm…
+  templateTitle: Mẫu phân bổ
+  templateSubtitle: Áp dụng phân bổ đã lưu cho một tháng.
+  monthLabel: Tháng
+  apply: Áp dụng mẫu
+  applying: Đang áp dụng…

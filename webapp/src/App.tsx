@@ -10,6 +10,7 @@ import { SettingsScreen } from "@/pages/SettingsScreen";
 import { SourcesScreen } from "@/pages/SourcesScreen";
 import { SourceDetailScreen } from "@/pages/SourceDetailScreen";
 import { PlaceholderScreen } from "@/pages/PlaceholderScreen";
+import { EnvelopesScreen } from "@/pages/envelopes/EnvelopesScreen";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,10 +44,7 @@ export default function App() {
                   path="/transactions"
                   element={<PlaceholderScreen sectionKey="transactions" />}
                 />
-                <Route
-                  path="/envelopes"
-                  element={<PlaceholderScreen sectionKey="envelopes" />}
-                />
+                <Route path="/envelopes" element={<EnvelopesScreen />} />
                 <Route
                   path="/goals"
                   element={<PlaceholderScreen sectionKey="goals" />}
