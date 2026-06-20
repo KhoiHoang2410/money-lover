@@ -119,7 +119,7 @@ test("create an envelope → it appears with its month figures", async ({
   await page.getByLabel("Password", { exact: true }).fill("secret123");
   await page.getByLabel("Confirm password").fill("secret123");
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByText("Signed in as")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open settings" })).toBeVisible();
 
   // Navigate to Envelopes; starts empty.
   await page.getByRole("link", { name: "Envelopes" }).first().click();
