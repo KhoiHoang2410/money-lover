@@ -17,3 +17,6 @@ import type { components } from "../../../docs/api/generated/types";
 
 export type MoneyMinorUnits = components["schemas"]["MoneyMinorUnits"];
 export type HealthStatus = components["schemas"]["HealthStatus"];
+export type Source = components["schemas"]["Source"];
+export type SourceList = components["schemas"]["SourceList"];
+export type SourceKind = Source["kind"];

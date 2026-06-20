@@ -1,0 +1,28 @@
+sources:
+  title: Nguồn tiền
+  subtitle: Tài khoản, thẻ tín dụng và tài sản nắm giữ — số dư lấy trực tiếp từ API.
+  loading: Đang tải nguồn tiền…
+  error: Không thể tải nguồn tiền của bạn.
+  empty: Chưa có nguồn tiền nào.
+  group:
+    account: Tài khoản
+    credit_card: Thẻ tín dụng
+    holding: Tài sản nắm giữ
+  kind:
+    account: Tài khoản
+    credit_card: Thẻ tín dụng
+    holding: Tài sản nắm giữ
+  unit:
+    chi: chỉ
+    luong: lượng
+    shares: cổ phiếu
+  valuationLabel: Giá trị quy đổi VND
+  quantityLabel: Số lượng
+  kindLabel: Loại
+  currencyLabel: Tiền tệ
+  tickerLabel: Mã chứng khoán
+  openingBalanceLabel: Số dư ban đầu
+  currentBalanceLabel: Số dư hiện tại
+  back: Quay lại nguồn tiền
+  detailTitle: Chi tiết nguồn tiền
+  detailError: Không thể tải nguồn tiền này.

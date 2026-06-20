@@ -1,0 +1,28 @@
+sources:
+  title: Money sources
+  subtitle: Your accounts, credit cards, and holdings — balances straight from the API.
+  loading: Loading sources…
+  error: We couldn't load your sources.
+  empty: No money sources yet.
+  group:
+    account: Accounts
+    credit_card: Credit cards
+    holding: Holdings
+  kind:
+    account: Account
+    credit_card: Credit card
+    holding: Holding
+  unit:
+    chi: chỉ
+    luong: lượng
+    shares: shares
+  valuationLabel: Value in VND
+  quantityLabel: Quantity
+  kindLabel: Type
+  currencyLabel: Currency
+  tickerLabel: Ticker
+  openingBalanceLabel: Opening balance
+  currentBalanceLabel: Current balance
+  back: Back to sources
+  detailTitle: Source details
+  detailError: We couldn't load this source.
