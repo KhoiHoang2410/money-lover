@@ -61,6 +61,11 @@ Rails.application.routes.draw do
     # rate keys (e.g. fx.USD, stock.VNM) that Rails would otherwise treat as a
     # format separator.
     scope module: :api do
+      # Signals (issue 20): the deterministic spending/goal Signals computed for
+      # the current User. Unprefixed to match the OpenAPI contract; the
+      # controller lives under Api:: to reuse the tenant-scoped BaseController.
+      get "signals" => "signals#index", as: :signals
+
       get "rates" => "rates#index", as: :rates
       put "rates/:key/override" => "rates#set_override",
           as: :rate_override, constraints: { key: %r{[^/]+} }

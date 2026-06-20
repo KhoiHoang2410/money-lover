@@ -454,6 +454,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/signals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the current user's spending and goal signals
+         * @description The deterministic Signals computed for the caller over their own ledger, Envelopes and Goals — envelope pace (projected overspend), an overspent Envelope, a Goal behind plan, a drained Reserve, and an unusually large Expense (CONTEXT.md "Signal"). Computed in their timezone and ordered strongest-first. No model/LLM is involved (ADR-0004 paused): the `title`/`detail` text is the deterministic phrasing returned directly.
+         */
+        get: operations["listSignals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -830,6 +850,37 @@ export interface components {
         };
         RatesResponse: {
             rates: components["schemas"]["RateEntry"][];
+        };
+        Signal: {
+            /**
+             * @description Stable id — the signal kind plus the entity it concerns.
+             * @example projectedOverspend-12
+             */
+            id: string;
+            /**
+             * @description The rule that fired.
+             * @enum {string}
+             */
+            kind: "projectedOverspend" | "envelopeOverspent" | "goalBehind" | "reserveLow" | "largeExpense";
+            /**
+             * @description How urgent the signal is.
+             * @enum {string}
+             */
+            severity: "info" | "warning" | "critical";
+            /**
+             * @description Short deterministic headline.
+             * @example Food is on track to overspend
+             */
+            title: string;
+            /**
+             * @description Deterministic one-line explanation.
+             * @example At this pace it runs out before month-end (₫600,000 of ₫1,000,000).
+             */
+            detail: string;
+        };
+        SignalList: {
+            /** @description The caller's signals, strongest (most severe) first. */
+            signals: components["schemas"]["Signal"][];
         };
         RateOverrideRequest: {
             /**
@@ -1918,6 +1969,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+        };
+    };
+    listSignals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's signals, strongest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalList"];
+                };
             };
             401: components["responses"]["Unauthorized"];
             406: components["responses"]["NotAcceptable"];
