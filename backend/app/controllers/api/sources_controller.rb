@@ -6,7 +6,10 @@ module Api
   # and conform to the OpenAPI contract (ADR-0017).
   class SourcesController < BaseController
     def index
-      presenters = tenant_scope(:sources).order(:id).map { |source| SourcePresenter.new(source) }
+      transactions = tenant_scope(:transactions).to_a
+      presenters = tenant_scope(:sources).order(:id).map do |source|
+        SourcePresenter.new(source, transactions: transactions)
+      end
       render json: { sources: presenters.map { |p| SourceRepresenter.new(p).to_hash } }
     end
 
@@ -41,7 +44,8 @@ module Api
     private
 
     def render_source(source)
-      SourceRepresenter.new(SourcePresenter.new(source)).to_json
+      presenter = SourcePresenter.new(source, transactions: tenant_scope(:transactions).to_a)
+      SourceRepresenter.new(presenter).to_json
     end
 
     # Runs a dry-validation contract over the permitted params, raising a

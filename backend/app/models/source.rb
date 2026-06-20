@@ -10,6 +10,15 @@
 class Source < ApplicationRecord
   include Tenanted
 
+  # Ledger rows that reference this source. A delete is blocked while either
+  # association is non-empty (the issue-13 delete-integrity guard), so these are
+  # deliberately not `dependent: :destroy` — orphaning a transaction would lose
+  # money history.
+  has_many :transactions_as_source, class_name: "Transaction", foreign_key: :source_id,
+                                    inverse_of: :source
+  has_many :transactions_as_destination, class_name: "Transaction", foreign_key: :destination_id,
+                                         inverse_of: :destination
+
   ACCOUNT = "account".freeze
   CREDIT_CARD = "credit_card".freeze
   HOLDING = "holding".freeze
@@ -54,10 +63,10 @@ class Source < ApplicationRecord
     Holding.new(quantity: opening_quantity_value, ticker: ticker)
   end
 
-  # Whether any transaction references this source — the delete-integrity guard
-  # (issue 13). The Transactions ledger arrives in issue 14; until then nothing
-  # can reference a source, so this is false and deletes are unblocked.
+  # Whether any transaction references this source as its source or destination —
+  # the delete-integrity guard (issue 13). A referenced source returns 409 on
+  # delete so ledger rows are never orphaned.
   def referenced_by_transactions?
-    false
+    transactions_as_source.exists? || transactions_as_destination.exists?
   end
 end

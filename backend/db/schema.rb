@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_20_000004) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_20_000005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -74,6 +74,34 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_20_000004) do
     t.index ["user_id"], name: "index_sources_on_user_id"
   end
 
+  create_table "transactions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "kind", null: false
+    t.bigint "source_id", null: false
+    t.bigint "destination_id"
+    t.bigint "amount_minor_units", null: false
+    t.string "currency", null: false
+    t.bigint "destination_amount_minor_units"
+    t.string "destination_currency"
+    t.decimal "manual_rate", precision: 30, scale: 10
+    t.bigint "fee_minor_units"
+    t.decimal "trade_quantity", precision: 30, scale: 10
+    t.string "trade_direction"
+    t.bigint "envelope_id"
+    t.bigint "goal_id"
+    t.string "note"
+    t.date "occurred_on", null: false
+    t.boolean "backfill", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["destination_id"], name: "index_transactions_on_destination_id"
+    t.index ["envelope_id"], name: "index_transactions_on_envelope_id"
+    t.index ["source_id"], name: "index_transactions_on_source_id"
+    t.index ["user_id", "kind"], name: "index_transactions_on_user_id_and_kind"
+    t.index ["user_id", "occurred_on"], name: "index_transactions_on_user_id_and_occurred_on"
+    t.index ["user_id"], name: "index_transactions_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "timezone", default: "Asia/Ho_Chi_Minh", null: false
     t.datetime "created_at", null: false
@@ -84,4 +112,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_20_000004) do
   add_foreign_key "rate_overrides", "users"
   add_foreign_key "refresh_tokens", "users"
   add_foreign_key "sources", "users"
+  add_foreign_key "transactions", "sources"
+  add_foreign_key "transactions", "sources", column: "destination_id"
+  add_foreign_key "transactions", "users"
 end
