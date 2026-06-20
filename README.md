@@ -144,7 +144,59 @@ money-lover/
 
 **Architecture** (see `docs/adr/0006-mv-architecture-pure-domain.md`): thin SwiftUI Views → `@MainActor @Observable` Stores → pure `Core` engines → `Persistence` repositories. Money is always integer minor units + currency — never `Double`.
 
+```mermaid
+flowchart TD
+    subgraph UI["UI layer · SwiftUI"]
+        V["Views<br/>thin, declarative"]
+        S["Stores<br/>@MainActor @Observable"]
+    end
+    subgraph DOMAIN["Domain · pure Swift (no SwiftData, fully unit-tested)"]
+        C["Core engines<br/>BalanceEngine · BudgetEngine · NetWorthEngine<br/>SignalEngine · TransferEngine · GoalTracker · …"]
+        M["Domain types<br/>Money (integer minor units + currency)<br/>Transaction · Source · Envelope · Goal · Holding"]
+    end
+    subgraph DATA["Persistence & Services"]
+        R["Repositories<br/>map domain ⇄ @Model at the edge"]
+        P["SwiftData<br/>@Model …Record types"]
+        X["Services<br/>live FX / price fetch"]
+    end
+
+    V -->|read state / send intent| S
+    S -->|call pure functions| C
+    C --> M
+    S -->|load / save| R
+    R <-->|map at the edge| P
+    S -.->|valuation rates| X
+
+    classDef pure fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef ui fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef data fill:#fff3e0,stroke:#ef6c00,color:#e65100;
+    class V,S ui;
+    class C,M pure;
+    class R,P,X data;
+```
+
+**Why this shape:** the Core engines are pure functions over plain Swift types — no SwiftData, no UI, no I/O. That's what makes them fast to test (262 unit tests run in milliseconds, no simulator needed) and lets the persistence layer stay swappable behind repositories.
+
 For the full picture before contributing, read `CLAUDE.md`, then `docs/guidelines/{engineering,testing}.md` and `docs/adr/`.
+
+---
+
+## Design decisions
+
+Every significant choice is captured as an [Architecture Decision Record](docs/adr/). The most consequential ones:
+
+| ADR | Decision | Why it matters |
+|-----|----------|----------------|
+| [0001](docs/adr/0001-on-device-only-no-backend.md) | **On-device only, no backend** | No accounts, no servers, no network sync — privacy by construction, zero attack surface. |
+| [0002](docs/adr/0002-native-swiftui-stack.md) | **Native SwiftUI / Swift 6 stack** | Zero third-party dependencies; nothing to audit, update, or break. |
+| [0006](docs/adr/0006-mv-architecture-pure-domain.md) | **MV + pure domain** | Business logic lives in pure engines, testable without UI or a database. |
+| [0004](docs/adr/0004-rule-based-recommendations.md) | **Rule-based advice; AI only phrases it** | Spending analysis is deterministic Swift "Signals"; the on-device model never does the math. |
+| [0007](docs/adr/0007-goals-are-funded-assets.md) | **Goals are funded assets** | A contribution is a *Transfer*, so net worth stays invariant — one asset becomes another. |
+| [0010](docs/adr/0010-holding-trades-derive-quantity.md) | **Holdings derive quantity from trades** | Live quantity = opening + ΣBuys − ΣSells — the balance invariant applied to quantity. |
+| [0012](docs/adr/0012-backfill-is-a-normal-transaction.md) | **Backfill restates opening balance** | A forgotten past transaction keeps current balance correct without rewriting history. |
+| [0011](docs/adr/0011-tiered-ui-tests.md) | **Tiered tests (Smoke / Full)** | A ≤5-min gate on every PR; full regression nightly — fast feedback without losing coverage. |
+
+A one-page narrative overview — pitch, architecture, and the reasoning behind these decisions — lives in [`docs/project-overview.md`](docs/project-overview.md).
 
 ---
 
