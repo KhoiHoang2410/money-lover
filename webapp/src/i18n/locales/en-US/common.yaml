@@ -1,0 +1,7 @@
+common:
+  appName: Money Lover
+  language: Language
+  english: English
+  vietnamese: Tiếng Việt
+  loading: Loading…
+  retry: Retry

@@ -1,0 +1,10 @@
+health:
+  title: Tình trạng hệ thống
+  subtitle: Trạng thái trực tiếp đọc từ API Money Lover qua client đã định kiểu.
+  statusLabel: Trạng thái API
+  ok: Đang hoạt động
+  error: Không kết nối được
+  checking: Đang kiểm tra…
+  endpointLabel: Điểm cuối
+  sampleBalanceLabel: Số dư mẫu
+  sampleBalanceNote: Định dạng từ số nguyên đơn vị nhỏ nhất — client không tính toán.

@@ -42,6 +42,7 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
       backend: ${{ steps.filter.outputs.backend }}
       api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -71,6 +72,7 @@ jobs:
             echo "code=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
             echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -108,6 +110,17 @@ jobs:
           else
             echo "No API contract changes → skipping OpenAPI harness."
             echo "api=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # The web SPA (ADR-0018) consumes the generated contract types, so the
+          # web lane runs on webapp/** changes AND docs/api/** changes (a contract
+          # change can break the typed client). Editing this CI file alone does not.
+          if echo "$changed" | grep -Eq '^webapp/|^docs/api/'; then
+            echo "web changes detected → running web lane."
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No web changes → skipping web lane."
+            echo "web=false" >> "$GITHUB_OUTPUT"
           fi
 
   # 1. Type-check + build. In Swift, compilation IS the type check, so this one
@@ -379,3 +392,46 @@ jobs:
 
       - name: Verify generated TS types are up to date
         run: npm run check
+
+  # 6. Web SPA (ADR-0018) — runs only on webapp/** or docs/api/** changes
+  #    (ADR-0016 path filter; the typed client depends on the generated contract
+  #    types). Skipped (→ counts as pass) when a PR touches no web/contract files.
+  #    Full web gate: typecheck, lint, i18n parity + no-hard-coded-copy, unit
+  #    tests, and a production build.
+  web:
+    name: web
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: webapp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: i18n check (no hard-coded copy; en/vi key parity)
+        run: npm run check:i18n
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

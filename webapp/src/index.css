@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/*
+ * Electric Lime Dark Fintech (ADR-0019, docs/design/electric-lime-dark-fintech.md).
+ * The lime-dark palette lives ONLY here as design tokens. Components reference
+ * the Tailwind utilities these tokens generate (bg-background, text-primary,
+ * rounded-card, …) — never raw hex.
+ */
+
+@theme {
+  /* Raw palette — the single source of truth for the 3-color system. */
+  --color-canvas: #0e0e10; /* near-black app background */
+  --color-surface: #1c1c1e; /* dark card surface */
+  --color-surface-elevated: #242426; /* elevated card / popover */
+  --color-lime: #c9f23b; /* electric chartreuse accent */
+  --color-hero: #f4f4ef; /* off-white inverted hero card */
+  --color-ink: #ffffff; /* primary text */
+  --color-ink-muted: #8a8a8e; /* secondary / muted text */
+  --color-danger: #ff453a;
+
+  /* Card radii ~20–24px; pills fully rounded. */
+  --radius-card: 1.375rem; /* 22px */
+  --radius-pill: 9999px;
+}
+
+/* shadcn/ui semantic CSS vars, themed to the lime-dark tokens. The app is
+   dark-only, so :root already carries the dark values. */
+:root {
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
+
+  --card: var(--color-surface);
+  --card-foreground: var(--color-ink);
+
+  --popover: var(--color-surface-elevated);
+  --popover-foreground: var(--color-ink);
+
+  --primary: var(--color-lime);
+  --primary-foreground: var(--color-canvas);
+
+  --secondary: var(--color-surface-elevated);
+  --secondary-foreground: var(--color-ink);
+
+  --muted: var(--color-surface);
+  --muted-foreground: var(--color-ink-muted);
+
+  --accent: var(--color-surface-elevated);
+  --accent-foreground: var(--color-ink);
+
+  --hero: var(--color-hero);
+  --hero-foreground: var(--color-canvas);
+
+  --destructive: var(--color-danger);
+  --destructive-foreground: var(--color-ink);
+
+  --border: var(--color-surface-elevated);
+  --input: var(--color-surface-elevated);
+  --ring: var(--color-lime);
+
+  --radius: var(--radius-card);
+}
+
+/* Map the semantic vars into Tailwind's color/radius scales so utilities like
+   bg-background, text-muted-foreground, border-border, rounded-lg resolve. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-hero: var(--hero);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 6px);
+  --radius-sm: calc(var(--radius) - 10px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family:
+      "SF Pro Rounded", "SF Pro", "Inter", system-ui, -apple-system,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
