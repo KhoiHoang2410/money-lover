@@ -43,6 +43,14 @@ tags:
       Money sources (CONTEXT.md): Accounts and Credit cards (a money balance) and
       Holdings (valued by quantity × market price). User-scoped CRUD returning
       each source's live current balance and base-currency valuation.
+  - name: Transactions
+    description: >-
+      The ledger (CONTEXT.md): Expense, Income, Transfer, Invest and Adjustment
+      rows, user-scoped. Balances are computed on read (opening + Σ
+      transactions), so a row is the single source of its ledger deltas. A
+      cross-currency Transfer carries a manual Rate and a computed Fee; a
+      Backfill restates its source's opening balance atomically; an Invest Sell
+      is blocked from overselling a Holding.
   - name: Auth
     description: >-
       Registration and the token lifecycle (ADR-0014). Clients obtain a
@@ -296,6 +304,165 @@ paths:
         "406":
           $ref: "#/components/responses/NotAcceptable"
 
+  /api/transactions:
+    get:
+      operationId: listTransactions
+      tags: [Transactions]
+      summary: List the caller's transactions
+      description: >-
+        Returns the caller's transactions, newest first. Optional filters narrow
+        by date range (occurred_on), source (matching either leg of a transfer),
+        envelope, and kind.
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: Inclusive lower bound on occurred_on (ISO date).
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: Inclusive upper bound on occurred_on (ISO date).
+          schema:
+            type: string
+            format: date
+        - name: source_id
+          in: query
+          required: false
+          description: Only transactions whose source or destination is this source.
+          schema:
+            type: integer
+            format: int64
+        - name: envelope_id
+          in: query
+          required: false
+          description: Only transactions assigned to this envelope.
+          schema:
+            type: integer
+            format: int64
+        - name: kind
+          in: query
+          required: false
+          description: Only transactions of this kind.
+          schema:
+            type: string
+            enum: [expense, income, transfer, invest, adjustment]
+      responses:
+        "200":
+          description: The caller's transactions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+    post:
+      operationId: createTransaction
+      tags: [Transactions]
+      summary: Create a transaction
+      description: >-
+        Create an Expense, Income, Transfer, Invest or Adjustment. Required
+        fields differ by kind. A cross-currency Transfer must carry a
+        destination amount and a manual Rate (the Fee is computed). An Invest
+        moves money between a VND Account and a Holding; a Sell that would
+        oversell the Holding is rejected. A `backfill` flag restates the source's
+        opening balance atomically so the current balance is unchanged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionCreateRequest"
+      responses:
+        "201":
+          description: Transaction created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /api/transactions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/TransactionId"
+    get:
+      operationId: getTransaction
+      tags: [Transactions]
+      summary: Read one transaction
+      description: Returns a single transaction owned by the caller.
+      responses:
+        "200":
+          description: The requested transaction.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+    patch:
+      operationId: updateTransaction
+      tags: [Transactions]
+      summary: Update a transaction
+      description: >-
+        Partially update a transaction's amount, note, date, envelope/goal
+        reference, trade quantity, or cross-currency amount/rate. `kind`,
+        `source_id` and `destination_id` are immutable. The Fee is re-derived and
+        the oversell guard re-checked.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionUpdateRequest"
+      responses:
+        "200":
+          description: Transaction updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      operationId: deleteTransaction
+      tags: [Transactions]
+      summary: Delete a transaction
+      description: >-
+        Delete a transaction. Affected source balances are recomputed on the next
+        read (opening + Σ remaining transactions).
+      responses:
+        "204":
+          description: Transaction deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
   /health:
     get:
       operationId: getHealth
@@ -411,6 +578,14 @@ components:
       in: path
       required: true
       description: The money source's id.
+      schema:
+        type: integer
+        format: int64
+    TransactionId:
+      name: id
+      in: path
+      required: true
+      description: The transaction's id.
       schema:
         type: integer
         format: int64
@@ -701,6 +876,175 @@ components:
         ticker:
           type: string
           nullable: true
+
+    # ── Transactions (issue 14, CONTEXT.md) ──────────────────────────────────
+    # A ledger row. `amount` is in the source currency (a signed reconcile delta
+    # for an adjustment). Kind-specific fields appear only when relevant:
+    # destination_id (transfer/invest), destination_amount + fee + manual_rate
+    # (cross-currency transfer), trade_quantity + trade_direction (invest).
+    Transaction:
+      type: object
+      additionalProperties: false
+      required: [id, kind, source_id, amount, occurred_on, backfill]
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          type: string
+          enum: [expense, income, transfer, invest, adjustment]
+        source_id:
+          type: integer
+          format: int64
+          description: The source the money primarily leaves/affects.
+        destination_id:
+          type: integer
+          format: int64
+          description: The receiving source (transfer) or Holding (invest).
+        amount:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        destination_amount:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: >-
+            Amount that lands in the destination of a cross-currency transfer,
+            in the destination currency. Omitted otherwise.
+        fee:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: >-
+            Computed Fee of a cross-currency transfer (= amount_out × rate −
+            amount_in), in the destination currency. Omitted otherwise.
+        manual_rate:
+          type: string
+          description: >-
+            Manually-entered Rate for a cross-currency transfer (destination
+            major units per source major unit), as an exact decimal string.
+        trade_quantity:
+          type: string
+          description: Exact units transacted for an invest (never a float).
+        trade_direction:
+          type: string
+          enum: [buy, sell]
+          description: Invest direction.
+        envelope_id:
+          type: integer
+          format: int64
+          description: Envelope assignment (expense/adjustment).
+        goal_id:
+          type: integer
+          format: int64
+          description: Goal reference (a contribution transfer).
+        note:
+          type: string
+        occurred_on:
+          type: string
+          format: date
+          description: The date the money moved.
+        backfill:
+          type: boolean
+          description: >-
+            True when logged as a Backfill (its source's opening balance was
+            restated so the current balance stayed unchanged).
+
+    TransactionList:
+      type: object
+      additionalProperties: false
+      required: [transactions]
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+
+    TransactionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, source_id]
+      description: >-
+        Required fields differ by kind. All kinds need amount_minor_units +
+        currency. Transfer/invest need destination_id; a cross-currency transfer
+        also needs destination_amount_minor_units + manual_rate; an invest needs
+        trade_quantity + trade_direction (and VND currency).
+      properties:
+        kind:
+          type: string
+          enum: [expense, income, transfer, invest, adjustment]
+        source_id:
+          type: integer
+          format: int64
+        destination_id:
+          type: integer
+          format: int64
+        amount_minor_units:
+          type: integer
+          format: int64
+          description: Amount in the source currency's minor units (signed for adjustment).
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        destination_amount_minor_units:
+          type: integer
+          format: int64
+        destination_currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        manual_rate:
+          type: string
+          description: Exact decimal string (no float).
+        trade_quantity:
+          type: string
+          description: Exact decimal string (no float).
+        trade_direction:
+          type: string
+          enum: [buy, sell]
+        envelope_id:
+          type: integer
+          format: int64
+        goal_id:
+          type: integer
+          format: int64
+        note:
+          type: string
+          nullable: true
+        occurred_on:
+          type: string
+          format: date
+          description: Defaults to today when omitted.
+        backfill:
+          type: boolean
+          description: Restate the source opening balance so current balance is unchanged.
+
+    TransactionUpdateRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        Partial update. `kind`, `source_id` and `destination_id` are immutable.
+      properties:
+        amount_minor_units:
+          type: integer
+          format: int64
+        destination_amount_minor_units:
+          type: integer
+          format: int64
+        manual_rate:
+          type: string
+        trade_quantity:
+          type: string
+        envelope_id:
+          type: integer
+          format: int64
+        goal_id:
+          type: integer
+          format: int64
+        note:
+          type: string
+          nullable: true
+        occurred_on:
+          type: string
+          format: date
 
     # ── Rates (issue 19) ─────────────────────────────────────────────────────
     # One rate resolved for the current user. `value` is an exact decimal STRING

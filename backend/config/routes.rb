@@ -23,6 +23,12 @@ Rails.application.routes.draw do
       # Money sources — Accounts, Credit cards, Holdings (issue 13). Full CRUD,
       # tenant-scoped; non-CRUD actions on sources are added in later issues.
       resources :sources, only: [ :index, :show, :create, :update, :destroy ]
+
+      # Transactions — Expense / Income / Transfer / Invest / Adjustment
+      # (issue 14). Full CRUD, tenant-scoped; the write path is atomic (a
+      # cross-currency transfer, a backfill restatement, and an invest oversell
+      # guard each commit or roll back as one).
+      resources :transactions, only: [ :index, :show, :create, :update, :destroy ]
     end
 
     # Rate service (issue 19): resolved rates for the current User + per-User

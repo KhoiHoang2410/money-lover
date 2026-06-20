@@ -4,6 +4,9 @@ class User < ApplicationRecord
   # structurally impossible (see Tenancy controller concern, ADR-0014).
   has_many :identities, dependent: :destroy
   has_many :refresh_tokens, dependent: :destroy
+  # Transactions reference sources via a FK, so they must be torn down before
+  # their sources when a User is destroyed — declared first for that order.
+  has_many :transactions, dependent: :destroy
   has_many :sources, dependent: :destroy
   has_many :rate_overrides, dependent: :destroy
 

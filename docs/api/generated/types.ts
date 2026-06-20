@@ -139,6 +139,61 @@ export interface paths {
         patch: operations["updateSource"];
         trace?: never;
     };
+    "/api/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller's transactions
+         * @description Returns the caller's transactions, newest first. Optional filters narrow by date range (occurred_on), source (matching either leg of a transfer), envelope, and kind.
+         */
+        get: operations["listTransactions"];
+        put?: never;
+        /**
+         * Create a transaction
+         * @description Create an Expense, Income, Transfer, Invest or Adjustment. Required fields differ by kind. A cross-currency Transfer must carry a destination amount and a manual Rate (the Fee is computed). An Invest moves money between a VND Account and a Holding; a Sell that would oversell the Holding is rejected. A `backfill` flag restates the source's opening balance atomically so the current balance is unchanged.
+         */
+        post: operations["createTransaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transactions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The transaction's id. */
+                id: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one transaction
+         * @description Returns a single transaction owned by the caller.
+         */
+        get: operations["getTransaction"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a transaction
+         * @description Delete a transaction. Affected source balances are recomputed on the next read (opening + Σ remaining transactions).
+         */
+        delete: operations["deleteTransaction"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a transaction
+         * @description Partially update a transaction's amount, note, date, envelope/goal reference, trade quantity, or cross-currency amount/rate. `kind`, `source_id` and `destination_id` are immutable. The Fee is re-derived and the oversell guard re-checked.
+         */
+        patch: operations["updateTransaction"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -379,6 +434,109 @@ export interface components {
             unit?: "chi" | "luong" | "shares";
             ticker?: string | null;
         };
+        Transaction: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "expense" | "income" | "transfer" | "invest" | "adjustment";
+            /**
+             * Format: int64
+             * @description The source the money primarily leaves/affects.
+             */
+            source_id: number;
+            /**
+             * Format: int64
+             * @description The receiving source (transfer) or Holding (invest).
+             */
+            destination_id?: number;
+            amount: components["schemas"]["MoneyMinorUnits"];
+            /** @description Amount that lands in the destination of a cross-currency transfer, in the destination currency. Omitted otherwise. */
+            destination_amount?: components["schemas"]["MoneyMinorUnits"];
+            /** @description Computed Fee of a cross-currency transfer (= amount_out × rate − amount_in), in the destination currency. Omitted otherwise. */
+            fee?: components["schemas"]["MoneyMinorUnits"];
+            /** @description Manually-entered Rate for a cross-currency transfer (destination major units per source major unit), as an exact decimal string. */
+            manual_rate?: string;
+            /** @description Exact units transacted for an invest (never a float). */
+            trade_quantity?: string;
+            /**
+             * @description Invest direction.
+             * @enum {string}
+             */
+            trade_direction?: "buy" | "sell";
+            /**
+             * Format: int64
+             * @description Envelope assignment (expense/adjustment).
+             */
+            envelope_id?: number;
+            /**
+             * Format: int64
+             * @description Goal reference (a contribution transfer).
+             */
+            goal_id?: number;
+            note?: string;
+            /**
+             * Format: date
+             * @description The date the money moved.
+             */
+            occurred_on: string;
+            /** @description True when logged as a Backfill (its source's opening balance was restated so the current balance stayed unchanged). */
+            backfill: boolean;
+        };
+        TransactionList: {
+            transactions: components["schemas"]["Transaction"][];
+        };
+        /** @description Required fields differ by kind. All kinds need amount_minor_units + currency. Transfer/invest need destination_id; a cross-currency transfer also needs destination_amount_minor_units + manual_rate; an invest needs trade_quantity + trade_direction (and VND currency). */
+        TransactionCreateRequest: {
+            /** @enum {string} */
+            kind: "expense" | "income" | "transfer" | "invest" | "adjustment";
+            /** Format: int64 */
+            source_id: number;
+            /** Format: int64 */
+            destination_id?: number;
+            /**
+             * Format: int64
+             * @description Amount in the source currency's minor units (signed for adjustment).
+             */
+            amount_minor_units?: number;
+            currency?: string;
+            /** Format: int64 */
+            destination_amount_minor_units?: number;
+            destination_currency?: string;
+            /** @description Exact decimal string (no float). */
+            manual_rate?: string;
+            /** @description Exact decimal string (no float). */
+            trade_quantity?: string;
+            /** @enum {string} */
+            trade_direction?: "buy" | "sell";
+            /** Format: int64 */
+            envelope_id?: number;
+            /** Format: int64 */
+            goal_id?: number;
+            note?: string | null;
+            /**
+             * Format: date
+             * @description Defaults to today when omitted.
+             */
+            occurred_on?: string;
+            /** @description Restate the source opening balance so current balance is unchanged. */
+            backfill?: boolean;
+        };
+        /** @description Partial update. `kind`, `source_id` and `destination_id` are immutable. */
+        TransactionUpdateRequest: {
+            /** Format: int64 */
+            amount_minor_units?: number;
+            /** Format: int64 */
+            destination_amount_minor_units?: number;
+            manual_rate?: string;
+            trade_quantity?: string;
+            /** Format: int64 */
+            envelope_id?: number;
+            /** Format: int64 */
+            goal_id?: number;
+            note?: string | null;
+            /** Format: date */
+            occurred_on?: string;
+        };
         RateEntry: {
             /**
              * @description Namespaced rate key (fx.USD, gold, stock.VNM).
@@ -475,6 +633,8 @@ export interface components {
     parameters: {
         /** @description The money source's id. */
         SourceId: number;
+        /** @description The transaction's id. */
+        TransactionId: number;
     };
     requestBodies: never;
     headers: never;
@@ -714,6 +874,149 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Source"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    listTransactions: {
+        parameters: {
+            query?: {
+                /** @description Inclusive lower bound on occurred_on (ISO date). */
+                from?: string;
+                /** @description Inclusive upper bound on occurred_on (ISO date). */
+                to?: string;
+                /** @description Only transactions whose source or destination is this source. */
+                source_id?: number;
+                /** @description Only transactions assigned to this envelope. */
+                envelope_id?: number;
+                /** @description Only transactions of this kind. */
+                kind?: "expense" | "income" | "transfer" | "invest" | "adjustment";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's transactions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    createTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Transaction created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The transaction's id. */
+                id: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requested transaction. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    deleteTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The transaction's id. */
+                id: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Transaction deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    updateTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The transaction's id. */
+                id: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Transaction updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
                 };
             };
             401: components["responses"]["Unauthorized"];
