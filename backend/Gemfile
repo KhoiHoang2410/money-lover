@@ -7,6 +7,9 @@ gem "puma", ">= 5.0"
 # Password-provider identities hash their credential with bcrypt (ADR-0014).
 gem "bcrypt", "~> 3.1"
 
+# Short-lived JWT access tokens issued/verified by Auth::TokenService (ADR-0014).
+gem "jwt", "~> 2.9"
+
 gem "sidekiq", "~> 7.3"
 gem "redis", "~> 5.3"
 

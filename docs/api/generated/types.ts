@@ -4,6 +4,86 @@
  */
 
 export interface paths {
+    "/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a password identity
+         * @description Create a new User with a `password` Identity and immediately return a token pair (auto-login). Public (no auth).
+         */
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in with a password identity
+         * @description Exchange username + password for an access token and a refresh token. Public (no auth).
+         */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the refresh token
+         * @description Revoke the presented refresh token and return a brand-new pair. Reusing a rotated or revoked refresh token fails with 401. Public (no auth) — the refresh token itself is the credential.
+         */
+        post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a refresh token
+         * @description Revoke the refresh token so the device can no longer obtain new access tokens. Idempotent. Public (no auth) — the refresh token is the credential.
+         */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -53,6 +133,53 @@ export interface components {
                 /** @description Optional machine-readable detail (e.g. per-field validation errors). Free-form and endpoint-specific; the key is absent (not null) when not applicable. */
                 details?: unknown;
             };
+        };
+        RegisterRequest: {
+            /**
+             * @description The external id of the new password Identity.
+             * @example alice
+             */
+            username: string;
+            /**
+             * Format: password
+             * @description Plaintext password; stored only as a bcrypt digest.
+             * @example secret123
+             */
+            password: string;
+            /**
+             * @description IANA timezone for month boundaries / resets / "today". Defaults to Asia/Ho_Chi_Minh when omitted.
+             * @example Asia/Ho_Chi_Minh
+             */
+            timezone?: string;
+        };
+        LoginRequest: {
+            /** @example alice */
+            username: string;
+            /**
+             * Format: password
+             * @example secret123
+             */
+            password: string;
+        };
+        RefreshRequest: {
+            /** @description The opaque refresh token to rotate (refresh) or revoke (logout). */
+            refresh_token: string;
+        };
+        TokenPair: {
+            /** @description Short-lived JWT. Send as `Authorization: Bearer <token>`. */
+            access_token: string;
+            /** @description Long-lived opaque token; rotates on each use. */
+            refresh_token: string;
+            /**
+             * @description Always "Bearer".
+             * @enum {string}
+             */
+            token_type: "Bearer";
+            /**
+             * @description Access-token lifetime in seconds.
+             * @example 900
+             */
+            expires_in: number;
         };
         Pagination: {
             /** @description 1-based current page. */
@@ -126,6 +253,114 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description User created; returns the initial token pair. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Credentials accepted; returns a token pair. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Refresh token rotated; returns a new token pair. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Refresh token revoked (or already inactive). */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
     getHealth: {
         parameters: {
             query?: never;

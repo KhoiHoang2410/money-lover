@@ -3,6 +3,7 @@ class User < ApplicationRecord
   # is scoped through one of these associations so cross-tenant access is
   # structurally impossible (see Tenancy controller concern, ADR-0014).
   has_many :identities, dependent: :destroy
+  has_many :refresh_tokens, dependent: :destroy
 
   DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh".freeze
 

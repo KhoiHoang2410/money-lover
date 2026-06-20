@@ -38,8 +38,132 @@ security:
 tags:
   - name: System
     description: Operational probes and metadata.
+  - name: Auth
+    description: >-
+      Registration and the token lifecycle (ADR-0014). Clients obtain a
+      short-lived JWT access token plus a long-lived rotating refresh token.
+      Storage guidance: keep the refresh token in an httpOnly cookie (web) or
+      the Keychain (iOS); keep the access token in memory only.
 
 paths:
+  /auth/register:
+    post:
+      operationId: register
+      tags: [Auth]
+      summary: Register a password identity
+      description: >-
+        Create a new User with a `password` Identity and immediately return a
+        token pair (auto-login). Public (no auth).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created; returns the initial token pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [Auth]
+      summary: Log in with a password identity
+      description: >-
+        Exchange username + password for an access token and a refresh token.
+        Public (no auth).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Credentials accepted; returns a token pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /auth/refresh:
+    post:
+      operationId: refresh
+      tags: [Auth]
+      summary: Rotate the refresh token
+      description: >-
+        Revoke the presented refresh token and return a brand-new pair. Reusing
+        a rotated or revoked refresh token fails with 401. Public (no auth) — the
+        refresh token itself is the credential.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Refresh token rotated; returns a new token pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [Auth]
+      summary: Revoke a refresh token
+      description: >-
+        Revoke the refresh token so the device can no longer obtain new access
+        tokens. Idempotent. Public (no auth) — the refresh token is the
+        credential.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "204":
+          description: Refresh token revoked (or already inactive).
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
   /health:
     get:
       operationId: getHealth
@@ -118,6 +242,72 @@ components:
                 Optional machine-readable detail (e.g. per-field validation
                 errors). Free-form and endpoint-specific; the key is absent
                 (not null) when not applicable.
+
+    # ── Auth (ADR-0014) ──────────────────────────────────────────────────────
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          description: The external id of the new password Identity.
+          example: alice
+        password:
+          type: string
+          format: password
+          description: Plaintext password; stored only as a bcrypt digest.
+          example: secret123
+        timezone:
+          type: string
+          description: >-
+            IANA timezone for month boundaries / resets / "today". Defaults to
+            Asia/Ho_Chi_Minh when omitted.
+          example: Asia/Ho_Chi_Minh
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: alice
+        password:
+          type: string
+          format: password
+          example: secret123
+
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          description: The opaque refresh token to rotate (refresh) or revoke (logout).
+
+    # Access token + rotating refresh token (ADR-0014). Returned by register,
+    # login, and refresh.
+    TokenPair:
+      type: object
+      additionalProperties: false
+      required: [access_token, refresh_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+          description: "Short-lived JWT. Send as `Authorization: Bearer <token>`."
+        refresh_token:
+          type: string
+          description: Long-lived opaque token; rotates on each use.
+        token_type:
+          type: string
+          enum: [Bearer]
+          description: Always "Bearer".
+        expires_in:
+          type: integer
+          description: Access-token lifetime in seconds.
+          example: 900
 
     # Reusable pagination envelope for future list endpoints.
     Pagination:
