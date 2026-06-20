@@ -7,3 +7,8 @@ coverage
 !.env.example
 .DS_Store
 vite.config.ts.timestamp-*
+
+# Playwright
+/test-results
+/playwright-report
+/playwright/.cache
