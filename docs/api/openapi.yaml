@@ -73,6 +73,14 @@ tags:
       valuations only. Rate values are exact decimal strings in VND — never
       floats (ADR-0015).
 
+  - name: Goals
+    description: >-
+      Savings Goals (CONTEXT.md): long-term targets with a funding window and a
+      planned Schedule, user-scoped. A read returns the Goal's live balance (Σ
+      Contributions) and the GoalTracker numbers — Expected-by-today, ahead/delay
+      progress, and per-line Schedule status + shortfall. A Contribution funds a
+      Goal from a VND Account, recorded atomically as a Transfer so net worth is
+      unchanged (one Asset becomes another).
 paths:
   /auth/register:
     post:
@@ -676,6 +684,166 @@ paths:
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
 
+  /api/goals:
+    get:
+      operationId: listGoals
+      tags: [Goals]
+      summary: List the caller's goals
+      description: >-
+        Returns every Goal owned by the authenticated user, each with its live
+        balance (Σ Contributions) and GoalTracker progress, Schedule status and
+        per-line shortfall.
+      responses:
+        "200":
+          description: The caller's goals.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoalList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+    post:
+      operationId: createGoal
+      tags: [Goals]
+      summary: Create a goal
+      description: >-
+        Create a savings Goal with a name, a positive target (integer minor
+        units), an optional funding window (start/end month), and a Schedule of
+        month → planned amount. VND-only for now.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalCreateRequest"
+      responses:
+        "201":
+          description: Goal created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /api/goals/{id}:
+    parameters:
+      - $ref: "#/components/parameters/GoalId"
+    get:
+      operationId: getGoal
+      tags: [Goals]
+      summary: Read one goal
+      description: >-
+        Returns a single Goal with its balance, progress, and per-line Schedule
+        status + shortfall.
+      responses:
+        "200":
+          description: The requested goal.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+    patch:
+      operationId: updateGoal
+      tags: [Goals]
+      summary: Update a goal
+      description: >-
+        Partially update a Goal's name, icon, target, funding window, or Schedule.
+        `currency` is immutable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalUpdateRequest"
+      responses:
+        "200":
+          description: Goal updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      operationId: deleteGoal
+      tags: [Goals]
+      summary: Delete a goal
+      description: Delete a Goal. Its Contribution transfers remain in the ledger.
+      responses:
+        "204":
+          description: Goal deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
+  /api/goals/{goal_id}/contributions:
+    parameters:
+      - name: goal_id
+        in: path
+        required: true
+        description: The goal's id.
+        schema:
+          type: integer
+          format: int64
+    post:
+      operationId: createContribution
+      tags: [Goals]
+      summary: Contribute to a goal
+      description: >-
+        Fund the Goal from a VND Account. Recorded as a single Transfer (the
+        Account is debited, the Goal credited by the same amount) committed
+        atomically, so net worth is unchanged. The source must be a VND Account;
+        foreign-currency funding is rejected. Returns the updated Goal.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContributionCreateRequest"
+      responses:
+        "201":
+          description: Contribution recorded; returns the updated Goal.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
   /health:
     get:
       operationId: getHealth
@@ -786,6 +954,14 @@ components:
       bearerFormat: JWT
 
   parameters:
+    GoalId:
+      name: id
+      in: path
+      required: true
+      description: The goal's id.
+      schema:
+        type: integer
+        format: int64
     SourceId:
       name: id
       in: path
@@ -1544,6 +1720,227 @@ components:
           items:
             type: integer
             format: int64
+
+    # ── Goals (issue 16, CONTEXT.md) ─────────────────────────────────────────
+    # A (year, month) coordinate — Contributions are month-based, not day-based.
+    GoalMonth:
+      type: object
+      additionalProperties: false
+      required: [year, month]
+      properties:
+        year:
+          type: integer
+          example: 2026
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          example: 1
+
+    # One Schedule line as read: the planned amount for a month plus its
+    # cumulative status and shortfall (GoalTracker). Contributions fill lines
+    # oldest-first; `status` is funded | due | missed | pending, and `shortfall`
+    # is the scheduled amount minus the Contributions allocated to that line.
+    GoalScheduleLine:
+      type: object
+      additionalProperties: false
+      required: [year, month, planned, status, shortfall]
+      properties:
+        year:
+          type: integer
+          example: 2026
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          example: 1
+        planned:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        status:
+          type: string
+          enum: [funded, due, missed, pending]
+          description: Cumulative Schedule-line status (CONTEXT.md).
+        shortfall:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: Scheduled amount minus the Contributions allocated to this line.
+
+    # The Goal's progress at "today" (in the User's timezone). `expected` is the
+    # Expected-by-today cumulative Schedule amount; `pct` is the exact ahead/delay
+    # ratio (actual ÷ expected − 1) as a decimal STRING, null until something is
+    # due; `pct_sign` is its sign.
+    GoalProgress:
+      type: object
+      additionalProperties: false
+      required: [expected, pct_sign]
+      properties:
+        expected:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        pct:
+          type: string
+          nullable: true
+          description: >-
+            Exact ahead/delay ratio as a decimal string (never a float). Null
+            when nothing is due yet (no defined ratio).
+          example: "0.25"
+        pct_sign:
+          type: string
+          enum: [positive, negative, zero]
+          description: Whether the Goal is ahead of, behind, or exactly on plan.
+
+    # A savings Goal with its derived balance + GoalTracker numbers. `balance` is
+    # the sum of its Contributions (an Asset); `target` and every Schedule amount
+    # are integer minor units. `start_month` / `end_month` describe the funding
+    # window when set.
+    Goal:
+      type: object
+      additionalProperties: false
+      required: [id, name, currency, target, balance, schedule, progress]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: House
+        icon:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO 4217 code. VND only for now.
+          example: VND
+        target:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        start_month:
+          $ref: "#/components/schemas/GoalMonth"
+        end_month:
+          $ref: "#/components/schemas/GoalMonth"
+        balance:
+          allOf:
+            - $ref: "#/components/schemas/MoneyMinorUnits"
+          description: The accumulated Contributions (CONTEXT.md "Goal" balance).
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/GoalScheduleLine"
+        progress:
+          $ref: "#/components/schemas/GoalProgress"
+
+    GoalList:
+      type: object
+      additionalProperties: false
+      required: [goals]
+      properties:
+        goals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Goal"
+
+    # One planned Schedule line on input: a month and its planned amount.
+    GoalScheduleInput:
+      type: object
+      additionalProperties: false
+      required: [year, month, amount_minor_units]
+      properties:
+        year:
+          type: integer
+          example: 2026
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          example: 1
+        amount_minor_units:
+          type: integer
+          format: int64
+          description: Planned amount in minor units (positive).
+          example: 100000000
+
+    GoalCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, target_minor_units, schedule]
+      description: VND-only. A positive target and a Schedule of month → planned amount.
+      properties:
+        name:
+          type: string
+          example: House
+        icon:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: VND only for now; defaults to VND when omitted.
+          example: VND
+        target_minor_units:
+          type: integer
+          format: int64
+          example: 400000000
+        start_month:
+          $ref: "#/components/schemas/GoalMonth"
+        end_month:
+          $ref: "#/components/schemas/GoalMonth"
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/GoalScheduleInput"
+
+    GoalUpdateRequest:
+      type: object
+      additionalProperties: false
+      description: Partial update. `currency` is immutable and not accepted.
+      properties:
+        name:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        target_minor_units:
+          type: integer
+          format: int64
+        start_month:
+          $ref: "#/components/schemas/GoalMonth"
+        end_month:
+          $ref: "#/components/schemas/GoalMonth"
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/GoalScheduleInput"
+
+    # Fund a Goal from a VND Account (CONTEXT.md "Contribution"). VND-only; the
+    # amount is positive minor units.
+    ContributionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [source_id, amount_minor_units]
+      properties:
+        source_id:
+          type: integer
+          format: int64
+          description: The VND Account to fund from.
+        amount_minor_units:
+          type: integer
+          format: int64
+          description: Positive amount in minor units.
+          example: 40000000
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: VND only; defaults to VND when omitted.
+          example: VND
+        occurred_on:
+          type: string
+          format: date
+          description: The date the money moved. Defaults to today when omitted.
+        note:
+          type: string
+          nullable: true
 
   responses:
     NotAcceptable:
