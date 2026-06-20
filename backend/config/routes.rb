@@ -52,6 +52,17 @@ Rails.application.routes.draw do
       resources :goals, only: [ :index, :show, :create, :update, :destroy ]
       post "goals/:goal_id/contributions" => "goals#create_contribution",
            as: :goal_contributions
+
+      # Net worth & report-data (issue 18) — read-only aggregates derived on
+      # read by the pure engines (NetWorthEngine / BudgetEngine / GoalTracker),
+      # all in the base currency VND. Net worth is asset/debt/net; the report
+      # endpoints shape the data behind the clients' charts.
+      get "net_worth" => "reports#net_worth", as: :net_worth
+      get "reports/spending_trends" => "reports#spending_trends", as: :report_spending_trends
+      get "reports/envelope_distribution" => "reports#envelope_distribution",
+          as: :report_envelope_distribution
+      get "reports/goal_progress" => "reports#goal_progress", as: :report_goal_progress
+      get "reports/net_worth_history" => "reports#net_worth_history", as: :report_net_worth_history
     end
 
     # Rate service (issue 19): resolved rates for the current User + per-User

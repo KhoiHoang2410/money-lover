@@ -81,6 +81,14 @@ tags:
       progress, and per-line Schedule status + shortfall. A Contribution funds a
       Goal from a VND Account, recorded atomically as a Transfer so net worth is
       unchanged (one Asset becomes another).
+
+  - name: Reports
+    description: >-
+      Read-only net worth and report-data aggregates (CONTEXT.md "Net worth"),
+      user-scoped and derived on read by the pure engines (NetWorthEngine,
+      BudgetEngine, GoalTracker). Every figure is in the base currency VND: net
+      worth (asset/debt/net), monthly spending trends, per-Envelope distribution,
+      Goal saving progress, and net-worth history over a date range.
 paths:
   /auth/register:
     post:
@@ -844,6 +852,127 @@ paths:
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
 
+  /api/net_worth:
+    get:
+      operationId: getNetWorth
+      tags: [Reports]
+      summary: Read net worth
+      description: >-
+        The caller's net worth as asset, debt and net, each in the base currency
+        VND (NetWorthEngine). Asset is the Σ value of every non-liability source
+        plus every Goal balance; debt is the Σ value of liability sources (kept
+        negative); net = asset + debt.
+      responses:
+        "200":
+          description: The caller's net worth.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetWorth"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
+  /api/reports/spending_trends:
+    get:
+      operationId: getSpendingTrends
+      tags: [Reports]
+      summary: Monthly spending trend
+      description: >-
+        Σ of the caller's Expenses per calendar month over the `from`..`to` date
+        range, valued in VND. Every month in the range is present (zero-filled)
+        so the series is stable for client charting.
+      parameters:
+        - $ref: "#/components/parameters/ReportFrom"
+        - $ref: "#/components/parameters/ReportTo"
+      responses:
+        "200":
+          description: Monthly spending totals.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpendingTrends"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
+  /api/reports/envelope_distribution:
+    get:
+      operationId: getEnvelopeDistribution
+      tags: [Reports]
+      summary: Envelope spending distribution
+      description: >-
+        Per-Envelope spent for one month (BudgetEngine), the data behind the
+        bucket-distribution chart. `month` is an optional `YYYY-MM`; when omitted
+        the caller's current month (in their timezone) is used.
+      parameters:
+        - $ref: "#/components/parameters/ReportMonth"
+      responses:
+        "200":
+          description: Per-envelope spend for the month.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeDistribution"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
+  /api/reports/goal_progress:
+    get:
+      operationId: getGoalProgress
+      tags: [Reports]
+      summary: Goal saving progress
+      description: >-
+        Per-Goal balance (Σ Contributions), target, Expected-by-today and the
+        fraction of target reached (GoalTracker), the data behind the goal
+        progress chart.
+      responses:
+        "200":
+          description: Per-goal saving progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoalProgressReport"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
+  /api/reports/net_worth_history:
+    get:
+      operationId: getNetWorthHistory
+      tags: [Reports]
+      summary: Net-worth history
+      description: >-
+        Net worth (asset / debt / net, VND) at each month-end over the
+        `from`..`to` date range, using the ledger as of that month-end and the
+        caller's currently-resolved rates. The data behind the balance / net-worth
+        history chart.
+      parameters:
+        - $ref: "#/components/parameters/ReportFrom"
+        - $ref: "#/components/parameters/ReportTo"
+      responses:
+        "200":
+          description: Net worth at each month-end in the range.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetWorthHistory"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+
   /health:
     get:
       operationId: getHealth
@@ -1012,6 +1141,33 @@ components:
       schema:
         type: integer
         format: int64
+    ReportFrom:
+      name: from
+      in: query
+      required: true
+      description: Inclusive start of the report date range (ISO-8601 date).
+      schema:
+        type: string
+        format: date
+        example: "2026-01-01"
+    ReportTo:
+      name: to
+      in: query
+      required: true
+      description: Inclusive end of the report date range (ISO-8601 date).
+      schema:
+        type: string
+        format: date
+        example: "2026-06-30"
+    ReportMonth:
+      name: month
+      in: query
+      required: false
+      description: The month to report on as `YYYY-MM`; defaults to the caller's current month.
+      schema:
+        type: string
+        pattern: "^\\d{4}-(0[1-9]|1[0-2])$"
+        example: "2026-06"
 
   schemas:
     # Integer minor units only — the single money representation for the whole
@@ -1034,6 +1190,149 @@ components:
           example: VND
           minLength: 3
           maxLength: 3
+
+    # ── Net worth & reports (issue 18) ───────────────────────────────────────
+    # Asset / debt / net, each a VND MoneyMinorUnits (NetWorthEngine). Debt is
+    # non-positive; net = asset + debt.
+    NetWorth:
+      type: object
+      additionalProperties: false
+      required: [asset, debt, net]
+      properties:
+        asset:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        debt:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        net:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+
+    # One month's spending total: the `YYYY-MM` label and the Σ Expenses in VND.
+    SpendingTrendPoint:
+      type: object
+      additionalProperties: false
+      required: [month, spent]
+      properties:
+        month:
+          type: string
+          example: "2026-06"
+        spent:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+
+    SpendingTrends:
+      type: object
+      additionalProperties: false
+      required: [from, to, currency, months]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: VND
+        months:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpendingTrendPoint"
+
+    # One Envelope's spend for the month.
+    EnvelopeSpend:
+      type: object
+      additionalProperties: false
+      required: [id, name, spent]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        spent:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+
+    EnvelopeDistribution:
+      type: object
+      additionalProperties: false
+      required: [month, total, envelopes]
+      properties:
+        month:
+          type: string
+          example: "2026-06"
+        total:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        envelopes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnvelopeSpend"
+
+    # One Goal's saving progress (the report line; distinct from the Goal read
+    # model's embedded GoalProgress).
+    GoalProgressLine:
+      type: object
+      additionalProperties: false
+      required: [id, name, balance, target, expected]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        balance:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        target:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        expected:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        fraction_of_target:
+          type: string
+          nullable: true
+          description: Clamped actual/target as an exact decimal string, or null.
+          example: "0.5"
+
+    GoalProgressReport:
+      type: object
+      additionalProperties: false
+      required: [goals]
+      properties:
+        goals:
+          type: array
+          items:
+            $ref: "#/components/schemas/GoalProgressLine"
+
+    # Net worth at one month-end.
+    NetWorthHistoryPoint:
+      type: object
+      additionalProperties: false
+      required: [month, asset, debt, net]
+      properties:
+        month:
+          type: string
+          example: "2026-06"
+        asset:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        debt:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+        net:
+          $ref: "#/components/schemas/MoneyMinorUnits"
+
+    NetWorthHistory:
+      type: object
+      additionalProperties: false
+      required: [from, to, points]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/NetWorthHistoryPoint"
 
     # Structured error envelope returned for 4xx/5xx — mirrors
     # app/controllers/concerns/error_handling.rb: { error: { code, message, details? } }.
