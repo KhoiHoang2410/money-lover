@@ -23,4 +23,9 @@ group :development, :test do
   gem "brakeman", require: false
   gem "rubocop-rails-omakase", require: false
   gem "rspec-rails", "~> 7.1"
+
+  # OpenAPI contract conformance gate (ADR-0017): validates live responses and
+  # accepted params against docs/api/openapi.yaml from request specs.
+  gem "committee", "~> 5.5"
+  gem "committee-rails", "~> 0.8"
 end

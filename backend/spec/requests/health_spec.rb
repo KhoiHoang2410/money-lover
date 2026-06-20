@@ -7,6 +7,7 @@ RSpec.describe "Health", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.media_type).to eq("application/json")
     expect(response.parsed_body).to eq("status" => "ok")
+    assert_conforms_to_contract(200)
   end
 
   it "rejects a non-JSON Accept header" do
@@ -14,6 +15,7 @@ RSpec.describe "Health", type: :request do
 
     expect(response).to have_http_status(:not_acceptable)
     expect(response.parsed_body.dig("error", "code")).to eq("not_acceptable")
+    assert_conforms_to_contract(406)
   end
 
   it "rejects a non-JSON request content type" do
@@ -23,5 +25,6 @@ RSpec.describe "Health", type: :request do
 
     expect(response).to have_http_status(:unsupported_media_type)
     expect(response.parsed_body.dig("error", "code")).to eq("unsupported_media_type")
+    assert_conforms_to_contract(415)
   end
 end

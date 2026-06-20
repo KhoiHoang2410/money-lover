@@ -1,0 +1,4 @@
+# Installed tooling — restored deterministically from package-lock.json via
+# `npm ci`. Never committed. The contract (openapi.yaml), its config
+# (redocly.yaml), the lockfile, and the generated types ARE committed.
+/node_modules/

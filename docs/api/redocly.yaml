@@ -1,0 +1,9 @@
+# Redocly lint config for the Money Lover contract.
+#
+# We want a STRUCTURAL guarantee (the document is a valid OpenAPI 3.x file),
+# not a style opinion. `extends: []` disables the recommended style ruleset;
+# `struct: error` keeps the one rule that matters — the spec must parse and
+# conform to the OpenAPI meta-schema. Tighten with more rules as the API grows.
+extends: []
+rules:
+  spec: error

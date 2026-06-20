@@ -1,0 +1,15 @@
+{
+  "name": "money-lover-api-contract",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenAPI contract for the Money Lover backend + deterministic TS type generation (ADR-0017).",
+  "scripts": {
+    "generate": "openapi-typescript openapi.yaml --output generated/types.ts",
+    "lint": "redocly lint openapi.yaml",
+    "check": "npm run generate && git diff --exit-code -- generated/types.ts"
+  },
+  "devDependencies": {
+    "@redocly/cli": "1.25.15",
+    "openapi-typescript": "7.4.4"
+  }
+}
