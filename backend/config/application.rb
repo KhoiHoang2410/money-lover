@@ -41,6 +41,13 @@ module Backend
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # API-only mode drops the cookie middleware, but the web auth flow needs it:
+    # /auth sets/reads the httpOnly refresh cookie for the browser SPA (ADR-0014,
+    # webapp issue 01). Add just the cookie jar back (no sessions) so
+    # AuthController's `cookies` writes reach the response. The iOS Bearer flow
+    # is unaffected.
+    config.middleware.use ActionDispatch::Cookies
+
     # Background work runs on Sidekiq (Redis-backed).
     config.active_job.queue_adapter = :sidekiq
   end

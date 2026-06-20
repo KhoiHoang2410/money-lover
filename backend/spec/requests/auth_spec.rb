@@ -6,8 +6,14 @@ require "rails_helper"
 RSpec.describe "Auth", type: :request do
   let(:json) { { "Accept" => "application/json", "Content-Type" => "application/json" } }
 
-  def post_json(path, body)
+  def post_json(path, body = {})
     post path, params: body.to_json, headers: json
+  end
+
+  # The Set-Cookie header for the refresh cookie (web flow, ADR-0014). Asserted
+  # raw because Rack's parsed cookie jar drops the security attributes.
+  def refresh_set_cookie
+    Array(response.headers["Set-Cookie"]).find { |c| c.start_with?("refresh_token=") }
   end
 
   describe "POST /auth/register" do
@@ -21,6 +27,19 @@ RSpec.describe "Auth", type: :request do
       expect(body["access_token"]).to be_present
       expect(body["refresh_token"]).to be_present
       expect(Identity.find_by(provider: "password", external_id: "alice")).to be_present
+    end
+
+    it "sets the refresh token as a secure httpOnly cookie scoped to /auth" do
+      post_json("/auth/register", { username: "alice", password: "secret123" })
+
+      cookie = refresh_set_cookie
+      expect(cookie).to be_present
+      expect(cookie).to match(/HttpOnly/i)
+      expect(cookie).to match(/secure/i)
+      expect(cookie).to match(/SameSite=Lax/i)
+      expect(cookie).to match(%r{path=/auth}i)
+      # The cookie carries the same raw refresh token returned in the body.
+      expect(response.cookies["refresh_token"]).to eq(response.parsed_body["refresh_token"])
     end
 
     it "honors a supplied timezone" do
@@ -58,6 +77,13 @@ RSpec.describe "Auth", type: :request do
       expect(response).to have_http_status(:ok)
       assert_conforms_to_contract(200)
       expect(response.parsed_body["access_token"]).to be_present
+    end
+
+    it "sets the refresh cookie on a successful login" do
+      post_json("/auth/login", { username: "alice", password: "secret123" })
+
+      expect(refresh_set_cookie).to match(/HttpOnly/i)
+      expect(response.cookies["refresh_token"]).to eq(response.parsed_body["refresh_token"])
     end
 
     it "rejects invalid credentials with 401" do
@@ -115,6 +141,57 @@ RSpec.describe "Auth", type: :request do
       expect(response).to have_http_status(:no_content)
 
       post_json("/auth/refresh", { refresh_token: refresh_token })
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
+  # The browser SPA never sends the refresh token in the body — it relies on the
+  # httpOnly cookie the server sets and reads (ADR-0014, webapp issue 01).
+  describe "web cookie flow (refresh token via cookie only)" do
+    before { Auth::PasswordProvider.register(username: "alice", password: "secret123") }
+
+    def login_and_capture_cookie
+      post_json("/auth/login", { username: "alice", password: "secret123" })
+      response.cookies["refresh_token"]
+    end
+
+    it "refreshes using only the cookie, with no refresh_token in the body" do
+      cookie_token = login_and_capture_cookie
+      cookies[:refresh_token] = cookie_token
+
+      post_json("/auth/refresh") # empty body
+
+      expect(response).to have_http_status(:ok)
+      assert_conforms_to_contract(200)
+      expect(response.parsed_body["access_token"]).to be_present
+    end
+
+    it "rotates the cookie on refresh" do
+      cookie_token = login_and_capture_cookie
+      cookies[:refresh_token] = cookie_token
+
+      post_json("/auth/refresh")
+
+      rotated = response.cookies["refresh_token"]
+      expect(rotated).to be_present
+      expect(rotated).not_to eq(cookie_token)
+      expect(rotated).to eq(response.parsed_body["refresh_token"])
+    end
+
+    it "clears the cookie on logout and rejects a subsequent cookie refresh" do
+      cookie_token = login_and_capture_cookie
+      cookies[:refresh_token] = cookie_token
+
+      post_json("/auth/logout")
+      expect(response).to have_http_status(:no_content)
+      # Cookie cleared: empty value, scoped to /auth.
+      cleared = Array(response.headers["Set-Cookie"]).find { |c| c.start_with?("refresh_token=") }
+      expect(cleared).to match(%r{path=/auth}i)
+      expect(response.cookies["refresh_token"]).to be_blank
+
+      # The revoked token can no longer be refreshed, even presented via cookie.
+      cookies[:refresh_token] = cookie_token
+      post_json("/auth/refresh")
       expect(response).to have_http_status(:unauthorized)
     end
   end
