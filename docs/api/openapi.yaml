@@ -945,6 +945,32 @@ paths:
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
 
+  /signals:
+    get:
+      operationId: listSignals
+      tags: [Signals]
+      summary: List the current user's spending and goal signals
+      description: >-
+        The deterministic Signals computed for the caller over their own ledger,
+        Envelopes and Goals — envelope pace (projected overspend), an overspent
+        Envelope, a Goal behind plan, a drained Reserve, and an unusually large
+        Expense (CONTEXT.md "Signal"). Computed in their timezone and ordered
+        strongest-first. No model/LLM is involved (ADR-0004 paused): the
+        `title`/`detail` text is the deterministic phrasing returned directly.
+      responses:
+        "200":
+          description: The caller's signals, strongest first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
 components:
   securitySchemes:
     # Short-lived JWT access token (ADR-0014). Sent as `Authorization: Bearer …`.
@@ -1649,6 +1675,53 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RateEntry"
+
+    # ── Signals (issue 20, CONTEXT.md "Signal") ──────────────────────────────
+    # One deterministic spending/goal observation. `title`/`detail` are the
+    # plain-text phrasing returned directly to clients (no model — ADR-0004
+    # paused). `id` is stable across recomputes for the same entity so clients
+    # diff cleanly.
+    Signal:
+      type: object
+      additionalProperties: false
+      required: [id, kind, severity, title, detail]
+      properties:
+        id:
+          type: string
+          description: Stable id — the signal kind plus the entity it concerns.
+          example: projectedOverspend-12
+        kind:
+          type: string
+          description: The rule that fired.
+          enum:
+            - projectedOverspend
+            - envelopeOverspent
+            - goalBehind
+            - reserveLow
+            - largeExpense
+        severity:
+          type: string
+          description: How urgent the signal is.
+          enum: [info, warning, critical]
+        title:
+          type: string
+          description: Short deterministic headline.
+          example: Food is on track to overspend
+        detail:
+          type: string
+          description: Deterministic one-line explanation.
+          example: At this pace it runs out before month-end (₫600,000 of ₫1,000,000).
+
+    SignalList:
+      type: object
+      additionalProperties: false
+      required: [signals]
+      properties:
+        signals:
+          type: array
+          description: The caller's signals, strongest (most severe) first.
+          items:
+            $ref: "#/components/schemas/Signal"
 
     RateOverrideRequest:
       type: object
