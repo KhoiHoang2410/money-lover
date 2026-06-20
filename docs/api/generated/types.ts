@@ -384,6 +384,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/net_worth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read net worth
+         * @description The caller's net worth as asset, debt and net, each in the base currency VND (NetWorthEngine). Asset is the Σ value of every non-liability source plus every Goal balance; debt is the Σ value of liability sources (kept negative); net = asset + debt.
+         */
+        get: operations["getNetWorth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/spending_trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monthly spending trend
+         * @description Σ of the caller's Expenses per calendar month over the `from`..`to` date range, valued in VND. Every month in the range is present (zero-filled) so the series is stable for client charting.
+         */
+        get: operations["getSpendingTrends"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/envelope_distribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Envelope spending distribution
+         * @description Per-Envelope spent for one month (BudgetEngine), the data behind the bucket-distribution chart. `month` is an optional `YYYY-MM`; when omitted the caller's current month (in their timezone) is used.
+         */
+        get: operations["getEnvelopeDistribution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/goal_progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Goal saving progress
+         * @description Per-Goal balance (Σ Contributions), target, Expected-by-today and the fraction of target reached (GoalTracker), the data behind the goal progress chart.
+         */
+        get: operations["getGoalProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/net_worth_history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Net-worth history
+         * @description Net worth (asset / debt / net, VND) at each month-end over the `from`..`to` date range, using the ledger as of that month-end and the caller's currently-resolved rates. The data behind the balance / net-worth history chart.
+         */
+        get: operations["getNetWorthHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -470,6 +570,67 @@ export interface components {
              * @example VND
              */
             currency: string;
+        };
+        NetWorth: {
+            asset: components["schemas"]["MoneyMinorUnits"];
+            debt: components["schemas"]["MoneyMinorUnits"];
+            net: components["schemas"]["MoneyMinorUnits"];
+        };
+        SpendingTrendPoint: {
+            /** @example 2026-06 */
+            month: string;
+            spent: components["schemas"]["MoneyMinorUnits"];
+        };
+        SpendingTrends: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** @example VND */
+            currency: string;
+            months: components["schemas"]["SpendingTrendPoint"][];
+        };
+        EnvelopeSpend: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            spent: components["schemas"]["MoneyMinorUnits"];
+        };
+        EnvelopeDistribution: {
+            /** @example 2026-06 */
+            month: string;
+            total: components["schemas"]["MoneyMinorUnits"];
+            envelopes: components["schemas"]["EnvelopeSpend"][];
+        };
+        GoalProgressLine: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            balance: components["schemas"]["MoneyMinorUnits"];
+            target: components["schemas"]["MoneyMinorUnits"];
+            expected: components["schemas"]["MoneyMinorUnits"];
+            /**
+             * @description Clamped actual/target as an exact decimal string, or null.
+             * @example 0.5
+             */
+            fraction_of_target?: string | null;
+        };
+        GoalProgressReport: {
+            goals: components["schemas"]["GoalProgressLine"][];
+        };
+        NetWorthHistoryPoint: {
+            /** @example 2026-06 */
+            month: string;
+            asset: components["schemas"]["MoneyMinorUnits"];
+            debt: components["schemas"]["MoneyMinorUnits"];
+            net: components["schemas"]["MoneyMinorUnits"];
+        };
+        NetWorthHistory: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            points: components["schemas"]["NetWorthHistoryPoint"][];
         };
         Error: {
             error: {
@@ -1052,6 +1213,12 @@ export interface components {
         TransactionId: number;
         /** @description The envelope's id. */
         EnvelopeId: number;
+        /** @description Inclusive start of the report date range (ISO-8601 date). */
+        ReportFrom: string;
+        /** @description Inclusive end of the report date range (ISO-8601 date). */
+        ReportTo: string;
+        /** @description The month to report on as `YYYY-MM`; defaults to the caller's current month. */
+        ReportMonth: string;
     };
     requestBodies: never;
     headers: never;
@@ -1815,6 +1982,132 @@ export interface operations {
             404: components["responses"]["NotFound"];
             406: components["responses"]["NotAcceptable"];
             415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getNetWorth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's net worth. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetWorth"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    getSpendingTrends: {
+        parameters: {
+            query: {
+                /** @description Inclusive start of the report date range (ISO-8601 date). */
+                from: components["parameters"]["ReportFrom"];
+                /** @description Inclusive end of the report date range (ISO-8601 date). */
+                to: components["parameters"]["ReportTo"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Monthly spending totals. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpendingTrends"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getEnvelopeDistribution: {
+        parameters: {
+            query?: {
+                /** @description The month to report on as `YYYY-MM`; defaults to the caller's current month. */
+                month?: components["parameters"]["ReportMonth"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Per-envelope spend for the month. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeDistribution"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getGoalProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Per-goal saving progress. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalProgressReport"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+        };
+    };
+    getNetWorthHistory: {
+        parameters: {
+            query: {
+                /** @description Inclusive start of the report date range (ISO-8601 date). */
+                from: components["parameters"]["ReportFrom"];
+                /** @description Inclusive end of the report date range (ISO-8601 date). */
+                to: components["parameters"]["ReportTo"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Net worth at each month-end in the range. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetWorthHistory"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
             422: components["responses"]["UnprocessableEntity"];
         };
     };
