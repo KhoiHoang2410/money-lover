@@ -20,3 +20,10 @@ export type HealthStatus = components["schemas"]["HealthStatus"];
 export type Source = components["schemas"]["Source"];
 export type SourceList = components["schemas"]["SourceList"];
 export type SourceKind = Source["kind"];
+export type Envelope = components["schemas"]["Envelope"];
+export type EnvelopeCreateRequest =
+  components["schemas"]["EnvelopeCreateRequest"];
+export type EnvelopeUpdateRequest =
+  components["schemas"]["EnvelopeUpdateRequest"];
+export type AllocationTemplateRequest =
+  components["schemas"]["AllocationTemplateRequest"];

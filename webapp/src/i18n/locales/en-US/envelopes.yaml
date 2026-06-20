@@ -1,0 +1,50 @@
+envelopes:
+  title: Envelopes
+  subtitle: Plan each month across your budgeting buckets.
+  newEnvelope: New envelope
+  starterButton: Starter envelopes
+  templateButton: Allocation template
+  loading: Loading envelopes…
+  errorTitle: Couldn't load envelopes
+  errorBody: Something went wrong reaching the server. Try again.
+  retry: Retry
+  emptyTitle: No envelopes yet
+  emptyBody: Create one or seed the suggested set to start budgeting.
+  reserveBadge: Reserve
+  allocationLabel: Allocation
+  spentLabel: Spent
+  remainingLabel: Remaining
+  editAria: Edit {{name}}
+  deleteAria: Delete {{name}}
+  createTitle: New envelope
+  editTitle: Edit envelope
+  formSubtitle: Allocations and caps are entered in ₫.
+  nameLabel: Name
+  namePlaceholder: e.g. Food
+  iconLabel: Icon
+  iconPlaceholder: e.g. 🍜
+  allocationFieldLabel: Monthly allocation (₫)
+  weeklyCapLabel: Weekly cap (₫)
+  monthlyCapLabel: Monthly cap (₫)
+  optional: Optional
+  reserveCheckbox: Mark as the Reserve
+  reserveHint: Only one envelope can be the Reserve.
+  invalidAmount: Enter a valid amount.
+  genericError: Something went wrong. Please try again.
+  cancel: Cancel
+  save: Save
+  saving: Saving…
+  deleteTitle: Delete envelope
+  deleteConfirm: Delete “{{name}}”? This can't be undone.
+  confirmDelete: Delete
+  deleting: Deleting…
+  starterTitle: Starter envelopes
+  starterSubtitle: Seed the suggested set. Names you already have are skipped.
+  starterExisting: Already added
+  seed: Add starter envelopes
+  seeding: Adding…
+  templateTitle: Allocation template
+  templateSubtitle: Apply your saved allocations to a month.
+  monthLabel: Month
+  apply: Apply template
+  applying: Applying…
