@@ -108,6 +108,9 @@ paths:
       responses:
         "201":
           description: User created; returns the initial token pair.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/RefreshCookie"
           content:
             application/json:
               schema:
@@ -137,6 +140,9 @@ paths:
       responses:
         "200":
           description: Credentials accepted; returns a token pair.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/RefreshCookie"
           content:
             application/json:
               schema:
@@ -158,10 +164,12 @@ paths:
       description: >-
         Revoke the presented refresh token and return a brand-new pair. Reusing
         a rotated or revoked refresh token fails with 401. Public (no auth) — the
-        refresh token itself is the credential.
+        refresh token itself is the credential. The token is read from the
+        httpOnly `refresh_token` cookie (web) or, if absent, the request body
+        (iOS); the body is therefore optional.
       security: []
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -169,6 +177,9 @@ paths:
       responses:
         "200":
           description: Refresh token rotated; returns a new token pair.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/RefreshCookie"
           content:
             application/json:
               schema:
@@ -189,18 +200,23 @@ paths:
       summary: Revoke a refresh token
       description: >-
         Revoke the refresh token so the device can no longer obtain new access
-        tokens. Idempotent. Public (no auth) — the refresh token is the
-        credential.
+        tokens, and clear the refresh cookie. Idempotent. Public (no auth) — the
+        refresh token is the credential. The token is read from the httpOnly
+        `refresh_token` cookie (web) or, if absent, the request body (iOS); the
+        body is therefore optional.
       security: []
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/RefreshRequest"
       responses:
         "204":
-          description: Refresh token revoked (or already inactive).
+          description: Refresh token revoked (or already inactive); cookie cleared.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/RefreshCookie"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
         "406":
@@ -1108,6 +1124,20 @@ components:
       scheme: bearer
       bearerFormat: JWT
 
+  headers:
+    # The rotating refresh token, set as an httpOnly cookie for the browser SPA
+    # (ADR-0014, webapp issue 01). `HttpOnly` keeps it out of JavaScript,
+    # `Secure` confines it to HTTPS, `SameSite=Lax` blocks cross-site POSTs
+    # (CSRF baseline), and `Path=/auth` scopes it to the token endpoints. On
+    # logout the same header clears the cookie (empty value, past expiry). The
+    # iOS client ignores this header and uses the body's refresh_token instead.
+    RefreshCookie:
+      description: >-
+        Sets (or, on logout, clears) the httpOnly `refresh_token` cookie:
+        `refresh_token=<token>; HttpOnly; Secure; SameSite=Lax; Path=/auth`.
+      schema:
+        type: string
+
   parameters:
     GoalId:
       name: id
@@ -1397,11 +1427,13 @@ components:
     RefreshRequest:
       type: object
       additionalProperties: false
-      required: [refresh_token]
       properties:
         refresh_token:
           type: string
-          description: The opaque refresh token to rotate (refresh) or revoke (logout).
+          description: >-
+            The opaque refresh token to rotate (refresh) or revoke (logout).
+            Optional: web clients present it via the httpOnly `refresh_token`
+            cookie instead of the body, so the body may be empty.
 
     # Access token + rotating refresh token (ADR-0014). Returned by register,
     # login, and refresh.

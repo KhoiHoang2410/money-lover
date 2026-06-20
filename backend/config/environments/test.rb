@@ -28,6 +28,12 @@ Rails.application.configure do
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 
+  # Request specs run over plain HTTP, but the refresh cookie is `Secure`
+  # (ADR-0014). Rails drops Secure cookies on non-SSL responses unless this is
+  # set; enabling it lets specs assert the Secure attribute the production
+  # cookie carries.
+  config.action_dispatch.always_write_cookie = true
+
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
 

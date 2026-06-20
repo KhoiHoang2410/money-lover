@@ -55,7 +55,7 @@ export interface paths {
         put?: never;
         /**
          * Rotate the refresh token
-         * @description Revoke the presented refresh token and return a brand-new pair. Reusing a rotated or revoked refresh token fails with 401. Public (no auth) — the refresh token itself is the credential.
+         * @description Revoke the presented refresh token and return a brand-new pair. Reusing a rotated or revoked refresh token fails with 401. Public (no auth) — the refresh token itself is the credential. The token is read from the httpOnly `refresh_token` cookie (web) or, if absent, the request body (iOS); the body is therefore optional.
          */
         post: operations["refresh"];
         delete?: never;
@@ -75,7 +75,7 @@ export interface paths {
         put?: never;
         /**
          * Revoke a refresh token
-         * @description Revoke the refresh token so the device can no longer obtain new access tokens. Idempotent. Public (no auth) — the refresh token is the credential.
+         * @description Revoke the refresh token so the device can no longer obtain new access tokens, and clear the refresh cookie. Idempotent. Public (no auth) — the refresh token is the credential. The token is read from the httpOnly `refresh_token` cookie (web) or, if absent, the request body (iOS); the body is therefore optional.
          */
         post: operations["logout"];
         delete?: never;
@@ -693,8 +693,8 @@ export interface components {
             password: string;
         };
         RefreshRequest: {
-            /** @description The opaque refresh token to rotate (refresh) or revoke (logout). */
-            refresh_token: string;
+            /** @description The opaque refresh token to rotate (refresh) or revoke (logout). Optional: web clients present it via the httpOnly `refresh_token` cookie instead of the body, so the body may be empty. */
+            refresh_token?: string;
         };
         TokenPair: {
             /** @description Short-lived JWT. Send as `Authorization: Bearer <token>`. */
@@ -1272,7 +1272,10 @@ export interface components {
         ReportMonth: string;
     };
     requestBodies: never;
-    headers: never;
+    headers: {
+        /** @description Sets (or, on logout, clears) the httpOnly `refresh_token` cookie: `refresh_token=<token>; HttpOnly; Secure; SameSite=Lax; Path=/auth`. */
+        RefreshCookie: string;
+    };
     pathItems: never;
 }
 export type $defs = Record<string, never>;
@@ -1293,6 +1296,7 @@ export interface operations {
             /** @description User created; returns the initial token pair. */
             201: {
                 headers: {
+                    "Set-Cookie": components["headers"]["RefreshCookie"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -1320,6 +1324,7 @@ export interface operations {
             /** @description Credentials accepted; returns a token pair. */
             200: {
                 headers: {
+                    "Set-Cookie": components["headers"]["RefreshCookie"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -1339,7 +1344,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RefreshRequest"];
             };
@@ -1348,6 +1353,7 @@ export interface operations {
             /** @description Refresh token rotated; returns a new token pair. */
             200: {
                 headers: {
+                    "Set-Cookie": components["headers"]["RefreshCookie"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -1367,15 +1373,16 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RefreshRequest"];
             };
         };
         responses: {
-            /** @description Refresh token revoked (or already inactive). */
+            /** @description Refresh token revoked (or already inactive); cookie cleared. */
             204: {
                 headers: {
+                    "Set-Cookie": components["headers"]["RefreshCookie"];
                     [name: string]: unknown;
                 };
                 content?: never;
