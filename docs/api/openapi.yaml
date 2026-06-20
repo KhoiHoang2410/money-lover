@@ -49,6 +49,13 @@ tags:
       short-lived JWT access token plus a long-lived rotating refresh token.
       Storage guidance: keep the refresh token in an httpOnly cookie (web) or
       the Keychain (iOS); keep the access token in memory only.
+  - name: Rates
+    description: >-
+      Market rates used to value foreign-currency Accounts and Holdings in the
+      base currency (CONTEXT.md "Rate"). Global values are auto-fetched and
+      cached by the backend; a per-User override wins for that User's
+      valuations only. Rate values are exact decimal strings in VND — never
+      floats (ADR-0015).
 
 paths:
   /auth/register:
@@ -308,6 +315,83 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
               example:
                 status: ok
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /rates:
+    get:
+      operationId: listRates
+      tags: [Rates]
+      summary: List resolved rates for the current user
+      description: >-
+        Every rate resolved for the caller: a per-User override wins, otherwise
+        the global cached value. A value flagged `stale: true` is the last good
+        cached value after a failed upstream fetch.
+      responses:
+        "200":
+          description: The caller's resolved rates.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /rates/{key}/override:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        description: 'Rate key, e.g. `fx.USD`, `gold`, or `stock.VNM`.'
+        schema:
+          type: string
+        example: fx.USD
+    put:
+      operationId: setRateOverride
+      tags: [Rates]
+      summary: Set the current user's override for a rate
+      description: >-
+        Create or replace the caller's manual override for `key`. The override
+        affects only this User's valuations. Returns the resolved rate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RateOverrideRequest"
+      responses:
+        "200":
+          description: Override stored; returns the resolved rate.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RateEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      operationId: clearRateOverride
+      tags: [Rates]
+      summary: Clear the current user's override for a rate
+      description: >-
+        Remove the caller's override for `key` so their valuations fall back to
+        the global cached value. Idempotent.
+      responses:
+        "204":
+          description: Override removed (or none existed).
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "406":
           $ref: "#/components/responses/NotAcceptable"
         "415":
@@ -617,6 +701,70 @@ components:
         ticker:
           type: string
           nullable: true
+
+    # ── Rates (issue 19) ─────────────────────────────────────────────────────
+    # One rate resolved for the current user. `value` is an exact decimal STRING
+    # in VND — never a JSON number — so no precision is lost (ADR-0015):
+    #   fx.<CUR>       VND per 1 major unit of the foreign currency
+    #   gold           VND per chỉ of SJC gold
+    #   stock.<TICKER> VND per share
+    RateEntry:
+      type: object
+      additionalProperties: false
+      required: [key, value, stale, overridden]
+      properties:
+        key:
+          type: string
+          description: Namespaced rate key (fx.USD, gold, stock.VNM).
+          example: fx.USD
+        value:
+          type: string
+          description: Exact decimal VND amount as a string (never a float).
+          example: "25500"
+        source:
+          type: string
+          nullable: true
+          description: >-
+            Upstream provenance of the global value (e.g. "fx", "sjc", "hose").
+            Null when only a User override exists for the key.
+          example: fx
+        fetched_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: >-
+            When the global value was last successfully fetched. Null when only
+            a User override exists for the key.
+        stale:
+          type: boolean
+          description: >-
+            True when the global value is the last good cache after a failed
+            upstream fetch.
+        overridden:
+          type: boolean
+          description: True when this value comes from the caller's manual override.
+
+    RatesResponse:
+      type: object
+      additionalProperties: false
+      required: [rates]
+      properties:
+        rates:
+          type: array
+          items:
+            $ref: "#/components/schemas/RateEntry"
+
+    RateOverrideRequest:
+      type: object
+      additionalProperties: false
+      required: [value]
+      properties:
+        value:
+          type: string
+          description: >-
+            Exact, non-negative decimal VND amount as a string (never a float —
+            ADR-0015). Same units as the rate key it overrides.
+          example: "26000"
 
   responses:
     NotAcceptable:

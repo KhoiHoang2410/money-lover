@@ -1,0 +1,8 @@
+{
+  "exchange": "HOSE",
+  "fetched_at": "2026-06-20T08:00:00Z",
+  "quotes": [
+    { "symbol": "VNM", "price": "65000" },
+    { "symbol": "FPT", "price": "120500" }
+  ]
+}
