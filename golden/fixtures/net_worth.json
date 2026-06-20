@@ -1,0 +1,89 @@
+{
+  "engine": "net_worth",
+  "description": "NetWorthEngine: asset = sum of non-negative source values + goal balances; debt = sum of negative (liability) source values; net = asset + debt. All in base currency VND via rates. Holdings are valued by quantity. Conservation: a goal contribution/invest only moves value between assets, leaving net unchanged.",
+  "source_swift_tests": [
+    "ios/MoneyLoverTests/NetWorthEngineTests.swift"
+  ],
+  "cases": [
+    {
+      "name": "asset_debt_and_net",
+      "inputs": {
+        "entries": [
+          { "source": { "kind": "account", "currency": "VND" }, "balance": { "minor_units": 80000000, "currency": "VND" } },
+          { "source": { "kind": "holding", "currency": "VND", "holding": { "quantity": "5", "unit": "chi" } }, "balance": { "minor_units": 0, "currency": "VND" } },
+          { "source": { "kind": "credit_card", "currency": "VND" }, "balance": { "minor_units": -18300000, "currency": "VND" } }
+        ],
+        "goal_balances": [],
+        "rates": { "fx": { "VND": 1, "USD": 25500 }, "gold_per_chi": 15950000, "stock": {} }
+      },
+      "expected_outputs": {
+        "asset": { "minor_units": 159750000, "currency": "VND" },
+        "debt": { "minor_units": -18300000, "currency": "VND" },
+        "net": { "minor_units": 141450000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "multiple_credit_cards_aggregate_into_debt",
+      "inputs": {
+        "entries": [
+          { "source": { "kind": "account", "currency": "VND" }, "balance": { "minor_units": 50000000, "currency": "VND" } },
+          { "source": { "kind": "credit_card", "currency": "VND" }, "balance": { "minor_units": -5000000, "currency": "VND" } },
+          { "source": { "kind": "credit_card", "currency": "VND" }, "balance": { "minor_units": -3000000, "currency": "VND" } }
+        ],
+        "goal_balances": [],
+        "rates": { "fx": { "VND": 1, "USD": 25500 }, "gold_per_chi": 15950000, "stock": {} }
+      },
+      "expected_outputs": {
+        "asset": { "minor_units": 50000000, "currency": "VND" },
+        "debt": { "minor_units": -8000000, "currency": "VND" },
+        "net": { "minor_units": 42000000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "mixed_currency_net_converts_via_rates",
+      "inputs": {
+        "entries": [
+          { "source": { "kind": "account", "currency": "VND" }, "balance": { "minor_units": 80000000, "currency": "VND" } },
+          { "source": { "kind": "account", "currency": "USD" }, "balance": { "minor_units": 100000, "currency": "USD" } },
+          { "source": { "kind": "credit_card", "currency": "USD" }, "balance": { "minor_units": -20000, "currency": "USD" } }
+        ],
+        "goal_balances": [],
+        "rates": { "fx": { "VND": 1, "USD": 25500 }, "gold_per_chi": 15950000, "stock": {} }
+      },
+      "expected_outputs": {
+        "asset": { "minor_units": 105500000, "currency": "VND" },
+        "debt": { "minor_units": -5100000, "currency": "VND" },
+        "net": { "minor_units": 100400000, "currency": "VND" }
+      }
+    },
+    {
+      "name": "empty_is_zero",
+      "inputs": {
+        "entries": [],
+        "goal_balances": [],
+        "rates": { "fx": { "VND": 1, "USD": 25500 }, "gold_per_chi": 15950000, "stock": {} }
+      },
+      "expected_outputs": {
+        "asset": { "minor_units": 0, "currency": "VND" },
+        "debt": { "minor_units": 0, "currency": "VND" },
+        "net": { "minor_units": 0, "currency": "VND" }
+      }
+    },
+    {
+      "name": "goal_balances_count_as_asset",
+      "description": "Account holds 60M, goal holds 40M; total asset 100M == net (funding a goal does not change net worth).",
+      "inputs": {
+        "entries": [
+          { "source": { "kind": "account", "currency": "VND" }, "balance": { "minor_units": 60000000, "currency": "VND" } }
+        ],
+        "goal_balances": [ { "minor_units": 40000000, "currency": "VND" } ],
+        "rates": { "fx": { "VND": 1, "USD": 25500 }, "gold_per_chi": 15950000, "stock": {} }
+      },
+      "expected_outputs": {
+        "asset": { "minor_units": 100000000, "currency": "VND" },
+        "debt": { "minor_units": 0, "currency": "VND" },
+        "net": { "minor_units": 100000000, "currency": "VND" }
+      }
+    }
+  ]
+}
