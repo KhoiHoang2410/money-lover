@@ -642,6 +642,40 @@ paths:
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
 
+  /api/reconciliations:
+    post:
+      operationId: createReconciliation
+      tags: [Transactions]
+      summary: Reconcile sources against their real balances
+      description: >-
+        Submit each money source's re-entered real balance. The server compares
+        it to the source's Current balance (opening + Σ transactions) and writes
+        one signed Adjustment transaction per source that drifted, atomically
+        (all-or-nothing). A source already on the money produces no Adjustment.
+        Returns the created Adjustments and the ids of the unchanged sources as
+        an auditable Reconciliation record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReconciliationCreateRequest"
+      responses:
+        "201":
+          description: Reconciliation completed; Adjustments written.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reconciliation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
   /health:
     get:
       operationId: getHealth
@@ -1451,6 +1485,65 @@ components:
             Exact, non-negative decimal VND amount as a string (never a float —
             ADR-0015). Same units as the rate key it overrides.
           example: "26000"
+
+    # ── Reconcile (issue 17, CONTEXT.md "Reconcile"/"Adjustment") ─────────────
+    # One source's re-entered real balance. The drift from its Current balance
+    # becomes a signed Adjustment; an equal balance produces none.
+    ReconciliationBalance:
+      type: object
+      additionalProperties: false
+      required: [source_id, amount_minor_units, currency]
+      properties:
+        source_id:
+          type: integer
+          format: int64
+          description: A money source (account/credit_card) owned by the caller.
+        amount_minor_units:
+          type: integer
+          format: int64
+          description: The re-entered real balance in the source currency's minor units.
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: Must match the source's currency.
+        envelope_id:
+          type: integer
+          format: int64
+          description: Optional Envelope assignment for the Adjustment.
+        note:
+          type: string
+          nullable: true
+          description: Optional description for the Adjustment.
+
+    ReconciliationCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [balances]
+      properties:
+        balances:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ReconciliationBalance"
+
+    # The auditable result of a Reconcile action: the Adjustment transactions it
+    # created (full Transaction shape) plus the ids of the sources that were
+    # already correct (no Adjustment needed).
+    Reconciliation:
+      type: object
+      additionalProperties: false
+      required: [adjustments, unchanged_source_ids]
+      properties:
+        adjustments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        unchanged_source_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
 
   responses:
     NotAcceptable:

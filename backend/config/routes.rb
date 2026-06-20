@@ -39,6 +39,11 @@ Rails.application.routes.draw do
       # singular resources: one action each (POST), no id in the path.
       resource :starter_envelopes, only: [ :create ]
       resource :allocation_template, only: [ :create ], controller: "allocation_template"
+
+      # Reconcile action (issue 17) — POST a set of re-entered real balances;
+      # the server writes the resulting Adjustment transactions atomically and
+      # returns the auditable Reconciliation (CONTEXT.md "Reconcile"/"Adjustment").
+      resources :reconciliations, only: [ :create ]
     end
 
     # Rate service (issue 19): resolved rates for the current User + per-User
