@@ -1,0 +1,8 @@
+settings:
+  preferencesTitle: Preferences
+  timezoneLabel: Timezone
+  timezoneHint: Drives month boundaries, resets, and "today".
+  languageLabel: Language
+  accountTitle: Account
+  logoutHint: Sign out of this browser. Your refresh session ends.
+  logoutButton: Log out

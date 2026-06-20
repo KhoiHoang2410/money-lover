@@ -1,0 +1,19 @@
+auth:
+  loginTitle: Welcome back
+  loginSubtitle: Sign in to run your financial life.
+  loginButton: Sign in
+  signingIn: Signing in…
+  registerTitle: Create your account
+  registerSubtitle: Start tracking every đồng in one place.
+  registerButton: Create account
+  creatingAccount: Creating account…
+  usernameLabel: Username or email
+  passwordLabel: Password
+  confirmPasswordLabel: Confirm password
+  passwordMismatch: Passwords do not match.
+  timezoneNote: "Your timezone ({{timezone}}) is detected automatically and used for monthly resets."
+  genericError: Something went wrong. Please try again.
+  noAccount: Don't have an account?
+  registerLink: Register
+  haveAccount: Already have an account?
+  loginLink: Sign in

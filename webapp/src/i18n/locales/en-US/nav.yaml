@@ -1,0 +1,10 @@
+nav:
+  label: Main navigation
+  dashboard: Dashboard
+  sources: Sources
+  transactions: Transactions
+  envelopes: Envelopes
+  goals: Goals
+  reports: Reports
+  reconcile: Reconcile
+  settings: Settings

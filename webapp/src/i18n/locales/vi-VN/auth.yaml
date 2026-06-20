@@ -1,0 +1,19 @@
+auth:
+  loginTitle: Chào mừng trở lại
+  loginSubtitle: Đăng nhập để quản lý tài chính của bạn.
+  loginButton: Đăng nhập
+  signingIn: Đang đăng nhập…
+  registerTitle: Tạo tài khoản
+  registerSubtitle: Bắt đầu theo dõi từng đồng ở một nơi.
+  registerButton: Tạo tài khoản
+  creatingAccount: Đang tạo tài khoản…
+  usernameLabel: Tên đăng nhập hoặc email
+  passwordLabel: Mật khẩu
+  confirmPasswordLabel: Xác nhận mật khẩu
+  passwordMismatch: Mật khẩu không khớp.
+  timezoneNote: "Múi giờ của bạn ({{timezone}}) được nhận tự động và dùng cho việc đặt lại hằng tháng."
+  genericError: Đã có lỗi xảy ra. Vui lòng thử lại.
+  noAccount: Chưa có tài khoản?
+  registerLink: Đăng ký
+  haveAccount: Đã có tài khoản?
+  loginLink: Đăng nhập

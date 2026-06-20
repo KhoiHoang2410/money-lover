@@ -1,0 +1,10 @@
+nav:
+  label: Điều hướng chính
+  dashboard: Tổng quan
+  sources: Nguồn tiền
+  transactions: Giao dịch
+  envelopes: Hũ chi tiêu
+  goals: Mục tiêu
+  reports: Báo cáo
+  reconcile: Đối soát
+  settings: Cài đặt
