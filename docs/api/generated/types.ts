@@ -286,6 +286,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile sources against their real balances
+         * @description Submit each money source's re-entered real balance. The server compares it to the source's Current balance (opening + Σ transactions) and writes one signed Adjustment transaction per source that drifted, atomically (all-or-nothing). A source already on the money produces no Adjustment. Returns the created Adjustments and the ids of the unchanged sources as an auditable Reconciliation record.
+         */
+        post: operations["createReconciliation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -739,6 +759,34 @@ export interface components {
              * @example 26000
              */
             value: string;
+        };
+        ReconciliationBalance: {
+            /**
+             * Format: int64
+             * @description A money source (account/credit_card) owned by the caller.
+             */
+            source_id: number;
+            /**
+             * Format: int64
+             * @description The re-entered real balance in the source currency's minor units.
+             */
+            amount_minor_units: number;
+            /** @description Must match the source's currency. */
+            currency: string;
+            /**
+             * Format: int64
+             * @description Optional Envelope assignment for the Adjustment.
+             */
+            envelope_id?: number;
+            /** @description Optional description for the Adjustment. */
+            note?: string | null;
+        };
+        ReconciliationCreateRequest: {
+            balances: components["schemas"]["ReconciliationBalance"][];
+        };
+        Reconciliation: {
+            adjustments: components["schemas"]["Transaction"][];
+            unchanged_source_ids: number[];
         };
     };
     responses: {
@@ -1370,6 +1418,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EnvelopeList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            406: components["responses"]["NotAcceptable"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    createReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconciliationCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Reconciliation completed; Adjustments written. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reconciliation"];
                 };
             };
             401: components["responses"]["Unauthorized"];
