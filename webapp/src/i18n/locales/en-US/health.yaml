@@ -1,0 +1,10 @@
+health:
+  title: System health
+  subtitle: Live status read from the Money Lover API through the typed client.
+  statusLabel: API status
+  ok: Operational
+  error: Unreachable
+  checking: Checking…
+  endpointLabel: Endpoint
+  sampleBalanceLabel: Sample balance
+  sampleBalanceNote: Formatted from integer minor units — the client does no math.
