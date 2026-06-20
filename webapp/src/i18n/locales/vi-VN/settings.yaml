@@ -1,0 +1,8 @@
+settings:
+  preferencesTitle: Tùy chọn
+  timezoneLabel: Múi giờ
+  timezoneHint: Dùng cho ranh giới tháng, đặt lại và "hôm nay".
+  languageLabel: Ngôn ngữ
+  accountTitle: Tài khoản
+  logoutHint: Đăng xuất khỏi trình duyệt này. Phiên làm mới sẽ kết thúc.
+  logoutButton: Đăng xuất

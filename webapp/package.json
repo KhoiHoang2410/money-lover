@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "check:i18n": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@eslint/js": "^9.20.0",
     "@modyfi/vite-plugin-yaml": "^1.1.1",
+    "@playwright/test": "^1.61.0",
     "@tailwindcss/vite": "^4.0.6",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
